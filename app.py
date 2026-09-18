@@ -1,6 +1,5 @@
 import datetime
 import os
-import time
 import google.generativeai as genai
 import pandas as pd
 import streamlit as st
@@ -123,7 +122,7 @@ else:
 st.sidebar.markdown("---")
 
 # ==========================================
-# 4. CONFIGURAÇÃO DA INTELIGÊNCIA ARTIFICIAL
+# 4. CONFIGURAÇÃO DA INTELIGÊNCIA ARTIFICIAL (BLINDADO)
 # ==========================================
 model = None
 
@@ -131,8 +130,19 @@ try:
   google_api_key_nuvem = st.secrets.get("GEMINI_API_KEY", "")
   if google_api_key_nuvem:
     genai.configure(api_key=google_api_key_nuvem)
-    # Usando o modelo moderno atualizado para evitar erros de rota
-    model = genai.GenerativeModel("gemini-2.5-flash")
+
+    # Varredura inteligente para pegar um modelo ativo compatível com a chave
+    modelo_ativo = "gemini-1.5-flash"
+    try:
+      for m in genai.list_models():
+        if "generateContent" in m.supported_generation_methods:
+          if "flash" in m.name:
+            modelo_ativo = m.name
+            break
+    except Exception:
+      pass
+
+    model = genai.GenerativeModel(modelo_ativo)
 except Exception as e:
   registrar_log(f"Erro ao configurar Gemini: {e}", "ERRO")
 
