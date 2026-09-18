@@ -28,7 +28,9 @@ def registrar_log(acao, tipo="INFO"):
     print(f"Erro no log espião: {e}")
 
 
-registrar_log("Sistema iniciado com liberação de testes gratuitos para clientes.")
+registrar_log(
+    "Sistema iniciado com links separados da InfinitePay (Mensal e Anual)."
+)
 
 # ==========================================
 # 2. CARREGAMENTO DE DADOS (PLANILHAS)
@@ -67,15 +69,15 @@ df_potenciais = carregar_dados(ARQUIVO_POTENCIAIS)
 if "usos_gratuitos" not in st.session_state:
   st.session_state.usos_gratuitos = 0
 
-# Substitua pelos seus links reais de pagamento
-LINK_PAGAMENTO_MENSAL = "https://seu-link-de-pagamento-mensal.com"
-LINK_PAGAMENTO_ANUAL = "https://seu-link-de-pagamento-anual.com"
+# SEUS LINKS OFICIAIS DA INFINITEPAY SEPARADOS
+LINK_PAGAMENTO_MENSAL = "https://invoice.infinitepay.io/plans/cristiane-da-260/XLX77TGv0y"
+LINK_PAGAMENTO_ANUAL = "https://invoice.infinitepay.io/plans/cristiane-da-260/qTSP5k9f6S"
+
 LIMITE_GRATIS = 3
 
 st.sidebar.title("🔐 Painel de Controle")
 st.sidebar.markdown("---")
 
-# Campo opcional para a senha master (apenas para você gerenciar)
 senha_digitada = st.sidebar.text_input(
     "Chave Master (Opcional - Admin)",
     type="password",
@@ -86,7 +88,6 @@ acesso_master = senha_digitada == SENHA_MESTRE
 
 if acesso_master:
   st.sidebar.success("Acesso Master Ativo 🛡️")
-  restantes_texto = "Ilimitado (Admin)"
 else:
   restantes = max(0, LIMITE_GRATIS - st.session_state.usos_gratuitos)
   if restantes > 0:
@@ -98,7 +99,6 @@ else:
 
 st.sidebar.markdown("---")
 
-# MENU DE NAVEGAÇÃO LIVRE PARA TODOS OS VISITANTES
 menu = st.sidebar.selectbox(
     "Navegação Estratégica",
     [
@@ -143,7 +143,7 @@ if menu == "Visão Geral & Indicadores":
   st.info(
       "💡 **Dica:** Explore o **Assistente de IA Local** para testar perguntas"
       " grátis ou acesse a aba **Área de Assinatura & Planos** para garantir"
-      " acesso ilimitado."
+      " acesso ilimitado através da InfinitePay."
   )
   registrar_log("Visitante visualizou a Visão Geral.")
 
@@ -168,12 +168,11 @@ elif menu == "Assistente de IA Local (Chat)":
     with st.chat_message(msg["role"]):
       st.markdown(msg["content"])
 
-  # Verifica se o usuário esgotou os testes grátis e não é master
   if not acesso_master and st.session_state.usos_gratuitos >= LIMITE_GRATIS:
     st.warning(
         "🔒 **Você atingiu o limite de 3 interações gratuitas do chat!** Para"
-        " continuar consultando sem limites e desbloquear todo o sistema, por"
-        " favor, escolha um dos nossos planos na aba de assinaturas."
+        " continuar consultando sem limites, por favor, conclua a assinatura"
+        " segura na aba de planos."
     )
     if st.button("Ir para Planos e Assinatura", type="primary"):
       st.info(
@@ -365,10 +364,10 @@ elif menu == "Gerador de Parecer Executivo":
   )
 
 elif menu == "Área de Assinatura & Planos":
-  st.title("💳 Planos de Assinatura & Acesso Ilimitado")
+  st.title("💳 Planos de Assinatura & Acesso Ilimitado (InfinitePay)")
   st.markdown(
       "Desbloqueie todo o poder da inteligência contábil, chat ilimitado e"
-      " simulações avançadas para o seu escritório."
+      " simulações avançadas de forma rápida e segura."
   )
 
   col_p1, col_p2 = st.columns(2)
@@ -379,30 +378,30 @@ elif menu == "Área de Assinatura & Planos":
         "- Acesso Ilimitado ao Chat com IA\n- Simulações de Regime Avançadas\n-"
         " Relatórios e Pareceres Ilimitados\n- Suporte Prioritário"
     )
-    st.markdown("### **R$ 97,00 / mês**")
+    st.markdown("### **Assinatura Mensal**")
     st.markdown(
-        f"[Quero Assinar o Plano Mensal]({LINK_PAGAMENTO_MENSAL})",
+        f"[Pagar com InfinitePay (Mensal)]({LINK_PAGAMENTO_MENSAL})",
         unsafe_allow_html=True,
     )
 
   with col_p2:
-    st.subheader("⭐ Plano Anual (Melhor Custo-Benefício)")
+    st.subheader("⭐ Plano Anual Profissional")
     st.markdown(
-        "- Tudo do Plano Mensal\n- Desconto Especial de 20%\n- Atualizações"
+        "- Tudo do Plano Mensal\n- Acesso Completo e Contínuo\n- Atualizações"
         " Automáticas Prioritárias\n- Consultoria de Configuração"
     )
-    st.markdown("### **R$ 897,00 / ano**")
+    st.markdown("### **Assinatura Anual**")
     st.markdown(
-        f"[Quero Assinar o Plano Anual]({LINK_PAGAMENTO_ANUAL})",
+        f"[Pagar com InfinitePay (Anual)]({LINK_PAGAMENTO_ANUAL})",
         unsafe_allow_html=True,
     )
 
   st.markdown("---")
   st.info(
-      "💡 **Já realizou o pagamento?** O acesso é liberado automaticamente após"
-      " a confirmação do pagamento pelo gateway."
+      "💡 **Já realizou o pagamento?** Insira a sua chave master no menu lateral"
+      " para liberar o painel completo ou aguarde a compensação."
   )
-  registrar_log("Visitante visualizou a página de planos e assinaturas.")
+  registrar_log("Visitante visualizou a página de planos com InfinitePay.")
 
 elif menu == "Código Espião (Logs)":
   st.title("🕵️‍♂️ Central do Código Espião (Auditoria em Tempo Real)")
