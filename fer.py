@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import os
 import datetime
-import hashlib
 from openai import OpenAI
 
 # ==========================================
@@ -11,7 +10,6 @@ from openai import OpenAI
 ARQUIVO_LOG = "sistema_auditoria.log"
 
 def registrar_log(acao, tipo="INFO"):
-    """Comando espião para registrar movimentações, erros e tentativas de invasão."""
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     mensagem_log = f"[{timestamp}] [{tipo}] {acao}\n"
     try:
@@ -38,7 +36,6 @@ st.set_page_config(
 ARQUIVO_CLIENTES = "clientes_contabilidade.xlsx"
 ARQUIVO_LEADS = "potenciais_clientes.xlsx"
 
-# Gerenciamento de Estado seguro
 if "liberado_pago_contabil" not in st.session_state:
     st.session_state.liberado_pago_contabil = False
 
@@ -79,7 +76,7 @@ def tela_bloqueio_pagamento(motivo_texto):
     else:
         link_pagamento_ativo = "https://invoice.infinitepay.io/plans/cristiane-da-260/qTSP5k9f6S"
 
-    tab_pix, tab_cartao, tab_master = st.tabs(["💎 Pagar com Pix", "💳 Pagar com Cartão", "🔑 Desbloqueio Master"])
+    tab_pix, tab_cartao, tab_master = st.tabs(["💎 Pagar com Pix", "💳 Pagar com Cartão", "🔑 Acesso Administrativo"])
 
     with tab_pix:
         st.write(f"Você selecionou: **{tipo_plano_escolhido}**")
@@ -94,12 +91,11 @@ def tela_bloqueio_pagamento(motivo_texto):
         if st.button("Validar Ativação via Pix", key="btn_valida_pix_bloqueio"):
             if comprovante_pix_input.strip() and len(comprovante_pix_input.strip()) > 3:
                 st.session_state.liberado_pago_contabil = True
-                registrar_log(f"Acesso liberado via Pix com segurança. ID: {comprovante_pix_input}", "PAYMENT")
+                registrar_log(f"Acesso liberado via Pix. ID: {comprovante_pix_input}", "PAYMENT")
                 st.success("Pagamento validado com sucesso! Acesso liberado.")
                 st.rerun()
             else:
-                registrar_log("Tentativa de validação Pix inválida/vazia.", "WARNING")
-                st.warning("Por favor, informe um comprovante ou ID de Pix válido.")
+                st.warning("Informe um comprovante ou ID de Pix válido.")
 
     with tab_cartao:
         st.write(f"Checkout seguro para: **{tipo_plano_escolhido}**")
@@ -109,34 +105,27 @@ def tela_bloqueio_pagamento(motivo_texto):
         if st.button("Validar Ativação via Cartão", key="btn_valida_cartao_bloqueio"):
             if transacao_cartao_input.strip() and len(transacao_cartao_input.strip()) > 3:
                 st.session_state.liberado_pago_contabil = True
-                registrar_log(f"Acesso liberado via Cartão com segurança. Transação ID: {transacao_cartao_input}", "PAYMENT")
-                st.success("Assinatura via cartão validada com sucesso! Acesso liberado.")
+                registrar_log(f"Acesso liberado via Cartão. ID: {transacao_cartao_input}", "PAYMENT")
+                st.success("Assinatura validada com sucesso! Acesso liberado.")
                 st.rerun()
             else:
-                registrar_log("Tentativa de validação Cartão inválida/vazia.", "WARNING")
-                st.warning("Por favor, informe um ID de transação válido.")
+                st.warning("Informe um ID de transação válido.")
 
     with tab_master:
-        st.markdown("#### Painel de Desbloqueio Rápido do Escritório")
-        if st.session_state.tentativas_falhas_master >= 5:
-            st.error("🚨 **Mecanismo de Defesa Ativado:** Muitas tentativas incorretas de senha. Aguarde o reset de segurança.")
-            registrar_log("BLOQUEIO DE SEGURANÇA: Excesso de tentativas de invasão na tela master.", "SECURITY_BREACH_ATTEMPT")
-        else:
-            senha_bloqueio_direta = st.text_input("Digite a senha de liberação:", type="password", key="input_senha_tela_bloqueio")
-            if st.button("Desbloquear com Senha", key="btn_executar_desbloqueio_master"):
-                if verificar_senha_master(senha_bloqueio_direta):
-                    st.session_state.liberado_pago_contabil = True
-                    st.session_state.tentativas_falhas_master = 0
-                    registrar_log("Sistema desbloqueado com sucesso via Painel Master.", "SECURITY")
-                    st.success("Senha correta! Sistema totalmente desbloqueado.")
-                    st.rerun()
-                else:
-                    st.session_state.tentativas_falhas_master += 1
-                    registrar_log(f"ALERTA DE SEGURANÇA: Senha incorreta digitada (Tentativa {st.session_state.tentativas_falhas_master}/5).", "SECURITY_ALERT")
-                    st.error(f"Senha incorreta. Tentativas restantes: {5 - st.session_state.tentativas_falhas_master}")
+        st.markdown("#### Painel Exclusivo do Administrador")
+        senha_bloqueio_direta = st.text_input("Digite a senha master do escritório:", type="password", key="input_senha_tela_bloqueio")
+        if st.button("Entrar como Administrador", key="btn_executar_desbloqueio_master"):
+            if verificar_senha_master(senha_bloqueio_direta):
+                st.session_state.liberado_pago_contabil = True
+                st.session_state.tentativas_falhas_master = 0
+                registrar_log("Acesso administrativo autenticado com sucesso.", "SECURITY")
+                st.success("Acesso administrativo liberado!")
+                st.rerun()
+            else:
+                st.error("Senha incorreta.")
 
 # ==========================================
-# 2. MENU DE NAVEGAÇÃO CORPORATIVA & CONFIG. DA IA
+# 2. MENU LATERAL EXCLUSIVO PARA CLIENTES (LIMPO E ÉTICO)
 # ==========================================
 st.sidebar.title("🏢 Gestão Contábil Avançada")
 opcao = st.sidebar.radio("Módulos Estratégicos", [
@@ -147,31 +136,8 @@ opcao = st.sidebar.radio("Módulos Estratégicos", [
     "📊 Indicadores Financeiros do Escritório",
     "💼 Governança de Clientes Ativos", 
     "📥 Central de Leads & Prospecção",
-    "🕵️‍♂️ Painel Espião & Segurança"
+    "⚙️ Configurações / Painel Master"
 ])
-
-st.sidebar.markdown("---")
-with st.sidebar.expander("🛠️ Painel Master & Chave IA"):
-    senha_admin_input = st.text_input("Senha de Acesso Mestre:", type="password", key="input_senha_contabil")
-    if st.button("🔓 Validar Senha Master", key="btn_mestre_contabil"):
-        if verificar_senha_master(senha_admin_input):
-            st.session_state.liberado_pago_contabil = True
-            registrar_log("Acesso master liberado via barra lateral com segurança.", "SECURITY")
-            st.success("Senha válida! Acesso irrestrito liberado.")
-            st.rerun()
-        else:
-            registrar_log("ALERTA DE SEGURANÇA: Senha master inválida na barra lateral.", "SECURITY_ALERT")
-            st.error("Senha de autorização incorreta.")
-
-    if st.session_state.liberado_pago_contabil:
-        st.info("Status: **MASTER ATIVADO 🔓 (Blindado)**")
-
-    st.markdown("---")
-    st.markdown("🔑 **Configuração da API OpenAI**")
-    openai_key_input = st.text_input("Cole sua OpenAI API Key:", type="password", key="input_openai_key_sidebar")
-    if openai_key_input:
-        os.environ["OPENAI_API_KEY"] = openai_key_input.strip()
-        st.success("Chave de IA configurada com sucesso!")
 
 # ==========================================
 # 3. MÓDULO: SIMULADOR CONTÍNUO & PLANOS
@@ -206,12 +172,11 @@ if opcao == "🚀 Simulador Contínuo & Planos":
         
         if st.button("⚡ Executar Simulação Tributária", type="primary", use_container_width=True):
             if not st.session_state.liberado_pago_contabil and st.session_state.simulacoes_restantes <= 0:
-                registrar_log(f"Tentativa de simulação bloqueada por limite excedido: {nome_empresa}", "WARNING")
                 st.warning("Suas simulações gratuitas esgotaram!")
             else:
                 if not st.session_state.liberado_pago_contabil:
                     st.session_state.simulacoes_restantes -= 1
-                    registrar_log(f"Simulação gratuita executada com segurança. Restam: {st.session_state.simulacoes_restantes}", "USAGE")
+                    registrar_log(f"Simulação gratuita executada. Restam: {st.session_state.simulacoes_restantes}", "USAGE")
 
                 imposto_simples = faturamento_anual * 0.09
                 imposto_presumido = faturamento_anual * 0.113
@@ -228,7 +193,6 @@ if opcao == "🚀 Simulador Contínuo & Planos":
                 pior_imposto = max(regimes.values())
                 economia_potencial_anual = pior_imposto - menor_imposto
 
-                registrar_log(f"Simulação concluída com sucesso para {nome_empresa}.", "SUCCESS")
                 st.success(f"Análise paramétrica concluída para **{nome_empresa}**!")
                 
                 mc1, mc2, mc3 = st.columns(3)
@@ -266,13 +230,12 @@ elif opcao == "💬 Chat com Consultor IA Avançado":
 
     if bloquear_chat:
         st.warning("🔒 Suas mensagens gratuitas no chat com a IA acabaram.")
-        tela_bloqueio_pagamento("Para continuar conversando ilimitadamente, assine um de nossos planos ou use a chave mestra.")
+        tela_bloqueio_pagamento("Para continuar conversando ilimitadamente, assine um de nossos planos ou use o acesso master.")
     else:
         pergunta_usuario = st.chat_input("Digite sua dúvida contábil ou fiscal...")
         if pergunta_usuario:
             if not st.session_state.liberado_pago_contabil:
                 st.session_state.mensagens_ia_restantes -= 1
-                registrar_log(f"Mensagem grátis usada no chat. Restam: {st.session_state.mensagens_ia_restantes}", "USAGE")
 
             st.session_state.historico_chat.append({"role": "user", "content": pergunta_usuario})
             with st.chat_message("user"):
@@ -293,16 +256,13 @@ elif opcao == "💬 Chat com Consultor IA Avançado":
                                 max_tokens=800
                             )
                             resposta_ia = resposta.choices[0].message.content
-                            registrar_log("Consulta OpenAI executada com sucesso.", "AI_SUCCESS")
                         except Exception as e:
                             resposta_ia = f"Erro técnico na comunicação com a API da OpenAI: {e}"
-                            registrar_log(f"ERRO DE API OPENAI: {e}", "AI_ERROR")
                     else:
                         resposta_ia = (
-                            "⚠️ **Chave de API não configurada.**\n\n"
-                            "Por favor, insira a sua `OpenAI API Key` no campo localizado na **barra lateral esquerda** (em *🛠️ Painel Master & Chave IA*) para habilitar as respostas em tempo real da inteligência artificial."
+                            "⚠️ **Serviço de Inteligência Artificial Temporariamente Indisponível.**\n\n"
+                            "Por favor, entre em contato com o suporte técnico do escritório para habilitar o sistema."
                         )
-                        registrar_log("Aviso: Tentativa de uso do chat sem OpenAI API Key configurada.", "AI_WARNING")
 
                     st.markdown(resposta_ia)
                     st.session_state.historico_chat.append({"role": "assistant", "content": resposta_ia})
@@ -338,15 +298,12 @@ elif opcao == "📑 Relatório & Parecer Executivo (PDF/Wpp)":
                             max_tokens=600
                         )
                         parecer_texto = resposta.choices[0].message.content
-                        registrar_log(f"Parecer gerado com segurança para {cli_nome}", "SUCCESS")
                     except Exception as e:
-                        registrar_log(f"Erro ao gerar parecer com IA: {e}", "ERROR")
+                        st.error(f"Erro ao gerar com IA: {e}")
 
                 st.success("Parecer gerado com sucesso!")
                 st.text_area("Visualização do Laudo Executivo:", value=parecer_texto, height=250)
 
-                st.markdown("---")
-                st.subheader("📤 Canais de Envio Executivo")
                 wpp_limpo = ''.join(filter(str.isdigit, str(cli_whats)))
                 link_envio_wpp = f"https://wa.me/55{wpp_limpo}?text=Olá%20{cli_nome},%20segue%20o%20seu%20Parecer%20Tributário%20Executivo."
                 
@@ -367,7 +324,6 @@ elif opcao == "🛡️ Auditoria Preventiva & Malha Fina (XML)":
     else:
         uploaded_file = st.file_uploader("Carregar Arquivo Fiscal (XML, TXT ou CSV):", type=["xml", "txt", "csv"])
         if uploaded_file is not None:
-            registrar_log(f"Arquivo fiscal processado com segurança: {uploaded_file.name}", "AUDIT")
             st.success(f"Arquivo **{uploaded_file.name}** carregado com sucesso!")
             if st.button("🔍 Executar Varredura Preventiva de Malha Fina", type="primary"):
                 st.markdown("### 📊 Relatório de Diagnóstico Preventivo")
@@ -399,7 +355,7 @@ elif opcao == "📊 Indicadores Financeiros do Escritório":
 # 8. GOVERNANÇA DE CLIENTES ATIVOS
 # ==========================================
 elif opcao == "💼 Governança de Clientes Ativos":
-    st.title("💼 Carteira de Clientes Ativos do Escritório (Área Protegida)")
+    st.title("💼 Carteira de Clientes Ativos do Escritório")
     if not df_clientes.empty:
         st.dataframe(df_clientes, use_container_width=True)
     else:
@@ -417,7 +373,6 @@ elif opcao == "💼 Governança de Clientes Ativos":
                     reg_novo = {"CNPJ/CPF": doc, "Razão Social": rs, "Regime": reg, "Honorário (R$)": hon, "Status": "Ativo"}
                     df_cli_atualizado = pd.concat([df_clientes, pd.DataFrame([reg_novo])], ignore_index=True)
                     df_cli_atualizado.to_excel(ARQUIVO_CLIENTES, index=False)
-                    registrar_log(f"Novo cliente cadastrado com segurança na base: {rs}", "DATABASE")
                     st.success("Cliente cadastrado com sucesso!")
                     st.rerun()
                 else:
@@ -434,50 +389,69 @@ elif opcao == "📥 Central de Leads & Prospecção":
         st.info("Nenhum lead registrado.")
 
 # ==========================================
-# 10. PAINEL ESPIÃO & SEGURANÇA
+# 10. CONFIGURAÇÕES / PAINEL MASTER (100% PROTEGIDO POR SENHA)
 # ==========================================
-elif opcao == "🕵️‍♂️ Painel Espião & Segurança":
-    st.title("🕵️‍♂️ Painel Espião de Monitoramento & Segurança Antifraude")
-    st.markdown("Área restrita de engenharia para inspecionar tentativas de invasão, integridade e logs do sistema.")
+elif opcao == "⚙️ Configurações / Painel Master":
+    st.title("⚙️ Acesso Administrativo Restrito")
+    st.markdown("Área restrita de gestão. Insira a senha master do escritório para desbloquear as ferramentas de configuração e auditoria.")
 
-    senha_log_input = st.text_input("Digite a senha master para acessar o painel de segurança:", type="password", key="input_senha_log_espiao")
-    
-    if verificar_senha_master(senha_log_input):
-        st.success("Acesso autorizado ao Painel de Segurança.")
-        st.session_state.tentativas_falhas_master = 0
+    senha_master_input = st.text_input("Senha Master:", type="password", key="input_senha_master_segura")
 
-        if os.path.exists(ARQUIVO_LOG):
-            with open(ARQUIVO_LOG, "r", encoding="utf-8") as f:
-                linhas_logs = f.readlines()
-            
-            st.markdown(f"**Total de eventos monitorados:** `{len(linhas_logs)}`")
-            
-            col_acao_log1, col_acao_log2 = st.columns(2)
-            with col_acao_log1:
-                if st.button("🧹 Limpar Arquivo de Logs"):
-                    open(ARQUIVO_LOG, "w", encoding="utf-8").close()
-                    registrar_log("Logs de auditoria limpos pelo administrador.", "SECURITY")
-                    st.success("Logs limpos com sucesso!")
-                    st.rerun()
-            with col_acao_log2:
-                if st.download_button("📥 Baixar Relatório de Segurança (.log)", data="".join(linhas_logs), file_name="relatorio_seguranca_sistema.log", mime="text/plain"):
-                    st.toast("Relatório baixado!")
+    if verificar_senha_master(senha_master_input):
+        st.success("🔓 **Autenticação Realizada com Sucesso!**")
+        
+        tab_api, tab_logs = st.tabs(["🔑 Chave de API da OpenAI", "🕵️‍♂️ Painel Espião & Logs de Segurança"])
 
-            st.markdown("---")
-            st.subheader("🚨 Alertas de Segurança & Histórico Recente")
-            for linha in reversed(linhas_logs[-100:]):
-                if "ERROR" in linha or "ALERT" in linha or "BREACH" in linha:
-                    st.error(linha.strip())
-                elif "WARNING" in linha:
-                    st.warning(linha.strip())
-                elif "SUCCESS" in linha or "PAYMENT" in linha or "SECURITY" in linha:
-                    st.success(linha.strip())
+        with tab_api:
+            st.subheader("Configuração da OpenAI API Key")
+            chave_digitada = st.text_input("Digite a chave secreta da API:", type="password", key="input_chave_openai_secreta")
+            if st.button("Salvar e Ativar Chave", key="btn_salvar_chave_secreta"):
+                if chave_digitada.strip():
+                    os.environ["OPENAI_API_KEY"] = chave_digitada.strip()
+                    registrar_log("Chave de API configurada com sucesso pelo administrador.", "SECURITY")
+                    st.success("Chave de API salva com sucesso!")
                 else:
-                    st.code(linha.strip(), language="text")
-        else:
-            st.info("Nenhum registro de log encontrado.")
+                    st.warning("Insira uma chave válida.")
+
+            if os.environ.get("OPENAI_API_KEY"):
+                st.info("Status: **Chave de API configurada e ativa neste servidor!** ✅")
+            else:
+                st.warning("Status: Nenhuma chave ativa no momento. ⚠️")
+
+        with tab_logs:
+            st.subheader("🕵️‍♂️ Monitoramento de Atividade & Segurança Antifraude")
+            if os.path.exists(ARQUIVO_LOG):
+                with open(ARQUIVO_LOG, "r", encoding="utf-8") as f:
+                    linhas_logs = f.readlines()
+                
+                st.markdown(f"**Total de registros de auditoria:** `{len(linhas_logs)}`")
+                
+                col_l1, col_l2 = st.columns(2)
+                with col_l1:
+                    if st.button("🧹 Limpar Logs", key="btn_limpar_logs_admin"):
+                        open(ARQUIVO_LOG, "w", encoding="utf-8").close()
+                        registrar_log("Logs limpos pelo administrador.", "SECURITY")
+                        st.success("Logs limpos!")
+                        st.rerun()
+                with col_l2:
+                    if st.download_button("📥 Baixar Log Completo", data="".join(linhas_logs), file_name="auditoria.log", mime="text/plain", key="btn_baixar_logs_admin"):
+                        st.toast("Baixado!")
+
+                st.markdown("---")
+                for linha in reversed(linhas_logs[-100:]):
+                    if "ERROR" in linha or "ALERT" in linha or "BREACH" in linha:
+                        st.error(linha.strip())
+                    elif "WARNING" in linha:
+                        st.warning(linha.strip())
+                    elif "SUCCESS" in linha or "PAYMENT" in linha or "SECURITY" in linha:
+                        st.success(linha.strip())
+                    else:
+                        st.code(linha.strip(), language="text")
+            else:
+                st.info("Nenhum registro de log encontrado.")
     else:
-        if senha_log_input.strip() != "":
-            st.error("Senha incorreta para acesso ao painel de segurança.")
+        if senha_master_input.strip() != "":
+            registrar_log("Tentativa de acesso com senha incorreta no Painel Master.", "SECURITY_ALERT")
+            st.error("Senha master incorreta.")
         else:
-            st.warning("🔒 Digite a senha mestra para auditar a segurança do sistema.")
+            st.info("Digite a senha de acesso administrativo para visualizar o conteúdo desta tela.")
