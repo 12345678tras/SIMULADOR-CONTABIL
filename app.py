@@ -123,7 +123,7 @@ else:
 st.sidebar.markdown("---")
 
 # ==========================================
-# 4. CONFIGURAÇÃO DA INTELIGÊNCIA ARTIFICIAL (BLINDADA)
+# 4. CONFIGURAÇÃO DA INTELIGÊNCIA ARTIFICIAL
 # ==========================================
 model = None
 
@@ -131,11 +131,8 @@ try:
   google_api_key_nuvem = st.secrets.get("GEMINI_API_KEY", "")
   if google_api_key_nuvem:
     genai.configure(api_key=google_api_key_nuvem)
-    # Chamada universal e blindada compatível com qualquer versão de API
-    try:
-      model = genai.GenerativeModel("gemini-pro")
-    except Exception:
-      model = genai.GenerativeModel("gemini-1.5-flash")
+    # Usando o modelo moderno atualizado para evitar erros de rota
+    model = genai.GenerativeModel("gemini-2.5-flash")
 except Exception as e:
   registrar_log(f"Erro ao configurar Gemini: {e}", "ERRO")
 
@@ -206,17 +203,17 @@ else:
     tab1, tab2 = st.tabs(["Clientes Cadastrados", "Potenciais Clientes"])
     with tab1:
       if not df_clientes.empty:
-        st.dataframe(df_clientes, use_container_width=True)
+        st.dataframe(df_clientes, width=700)
       else:
         st.info("Nenhum cliente cadastrado.")
     with tab2:
       if not df_potenciais.empty:
-        st.dataframe(df_potenciais, use_container_width=True)
+        st.dataframe(df_potenciais, width=700)
       else:
         st.info("Nenhum potencial cadastrado.")
 
   elif menu == "Assistente Contábil":
-    st.title("🤖 Assistente Contábil (Powered by Gemini)")
+    st.title("🤖 Assistente Contábil (Inteligência Ativa)")
 
     if "mensagens" not in st.session_state:
       st.session_state.mensagens = [{
@@ -325,11 +322,7 @@ else:
       if "parecer_gerado" not in st.session_state:
         st.session_state.parecer_gerado = ""
 
-      if st.button(
-          "⚙️ Processar e Gerar Parecer na Tela",
-          type="primary",
-          use_container_width=True,
-      ):
+      if st.button("⚙️ Processar e Gerar Parecer na Tela", type="primary"):
         if not acesso_liberado_total:
           st.session_state.usos_gratuitos += 1
         st.session_state.parecer_gerado = f"""PARECER CONTÁBIL TÉCNICO
