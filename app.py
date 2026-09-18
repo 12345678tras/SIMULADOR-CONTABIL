@@ -217,7 +217,6 @@ elif opcao == "💬 Chat com Consultor IA Avançado":
     if "historico_chat" not in st.session_state:
         st.session_state.historico_chat = []
 
-    # Exibir histórico de mensagens na tela
     for mensagem in st.session_state.historico_chat:
         with st.chat_message(mensagem["role"]):
             st.markdown(mensagem["content"])
@@ -235,14 +234,12 @@ elif opcao == "💬 Chat com Consultor IA Avançado":
             if not st.session_state.liberado_pago_contabil:
                 st.session_state.mensagens_ia_restantes -= 1
 
-            # Adiciona a mensagem do usuário ao histórico local
             st.session_state.historico_chat.append({"role": "user", "content": pergunta_usuario})
             with st.chat_message("user"):
                 st.markdown(pergunta_usuario)
 
             with st.chat_message("assistant"):
                 with st.spinner("Consultando bases fiscais com Gemini..."):
-                    # Tenta capturar a chave dos segredos do Streamlit ou variáveis de ambiente
                     gemini_api_key = None
                     try:
                         if "GEMINI_API_KEY" in st.secrets:
@@ -263,8 +260,9 @@ elif opcao == "💬 Chat com Consultor IA Avançado":
                             for h in st.session_state.historico_chat:
                                 prompt_completo += f"{h['role'].upper()}: {h['content']}\n"
 
+                            # CORRIGIDO PARA O MODELO MAIS RECENTE
                             resposta = client.models.generate_content(
-                                model="gemini-2.5-flash",
+                                model="gemini-3.6-flash",
                                 contents=prompt_completo
                             )
                             resposta_ia = resposta.text
@@ -309,8 +307,9 @@ elif opcao == "📑 Relatório & Parecer Executivo (PDF/Wpp)":
                 if gemini_api_key:
                     try:
                         client = genai.Client(api_key=gemini_api_key)
+                        # CORRIGIDO PARA O MODELO MAIS RECENTE
                         resposta = client.models.generate_content(
-                            model="gemini-2.5-flash",
+                            model="gemini-3.6-flash",
                             contents=f"Você é um consultor tributário sênior e auditor fiscal. Elabore um parecer tributário executivo para {cli_nome}, faturamento mensal de R$ {fat_input:,.2f}."
                         )
                         parecer_texto = resposta.text
@@ -414,7 +413,7 @@ elif opcao == "⚙️ Configurações / Painel Master":
     senha_master_input = st.text_input("Senha Master:", type="password", key="input_senha_master_segura")
 
     if verificar_senha_master(senha_master_input):
-        st.success("🔓 **Autenticação Realizada com Successo!**")
+        st.success("🔓 **Autenticação Realizada com Sucesso!**")
         
         tab_api, tab_logs = st.tabs(["🔑 Chave de API do Gemini", "🕵️‍♂️ Painel Espião & Logs de Segurança"])
 
