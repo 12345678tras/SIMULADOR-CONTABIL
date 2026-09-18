@@ -1,6 +1,6 @@
 import datetime
 import os
-import google.generativeai as genai
+from google import genai
 import pandas as pd
 import streamlit as st
 
@@ -122,29 +122,17 @@ else:
 st.sidebar.markdown("---")
 
 # ==========================================
-# 4. CONFIGURAÇÃO DA INTELIGÊNCIA ARTIFICIAL (BLINDADO)
+# 4. CONFIGURAÇÃO DA INTELIGÊNCIA ARTIFICIAL (NOVO SDK)
 # ==========================================
-model = None
+gemini_client = None
 
 try:
   google_api_key_nuvem = st.secrets.get("GEMINI_API_KEY", "")
   if google_api_key_nuvem:
-    genai.configure(api_key=google_api_key_nuvem)
-
-    # Varredura inteligente para pegar um modelo ativo compatível com a chave
-    modelo_ativo = "gemini-1.5-flash"
-    try:
-      for m in genai.list_models():
-        if "generateContent" in m.supported_generation_methods:
-          if "flash" in m.name:
-            modelo_ativo = m.name
-            break
-    except Exception:
-      pass
-
-    model = genai.GenerativeModel(modelo_ativo)
+    # Instancia o cliente moderno do pacote google-genai
+    gemini_client = genai.Client(api_key=google_api_key_nuvem)
 except Exception as e:
-  registrar_log(f"Erro ao configurar Gemini: {e}", "ERRO")
+  registrar_log(f"Erro ao configurar Gemini Client: {e}", "ERRO")
 
 # ==========================================
 # 5. MENU DE NAVEGAÇÃO
@@ -200,7 +188,7 @@ else:
     with col2:
       st.metric("Potenciais", len(df_potenciais))
     with col3:
-      st.metric("Motor IA", "Ativo ⚡" if model else "Sem Chave ⚠️")
+      st.metric("Motor IA", "Ativo ⚡" if gemini_client else "Sem Chave ⚠️")
     with col4:
       rest = (
           "Ilimitado 🛡️"
@@ -252,18 +240,21 @@ else:
         with st.chat_message("assistant"):
           with st.spinner("Consultando IA..."):
             try:
-              if model:
-                chat_history = [
-                    {
-                        "role": "user" if m["role"] == "user" else "model",
-                        "parts": [m["content"]],
-                    }
-                    for m in st.session_state.mensagens[:-1]
-                ]
-                chat = model.start_chat(history=chat_history)
-                resposta = chat.send_message(pergunta).text
+              if gemini_client:
+                historico_prompt = ""
+                for m in st.session_state.mensagens:
+                  role_nome = "Usuário" if m["role"] == "user" else "Assistente"
+                  historico_prompt += f"{role_nome}: {m['content']}\n"
+
+                response = gemini_client.models.generate_content(
+                    model="gemini-2.5-flash", contents=historico_prompt
+                )
+                resposta = response.text
               else:
-                resposta = "⚠️ Chave do Gemini não configurada nos segredos."
+                resposta = (
+                    "⚠️ Chave do Gemini ou biblioteca nova não configurada nos"
+                    " segredos."
+                )
             except Exception as ex:
               resposta = f"Erro ao consultar IA: {ex}"
             st.markdown(resposta)
