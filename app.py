@@ -9,7 +9,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Inicialização de Estado Robusta (Garantindo 3 acessos iniciais)
+# Inicialização de Estado Robusta
 if "liberado_pago_master" not in st.session_state:
     st.session_state.liberado_pago_master = False
 if "simulacoes_restantes" not in st.session_state:
@@ -29,8 +29,8 @@ MEU_WHATSAPP = "64993044147"
 CHAVE_PIX_OFICIAL = "64993044147"
 
 def registrar_uso_global():
-    """Função que consome 1 tentativa e só bloqueia após usar as 3 completas."""
-    if not st.session_state.liberado_pago_master:
+    """Função que consome estritamente 1 tentativa por vez."""
+    if not st.session_state.liberado_pago_master and not st.session_state.acesso_bloqueado_definitivo:
         if st.session_state.simulacoes_restantes > 0:
             st.session_state.simulacoes_restantes -= 1
         
@@ -38,7 +38,6 @@ def registrar_uso_global():
             st.session_state.acesso_bloqueado_definitivo = True
 
 def tela_bloqueio_comercial(motivo):
-    st.session_state.acesso_bloqueado_definitivo = True
     st.error(f"🔒 {motivo}")
     st.markdown("### 🚀 Seus 3 Acessos Gratuitos Esgotaram!")
     st.markdown("Para continuar utilizando todas as ferramentas do sistema, escolha um dos planos abaixo ou faça o pagamento direto via PIX:")
@@ -183,11 +182,6 @@ elif modulo == "💬 Chat IA Master Sênior":
     st.title("💬 Chat IA Master Sênior - Direito Tributário & Contabilidade")
     st.markdown("Faça perguntas técnicas avançadas sobre legislação brasileira.")
 
-    if not st.session_state.liberado_pago_master:
-        registrar_uso_global()
-        if st.session_state.acesso_bloqueado_definitivo:
-            st.rerun()
-
     if "mensagens_chat" not in st.session_state:
         st.session_state.mensagens_chat = [
             {"role": "assistant", "content": "Olá! Seja muito bem-vindo(a). Sou o seu Consultor Inteligente Master. Estou pronto para fornecer suporte técnico de excelência."}
@@ -199,6 +193,11 @@ elif modulo == "💬 Chat IA Master Sênior":
 
     pergunta_usuario = st.chat_input("Digite a sua dúvida tributária ou fiscal aqui...")
     if pergunta_usuario:
+        if not st.session_state.liberado_pago_master:
+            registrar_uso_global()
+            if st.session_state.acesso_bloqueado_definitivo:
+                st.rerun()
+
         st.session_state.mensagens_chat.append({"role": "user", "content": pergunta_usuario})
         with st.chat_message("user"):
             st.write(pergunta_usuario)
@@ -215,16 +214,16 @@ elif modulo == "📑 Parecer Executivo & Disparos":
     st.title("📑 Parecer Executivo & Disparos Automatizados")
     st.markdown("Geração de laudos técnicos aprofundados.")
 
-    if not st.session_state.liberado_pago_master:
-        registrar_uso_global()
-        if st.session_state.acesso_bloqueado_definitivo:
-            st.rerun()
-
     client_nome = st.text_input("Nome do Cliente / Empresa:", value="Comércio Exemplo S.A.")
     client_fone = st.text_input("WhatsApp do Destinatário:", value=MEU_WHATSAPP)
     tema_parecer = st.selectbox("Tema do Parecer Técnico:", ["Revisão de ICMS-ST", "Planejamento Tributário Anual", "Impactos da Reforma Tributária", "Malha Fiscal Federal"])
 
     if st.button("📝 Gerar Parecer Executivo com IA", type="primary"):
+        if not st.session_state.liberado_pago_master:
+            registrar_uso_global()
+            if st.session_state.acesso_bloqueado_definitivo:
+                st.rerun()
+
         parecer_texto = f"PARECER TÉCNICO EXECUTIVO\nTema: {tema_parecer}\nCliente: {client_nome}\nData: {datetime.now().strftime('%d/%m/%Y')}\n\nConclusão: Recomendada a implementação imediata dos ajustes fiscais."
         st.success("Parecer gerado com sucesso!")
         st.text_area("Laudo Técnico:", value=parecer_texto, height=200)
@@ -245,13 +244,13 @@ elif modulo == "🛡️ Auditoria Preventiva (XML/SPED)":
     st.title("🛡️ Auditoria Preventiva & Malha Fiscal")
     st.markdown("Auditoria padronizada de conformidade.")
 
-    if not st.session_state.liberado_pago_master:
-        registrar_uso_global()
-        if st.session_state.acesso_bloqueado_definitivo:
-            st.rerun()
-
     empresa_aud = st.text_input("Empresa Alvo da Auditoria:", value="Empresa Exemplo Ltda")
     if st.button("🛡️ Executar Auditoria Padronizada", type="primary"):
+        if not st.session_state.liberado_pago_master:
+            registrar_uso_global()
+            if st.session_state.acesso_bloqueado_definitivo:
+                st.rerun()
+
         laudo_auditoria = f"RELATÓRIO DE AUDITORIA\nEmpresa: {empresa_aud}\nStatus: Conformidade verificada com sucesso."
         st.success("Auditoria executada com sucesso!")
         st.text_area("Laudo Analítico:", value=laudo_auditoria, height=220)
@@ -262,11 +261,7 @@ elif modulo == "🛡️ Auditoria Preventiva (XML/SPED)":
 # ==========================================
 elif modulo == "📊 Indicadores do Escritório":
     st.title("📊 Indicadores de Desempenho do Escritório")
-    if not st.session_state.liberado_pago_master:
-        registrar_uso_global()
-        if st.session_state.acesso_bloqueado_definitivo:
-            st.rerun()
-
+    
     col_ind1, col_ind2, col_ind3 = st.columns(3)
     col_ind1.metric("Simulações Realizadas", len(st.session_state.leads_salvos) + 12)
     col_ind2.metric("Clientes Atendidos", len(st.session_state.leads_salvos) + 8)
@@ -277,11 +272,6 @@ elif modulo == "📊 Indicadores do Escritório":
 # ==========================================
 elif modulo == "🏛️ Governança de Clientes":
     st.title("🏛️ Governança e Carteira de Clientes")
-    if not st.session_state.liberado_pago_master:
-        registrar_uso_global()
-        if st.session_state.acesso_bloqueado_definitivo:
-            st.rerun()
-
     st.info("Utilize o painel para gerenciar os clientes cadastrados.")
 
 # ==========================================
@@ -289,11 +279,6 @@ elif modulo == "🏛️ Governança de Clientes":
 # ==========================================
 elif modulo == "🎯 Central de Leads":
     st.title("🎯 Central de Captação de Leads")
-    if not st.session_state.liberado_pago_master:
-        registrar_uso_global()
-        if st.session_state.acesso_bloqueado_definitivo:
-            st.rerun()
-
     st.info("Oportunidades de negócios geradas ou cadastradas.")
 
 # ==========================================
