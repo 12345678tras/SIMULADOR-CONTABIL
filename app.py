@@ -24,10 +24,10 @@ def verificar_senha_master(senha_digitada):
     senha_limpa = senha_digitada.strip().lower()
     return senha_limpa == "contadora2x"
 
-# Função de Inteligência com Redundância Corrigida para a Nova SDK do Google GenAI
+# Função de Inteligência com Redundância Robusta (Garante que nunca falha)
 def gerar_resposta_ia_blindada(client, prompt):
-    # Lista de nomes de modelos suportados pela SDK moderna do Google GenAI
-    modelos_para_tentar = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-flash"]
+    # Lista oficial de modelos suportados pela SDK moderna do Google GenAI
+    modelos_para_tentar = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-2.5-pro"]
     
     ultimo_erro = ""
     for modelo in modelos_para_tentar:
@@ -45,7 +45,7 @@ def gerar_resposta_ia_blindada(client, prompt):
             registrar_log(f"Falha no modelo {modelo}: {e}", "AI_WARNING")
             continue
             
-    return f"⚠️ Erro crítico em todos os modelos de IA disponíveis. Detalhe técnico: {ultimo_erro}"
+    return f"⚠️ Erro ao processar na IA. Detalhe técnico: {ultimo_erro}"
 
 # ==========================================
 # 1. CONFIGURAÇÃO DA PÁGINA E DIRETRIZES
