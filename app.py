@@ -29,7 +29,10 @@ def registrar_log(acao, tipo="INFO"):
     print(f"Erro no log espião: {e}")
 
 
-registrar_log("Sistema iniciado com painel espião blindado por senha.")
+# Inicializa o log apenas uma vez por sessão para evitar repetição excessiva
+if "sistema_iniciado" not in st.session_state:
+  registrar_log("Sistema iniciado com painel espião blindado por senha.")
+  st.session_state.sistema_iniciado = True
 
 # ==========================================
 # 2. CARREGAMENTO DE DADOS (PLANILHAS)
@@ -71,7 +74,7 @@ if "usos_gratuitos" not in st.session_state:
 # Links oficiais da InfinitePay atualizados
 LINK_PAGAMENTO_MENSAL = "https://invoice.infinitepay.io/plans/cristiane-da-260/XLX77TGv0y"  # R$ 147/mês
 LINK_PAGAMENTO_ANUAL = (
-    "Https://invoice.infinitepay.io/plans/cristiane-da-260/on5Ha9URTH"  # R$ 1.350/ano
+    "https://invoice.infinitepay.io/plans/cristiane-da-260/on5Ha9URTH"  # R$ 1.350/ano
 )
 
 LIMITE_GRATIS = 3
@@ -148,7 +151,6 @@ if menu == "Visão Geral & Indicadores":
       " grátis ou acesse a aba **Área de Assinatura & Planos** para garantir"
       " acesso ilimitado através dos nossos links seguros da InfinitePay."
   )
-  registrar_log("Visitante visualizou a Visão Geral.")
 
 elif menu == "Assistente de IA Local (Chat)":
   st.title("🤖 Consultor Contábil Virtual (IA Local Inteligente)")
@@ -177,10 +179,6 @@ elif menu == "Assistente de IA Local (Chat)":
         " continuar consultando sem limites, por favor, conclua a assinatura"
         " segura na aba de planos."
     )
-    if st.button("Ir para Planos e Assinatura", type="primary"):
-      st.info(
-          "Selecione 'Área de Assinatura & Planos' no menu lateral esquerdo."
-      )
   else:
     pergunta = st.chat_input("Digite sua dúvida contábil aqui...")
     if pergunta:
@@ -343,6 +341,7 @@ elif menu == "Alertas de Oportunidades Fiscais":
     st.session_state.varredura_executada = True
     registrar_log("Varredura de oportunidades fiscais executada localmente.")
 
+  # Correção aplicada aqui: Mantém a tabela persistida no estado da sessão
   if st.session_state.varredura_executada:
     st.success(
         "🚀 Varredura local concluída com sucesso! Relatório de créditos"
@@ -446,10 +445,6 @@ Atenciosamente, Sua Equipe Contábil."""
         unsafe_allow_html=True,
     )
 
-  registrar_log(
-      f"Gerador de parecer e envio acessado para o cliente: {nome_cliente_rel}"
-  )
-
 elif menu == "Área de Assinatura & Planos":
   st.title("💳 Planos de Assinatura & Acesso Ilimitado (InfinitePay)")
   st.markdown(
@@ -488,14 +483,12 @@ elif menu == "Área de Assinatura & Planos":
       "💡 **Já realizou o pagamento?** Insira a sua chave master no menu lateral"
       " para liberar o painel completo ou aguarde a compensação."
   )
-  registrar_log("Visitante visualizou a página de planos com InfinitePay.")
 
-# O BLOCO ABAIXO SÓ EXISTE SE 'acesso_master' FOR TRUE (BLINDADO POR SENHA)
 elif menu == "Código Espião (Logs)" and acesso_master:
   st.title("🕵️‍♂️ Central do Código Espião (Auditoria em Tempo Real)")
   st.markdown(
       "Monitoramento completo de todas as ações executadas pelos usuários no"
-      " systema."
+      " sistema."
   )
 
   if os.path.exists(ARQUIVO_LOG):
@@ -514,4 +507,3 @@ elif menu == "Código Espião (Logs)" and acesso_master:
       st.info("Nenhum evento registrado no momento.")
   else:
     st.warning("O arquivo de auditoria ainda não foi criado.")
-  registrar_log("Administrador acessou o painel do Código Espião.")
