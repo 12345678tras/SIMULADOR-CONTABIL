@@ -108,8 +108,6 @@ if acesso_master:
   st.sidebar.success("Acesso Master (Dona) Ativo 🛡️")
   st.sidebar.markdown("---")
   st.sidebar.subheader("⚙️ Configurações da Dona")
-
-  # Checkbox para exibir o código espião com segurança (sem o campo de chave)
   mostrar_espiao = st.sidebar.checkbox("👁️ Exibir Código Espião (Logs)")
 
   if st.sidebar.button("🔒 Bloquear Painel / Sair"):
@@ -142,14 +140,14 @@ st.sidebar.markdown("---")
 # ==========================================
 model = None
 
-# Puxa a chave diretamente e de forma automática do cofre de Secrets da nuvem
 try:
   google_api_key_nuvem = st.secrets.get("GEMINI_API_KEY", "")
   if google_api_key_nuvem:
     genai.configure(api_key=google_api_key_nuvem)
     generation_config = {"temperature": 0.3, "max_output_tokens": 1000}
+    # Atualizado para o modelo padrão e compatível gemini-1.5-flash
     model = genai.GenerativeModel(
-        model_name="gemini-1.5-pro",
+        model_name="gemini-1.5-flash",
         generation_config=generation_config,
         system_instruction=(
             "Você é um Consultor Contábil Virtual Especializado, focado em"
@@ -355,8 +353,34 @@ else:
       ):
         if not acesso_liberado_total:
           st.session_state.usos_gratuitos += 1
-        st.success("Cálculo realizado com sucesso!")
         registrar_log(f"Simulação executada: R$ {faturamento_anual}")
+
+      # Exibição do resultado da simulação (garantindo que o bloco não fique vazio)
+      st.markdown("---")
+      st.subheader("📋 Resultado da Análise de Regime Tributário")
+      st.info(
+          f"Análise baseada no faturamento anual informado de R$"
+          f" {faturamento_anual:,.2f}."
+      )
+      col_res1, col_res2 = st.columns(2)
+      with col_res1:
+        st.metric(
+            label="Simples Nacional / Anexo",
+            value=(
+                "Limite Estourado ⚠️"
+                if faturamento_anual > 4800000
+                else "Enquadrado ✅"
+            ),
+        )
+      with col_res2:
+        st.metric(
+            label="Lucro Presumido / Real Sugerido",
+            value=(
+                "Obrigatório Lucro Real/Presumido"
+                if faturamento_anual > 3600000
+                else "Viável"
+            ),
+        )
 
   elif menu == "Alertas de Oportunidades Fiscais":
     st.title("⚡ Alertas de Oportunidades Fiscais")
@@ -373,7 +397,7 @@ else:
       ):
         if not acesso_liberado_total:
           st.session_state.usos_gratuitos += 1
-        st.success("Varredura concluída!")
+        st.success("Varredura concluída com sucesso!")
         registrar_log(f"Varredura de oportunidades executada: R$ {fat_mensal_op}")
 
   elif menu == "Indicadores & Malha Preditiva":
@@ -394,7 +418,7 @@ else:
       ):
         if not acesso_liberado_total:
           st.session_state.usos_gratuitos += 1
-        st.success("Auditoria realizada!")
+        st.success("Auditoria realizada com sucesso!")
         registrar_log(f"Auditoria preditiva executada: R$ {faturamento_input}")
 
   elif menu == "Gerador de Parecer & WhatsApp/PDF":
