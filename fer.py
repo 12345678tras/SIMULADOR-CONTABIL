@@ -136,7 +136,7 @@ def tela_bloqueio_pagamento(motivo_texto):
                     st.error(f"Senha incorreta. Tentativas restantes: {5 - st.session_state.tentativas_falhas_master}")
 
 # ==========================================
-# 2. MENU DE NAVEGAÇÃO CORPORATIVA
+# 2. MENU DE NAVEGAÇÃO CORPORATIVA & CONFIG. DA IA
 # ==========================================
 st.sidebar.title("🏢 Gestão Contábil Avançada")
 opcao = st.sidebar.radio("Módulos Estratégicos", [
@@ -151,7 +151,7 @@ opcao = st.sidebar.radio("Módulos Estratégicos", [
 ])
 
 st.sidebar.markdown("---")
-with st.sidebar.expander("🛠️ Painel Master (Escritório)"):
+with st.sidebar.expander("🛠️ Painel Master & Chave IA"):
     senha_admin_input = st.text_input("Senha de Acesso Mestre:", type="password", key="input_senha_contabil")
     if st.button("🔓 Validar Senha Master", key="btn_mestre_contabil"):
         if verificar_senha_master(senha_admin_input):
@@ -165,6 +165,13 @@ with st.sidebar.expander("🛠️ Painel Master (Escritório)"):
 
     if st.session_state.liberado_pago_contabil:
         st.info("Status: **MASTER ATIVADO 🔓 (Blindado)**")
+
+    st.markdown("---")
+    st.markdown("🔑 **Configuração da API OpenAI**")
+    openai_key_input = st.text_input("Cole sua OpenAI API Key:", type="password", key="input_openai_key_sidebar")
+    if openai_key_input:
+        os.environ["OPENAI_API_KEY"] = openai_key_input.strip()
+        st.success("Chave de IA configurada com sucesso!")
 
 # ==========================================
 # 3. MÓDULO: SIMULADOR CONTÍNUO & PLANOS
@@ -292,9 +299,8 @@ elif opcao == "💬 Chat com Consultor IA Avançado":
                             registrar_log(f"ERRO DE API OPENAI: {e}", "AI_ERROR")
                     else:
                         resposta_ia = (
-                            f"Olá! Analisei a sua dúvida enviada.\n\n"
-                            "Como o ambiente atual não detectou uma chave de API configurada (`OPENAI_API_KEY`), "
-                            "o chat inteligente requer a inserção da chave nas variáveis de ambiente do seu servidor para gerar análises automáticas completas."
+                            "⚠️ **Chave de API não configurada.**\n\n"
+                            "Por favor, insira a sua `OpenAI API Key` no campo localizado na **barra lateral esquerda** (em *🛠️ Painel Master & Chave IA*) para habilitar as respostas em tempo real da inteligência artificial."
                         )
                         registrar_log("Aviso: Tentativa de uso do chat sem OpenAI API Key configurada.", "AI_WARNING")
 
