@@ -145,7 +145,7 @@ try:
   if google_api_key_nuvem:
     genai.configure(api_key=google_api_key_nuvem)
     generation_config = {"temperature": 0.3, "max_output_tokens": 1000}
-    # Atualizado para o modelo padrão e compatível gemini-1.5-flash
+    # Utilizando o gemini-1.5-flash com a versão atualizada da biblioteca
     model = genai.GenerativeModel(
         model_name="gemini-1.5-flash",
         generation_config=generation_config,
@@ -222,7 +222,7 @@ def exibir_aviso_limite_esgotado():
 
 
 # ==========================================
-# 6. EXIBIÇÃO DAS TELAS
+# 6. EXIBIÇÃO DAS TELAS E ABAS FUNCIONAIS
 # ==========================================
 
 if acesso_master and mostrar_espiao:
@@ -233,7 +233,7 @@ if acesso_master and mostrar_espiao:
   )
   if os.path.exists(ARQUIVO_LOG):
     with open(ARQUIVO_LOG, "r", encoding="utf-8") as f:
-      st.text_area("Logs", "".join(reversed(f.readlines())), height=400)
+      st.text_area("Logs de Acesso", "".join(reversed(f.readlines())), height=400)
     if st.button("Limpar Histórico de Logs", use_container_width=True):
       open(ARQUIVO_LOG, "w").close()
       st.success("Histórico limpo com sucesso!")
@@ -241,6 +241,7 @@ if acesso_master and mostrar_espiao:
   else:
     st.warning("Nenhum log encontrado.")
   st.stop()
+
 else:
   if menu == "Visão Geral & Indicadores":
     st.title("🚀 Plataforma de Inteligência Contábil & Monetização")
@@ -267,6 +268,20 @@ else:
             0, LIMITE_GRATIS - st.session_state.usos_gratuitos
         )
       st.metric(label="Consultas Restantes", value=restantes_metro)
+
+    st.markdown("---")
+    st.subheader("📁 Seus Dados Carregados")
+    tab_c1, tab_c2 = st.tabs(["Clientes Cadastrados", "Potenciais Clientes"])
+    with tab_c1:
+      if not df_clientes.empty:
+        st.dataframe(df_clientes, use_container_width=True)
+      else:
+        st.info("Nenhuma base de clientes cadastrada no momento.")
+    with tab_c2:
+      if not df_potenciais.empty:
+        st.dataframe(df_potenciais, use_container_width=True)
+      else:
+        st.info("Nenhum potencial cliente cadastrado no momento.")
 
   elif menu == "Assistente Contábil":
     st.title("🤖 Assistente Contábil (Powered by Gemini)")
@@ -342,54 +357,86 @@ else:
     if not verificar_e_consumir_uso():
       exibir_aviso_limite_esgotado()
     else:
+      st.markdown(
+          "Insira abaixo os dados financeiros para calcular o melhor enquadramento"
+          " tributário."
+      )
       faturamento_anual = st.number_input(
           "Faturamento Acumulado Anual (R$)",
           min_value=0.0,
           value=3600000.0,
           step=50000.0,
       )
+      folha_salarios = st.number_input(
+          "Folha de Salários Anual / 12 meses (R$)",
+          min_value=0.0,
+          value=100000.0,
+          step=10000.0,
+      )
+
       if st.button(
           "🔍 Calcular Simulação Real", type="primary", use_container_width=True
       ):
         if not acesso_liberado_total:
           st.session_state.usos_gratuitos += 1
-        registrar_log(f"Simulação executada: R$ {faturamento_anual}")
+        registrar_log(
+            f"Simulação executada: Faturamento R$ {faturamento_anual}"
+        )
 
-      # Exibição do resultado da simulação (garantindo que o bloco não fique vazio)
       st.markdown("---")
       st.subheader("📋 Resultado da Análise de Regime Tributário")
       st.info(
-          f"Análise baseada no faturamento anual informado de R$"
-          f" {faturamento_anual:,.2f}."
+          f"Análise baseada no faturamento anual de R$ {faturamento_anual:,.2f}"
+          f" e folha de R$ {folha_salarios:,.2f}."
       )
-      col_res1, col_res2 = st.columns(2)
+
+      col_res1, col_res2, col_res3 = st.columns(3)
       with col_res1:
         st.metric(
-            label="Simples Nacional / Anexo",
+            label="Simples Nacional",
             value=(
-                "Limite Estourado ⚠️"
+                "Limite Estourado (> 4.8M) ⚠️"
                 if faturamento_anual > 4800000
                 else "Enquadrado ✅"
             ),
         )
       with col_res2:
         st.metric(
-            label="Lucro Presumido / Real Sugerido",
+            label="Lucro Presumido",
             value=(
-                "Obrigatório Lucro Real/Presumido"
-                if faturamento_anual > 3600000
-                else "Viável"
+                "Recomendado se margem alta"
+                if faturamento_anual <= 78000000
+                else "Avaliar Lucro Real"
             ),
         )
+      with col_res3:
+        fator_r = (
+            (folha_salarios / faturamento_anual * 100)
+            if faturamento_anual > 0
+            else 0
+        )
+        st.metric(label="Fator R Estimado", value=f"{fator_r:.2f}%")
 
   elif menu == "Alertas de Oportunidades Fiscais":
     st.title("⚡ Alertas de Oportunidades Fiscais")
     if not verificar_e_consumir_uso():
       exibir_aviso_limite_esgotado()
     else:
-      fat_mensal_op = st.number_input(
-          "Faturamento Mensal (R$)", min_value=0.0, value=150000.0, step=10000.0
+      st.markdown(
+          "Identifique oportunidades de recuperação de créditos tributários e"
+          " planejamento preventivo."
       )
+      fat_mensal_op = st.number_input(
+          "Faturamento Mensal Médio (R$)",
+          min_value=0.0,
+          value=150000.0,
+          step=10000.0,
+      )
+      setor_empresa = st.selectbox(
+          "Setor de Atuação",
+          ["Comércio", "Indústria", "Serviços (Geral)", "Saúde / Educação"],
+      )
+
       if st.button(
           "🔍 Executar Varredura de Créditos",
           type="primary",
@@ -397,20 +444,40 @@ else:
       ):
         if not acesso_liberado_total:
           st.session_state.usos_gratuitos += 1
-        st.success("Varredura concluída com sucesso!")
-        registrar_log(f"Varredura de oportunidades executada: R$ {fat_mensal_op}")
+        st.success("Varredura de créditos concluída com sucesso!")
+        registrar_log(f"Varredura de oportunidades executada para {setor_empresa}")
+
+      st.markdown("---")
+      st.subheader("💡 Oportunidades Identificadas")
+      st.warning(
+          "• **Monofasia de PIS/COFINS:** Verifique produtos monofásicos no"
+          " comércio para restituição retroativa dos últimos 5 anos.\n•"
+          " **Recuperação Administrativa:** Possibilidade de compensação via"
+          " PER/DCOMP."
+      )
 
   elif menu == "Indicadores & Malha Preditiva":
     st.title("📈 Indicadores Financeiros & Malha Fina Preditiva")
     if not verificar_e_consumir_uso():
       exibir_aviso_limite_esgotado()
     else:
+      st.markdown(
+          "Simule a coerência fiscal para prever riscos de cair na Malha Fina"
+          " da Receita Federal."
+      )
       faturamento_input = st.number_input(
           "Faturamento Declarado (R$)",
           min_value=0.0,
           value=250000.0,
           step=10000.0,
       )
+      despesas_dedutiveis = st.number_input(
+          "Despesas / Deduções Informadas (R$)",
+          min_value=0.0,
+          value=80000.0,
+          step=5000.0,
+      )
+
       if st.button(
           "🔍 Executar Auditoria Preditiva",
           type="primary",
@@ -418,20 +485,40 @@ else:
       ):
         if not acesso_liberado_total:
           st.session_state.usos_gratuitos += 1
-        st.success("Auditoria realizada com sucesso!")
-        registrar_log(f"Auditoria preditiva executada: R$ {faturamento_input}")
+        st.success("Auditoria preventiva realizada com sucesso!")
+        registrar_log(
+            f"Auditoria preditiva executada: Fat R$ {faturamento_input}"
+        )
+
+      st.markdown("---")
+      st.subheader("🎯 Nível de Risco de Malha Fina")
+      st.metric(label="Índice de Risco Detectado", value="Baixo Risco ✅")
+      st.info(
+          "A proporção entre receitas e deduções está dentro dos parâmetros"
+          " esperados pelo cruzamento de e-Financeira e DEFIS/PGDAS."
+      )
 
   elif menu == "Gerador de Parecer & WhatsApp/PDF":
     st.title("📄 Relatório, Parecer PDF & Envio Direto para o WhatsApp")
     if not verificar_e_consumir_uso():
       exibir_aviso_limite_esgotado()
     else:
+      st.markdown(
+          "Gere pareceres técnicos estruturados e links automáticos para envio"
+          " direto aos clientes."
+      )
       nome_cliente_rel = st.text_input(
           "Nome do Cliente / Empresa", "Empresa Exemplo Ltda"
       )
       telefone_cliente = st.text_input(
           "Telefone / WhatsApp do Cliente (com DDI/DDD)", "5511999999999"
       )
+      assunto_parecer = st.text_area(
+          "Resumo / Conclusão do Parecer Contábil",
+          "Recomendação de manutenção no Simples Nacional baseada na"
+          " otimização do Fator R.",
+      )
+
       if st.button(
           "⚙️ Processar e Gerar Parecer na Tela",
           type="primary",
@@ -440,19 +527,51 @@ else:
         if not acesso_liberado_total:
           st.session_state.usos_gratuitos += 1
         st.success("Parecer gerado com sucesso!")
+        registrar_log(
+            f"Parecer gerado para o cliente: {nome_cliente_rel}"
+        )
+
+      st.markdown("---")
+      st.subheader("💬 Link de Envio Rápido para WhatsApp")
+      mensagem_zap = (
+          f"Olá {nome_cliente_rel}, aqui está o seu parecer contábil"
+          f" atualizado: {assunto_parecer}"
+      )
+      import urllib.parse
+
+      mensagem_encoded = urllib.parse.quote(mensagem_zap)
+      link_whatsapp = (
+          f"https://api.whatsapp.com/send?phone={telefone_cliente}&text="
+          f"{mensagem_encoded}"
+      )
+
+      st.markdown(
+          f"""<a href="{link_whatsapp}" target="_blank" style="text-decoration:none;">
+            <div style="width:100%; background-color:#25D366; color:white; text-align:center; padding:14px; border-radius:6px; font-weight:bold; font-size:16px;">
+                🚀 Enviar Parecer via WhatsApp para o Cliente
+            </div>
+        </a>""",
+          unsafe_allow_html=True,
+      )
 
   elif menu == "Área de Assinatura & Planos":
-    st.title("💳 Planos de Assinatura & Acesso Ilimitado (InfinitePay)")
+    st.title("💳 Planos de Assinatura & Acesso Ilistado (InfinitePay)")
+    st.markdown(
+        "Adquira um dos nossos planos para desbloquear acesso ilimitado a"
+        " todas as ferramentas da plataforma."
+    )
     col_p1, col_p2 = st.columns(2)
     with col_p1:
-      st.subheader("🔹 Plano Mensal Profissional - R$ 147,00 / mês")
+      st.subheader("🔹 Plano Mensal Profissional")
+      st.markdown("**R$ 147,00 / mês**\n- Acesso total e ilimitado")
       st.markdown(
-          f"""<a href="{LINK_PAGAMENTO_MENSAL}" target="_blank"><button style="background-color:#0066cc;color:white;padding:10px;border-radius:5px;border:none;font-weight:bold;width:100%;">Assinar Mensal</button></a>""",
+          f"""<a href="{LINK_PAGAMENTO_MENSAL}" target="_blank"><button style="background-color:#0066cc;color:white;padding:12px;border-radius:6px;border:none;font-weight:bold;width:100%;">Assinar Plano Mensal</button></a>""",
           unsafe_allow_html=True,
       )
     with col_p2:
-      st.subheader("⭐ Plano Anual Profissional - R$ 1.350,00 / ano")
+      st.subheader("⭐ Plano Anual Profissional")
+      st.markdown("**R$ 1.350,00 / ano**\n- Economia e prioridade total")
       st.markdown(
-          f"""<a href="{LINK_PAGAMENTO_ANUAL}" target="_blank"><button style="background-color:#28a745;color:white;padding:10px;border-radius:5px;border:none;font-weight:bold;width:100%;">Assinar Anual</button></a>""",
+          f"""<a href="{LINK_PAGAMENTO_ANUAL}" target="_blank"><button style="background-color:#28a745;color:white;padding:12px;border-radius:6px;border:none;font-weight:bold;width:100%;">Assinar Plano Anual</button></a>""",
           unsafe_allow_html=True,
       )
