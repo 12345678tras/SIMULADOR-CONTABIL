@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import os
 import datetime
-from google import genai
+import google.generativeai as genai
 
 # ==========================================
 # 0. SISTEMA ESPIÃO DE AUDITORIA & BLINDAGEM
@@ -18,34 +18,23 @@ def registrar_log(acao, tipo="INFO"):
     except Exception as e:
         print(f"Erro no log espião: {e}")
 
-registrar_log("Sistema iniciado com protocolos de blindagem e redundância de IA.", "STARTUP")
+registrar_log("Sistema iniciado com biblioteca clássica google-generativeai.", "STARTUP")
 
 def verificar_senha_master(senha_digitada):
     senha_limpa = senha_digitada.strip().lower()
     return senha_limpa == "contadora2x"
 
-# Função de Inteligência com Redundância atualizada para o modelo correto
-def gerar_resposta_ia_blindada(client, prompt):
-    # Lista de modelos compatíveis com a versão atual da API do Google GenAI
-    modelos_para_tentar = ["gemini-3.1-pro-preview", "gemini-2.5-flash", "gemini-flash-latest"]
-    
-    ultimo_erro = ""
-    for modelo in modelos_para_tentar:
-        try:
-            registrar_log(f"Tentando comunicação com o modelo IA: {modelo}", "AI_ATTEMPT")
-            resposta = client.models.generate_content(
-                model=modelo,
-                contents=prompt
-            )
-            if resposta and hasattr(resposta, "text") and resposta.text:
-                registrar_log(f"Sucesso com o modelo: {modelo}", "AI_SUCCESS")
-                return resposta.text
-        except Exception as e:
-            ultimo_erro = str(e)
-            registrar_log(f"Falha no modelo {modelo}: {e}", "AI_WARNING")
-            continue
-            
-    return f"⚠️ Erro ao processar na IA. Detalhe técnico: {ultimo_erro}"
+# Função de Inteligência Clássica e Estável
+def gerar_resposta_ia_classica(prompt):
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        response = model.generate_content(prompt)
+        if response and hasattr(response, "text") and response.text:
+            return response.text
+    except Exception as e:
+        registrar_log(f"Erro na IA clássica: {e}", "AI_WARNING")
+        return f"⚠️ Erro ao processar na IA: {e}"
+    return "⚠️ Nenhuma resposta retornada pela IA."
 
 # ==========================================
 # 1. CONFIGURAÇÃO DA PÁGINA E DIRETRIZES
@@ -277,13 +266,13 @@ elif opcao == "💬 Chat com Consultor IA Master":
                     
                     if gemini_api_key:
                         try:
-                            client = genai.Client(api_key=gemini_api_key)
+                            genai.configure(api_key=gemini_api_key)
                             
                             prompt_completo = "Você é um Consultor Tributário Master e Contador sênior altamente experiente. Responda com clareza, autoridade e didática técnica.\n\n"
                             for h in st.session_state.historico_chat:
                                 prompt_completo += f"{h['role'].upper()}: {h['content']}\n"
 
-                            resposta_ia = gerar_resposta_ia_blindada(client, prompt_completo)
+                            resposta_ia = gerar_resposta_ia_classica(prompt_completo)
                         except Exception as e:
                             resposta_ia = f"Erro técnico crítico na inicialização do cliente Gemini: {e}"
                     else:
@@ -338,14 +327,14 @@ elif opcao == "📑 Relatório & Parecer Executivo (PDF/Wpp)":
                 
                 if gemini_api_key:
                     try:
-                        client = genai.Client(api_key=gemini_api_key)
+                        genai.configure(api_key=gemini_api_key)
                         prompt_parecer = (
                             f"Você é um consultor tributário Master e auditor fiscal sênior. "
                             f"Elabore um parecer técnico formal, detalhado e executivo para a empresa {cli_nome}, "
                             f"com faturamento mensal de R$ {fat_input:,.2f}, focado em: {assunto_parecer}. "
                             "Estruture o parecer com introdução, diagnóstico, fundamentação legal resumida e recomendação estratégica."
                         )
-                        parecer_texto = gerar_resposta_ia_blindada(client, prompt_parecer)
+                        parecer_texto = gerar_resposta_ia_classica(prompt_parecer)
                     except Exception as e:
                         st.error(f"Erro ao conectar com a IA: {e}")
 
