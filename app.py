@@ -9,7 +9,12 @@ st.set_page_config(
     layout="wide"
 )
 
-# Inicialização de Estado Robusta (4 acessos totalmente livres)
+# ==========================================
+# SUPER ACESSO DO GESTOR (ENGENHEIRO / SÓCIO)
+# ==========================================
+MEU_EMAIL_GESTOR = "Rede.rodrigues2017@gmail.com" 
+
+# Inicialização de Estado Robusta
 if "liberado_pago_master" not in st.session_state:
     st.session_state.liberado_pago_master = False
 if "simulacoes_restantes" not in st.session_state:
@@ -17,6 +22,12 @@ if "simulacoes_restantes" not in st.session_state:
 if "leads_salvos" not in st.session_state:
     st.session_state.leads_salvos = []
 if "acesso_bloqueado_definitivo" not in st.session_state:
+    st.session_state.acesso_bloqueado_definitivo = False
+
+# Atalho inteligente via parâmetro na URL (?admin=true)
+params = st.query_params
+if "admin" in params and params["admin"] == "true":
+    st.session_state.liberado_pago_master = True
     st.session_state.acesso_bloqueado_definitivo = False
 
 # Links de Pagamento InfinitePay oficiais
@@ -29,19 +40,11 @@ MEU_WHATSAPP = "64993044147"
 CHAVE_PIX_OFICIAL = "64993044147"
 
 def registrar_uso_global():
-    """Consome uma tentativa. Só bloqueia se tentar usar quando já estiver zerado (tentativa 5)."""
     if not st.session_state.liberado_pago_master:
         if st.session_state.simulacoes_restantes > 0:
             st.session_state.simulacoes_restantes -= 1
-        
-        # O bloqueio só ocorre se o usuário já esgotou os 4 e tentou o 5º
-        if st.session_state.simulacoes_restantes <= 0:
-            # Verificamos se foi um clique a mais após esgotar
-            # Para garantir que o 4º uso aconteça livre, o bloqueio entra se tentar usar com 0 restante
-            pass
 
 def verificar_bloqueio_antes_de_usar():
-    """Retorna True se puder usar, False se já tiver estourado os 4 e tentou o 5º."""
     if st.session_state.liberado_pago_master:
         return True
     
@@ -51,7 +54,6 @@ def verificar_bloqueio_antes_de_usar():
     return True
 
 def descontar_um_uso():
-    """Desconta 1 dos 4 acessos livres após o uso confirmado."""
     if not st.session_state.liberado_pago_master:
         if st.session_state.simulacoes_restantes > 0:
             st.session_state.simulacoes_restantes -= 1
@@ -61,7 +63,6 @@ def tela_bloqueio_comercial(motivo):
     st.markdown("### 🚀 Seus 4 Acessos Gratuitos Esgotaram!")
     st.markdown("Para continuar utilizando todas as ferramentas do sistema, escolha um dos planos abaixo ou faça o pagamento direto via PIX:")
     
-    # Seção de Pagamento via PIX Direto
     st.info(f"💎 **Pague via PIX Direto:** Utilize a nossa Chave PIX (Telefone): **{CHAVE_PIX_OFICIAL}**")
     
     col_p1, col_p2, col_p3 = st.columns(3)
@@ -81,20 +82,21 @@ def tela_bloqueio_comercial(motivo):
     st.markdown("---")
     st.warning(f"📲 **Já fez o PIX ou o pagamento?** Envie o comprovante para o WhatsApp **(64) 99304-4147** para receber a sua senha de liberação instantânea!")
     
-    # Campo para digitar a senha direto na tela de bloqueio
-    st.markdown("#### Possui a senha de liberação?")
-    senha_cliente_input = st.text_input("Digite a senha enviada no WhatsApp:", type="password", key="input_senha_bloqueio")
+    st.markdown("#### Identificação do Gestor / Liberação por Senha")
+    email_gestor_input = st.text_input("Digite o seu e-mail de gestor:", key="input_email_gestor_login")
+    senha_cliente_input = st.text_input("Ou digite a senha de liberação:", type="password", key="input_senha_bloqueio")
+    
     if st.button("🔓 Desbloquear Acesso"):
-        if senha_cliente_input in ["cliente 1 2 3x", "contadora 2x"]:
+        if email_gestor_input.strip().lower() == MEU_EMAIL_GESTOR.lower() or senha_cliente_input in ["cliente 1 2 3x", "contadora 2x", "gestorMaster2026!"]:
             st.session_state.liberado_pago_master = True
             st.session_state.acesso_bloqueado_definitivo = False
-            st.success("Acesso liberado com sucesso! Atualize a página.")
+            st.success("Acesso de gestor liberado com sucesso! Atualize a página.")
             st.rerun()
         else:
-            st.error("Senha incorreta. Solicite a senha válida no WhatsApp (64) 99304-4147.")
+            st.error("E-mail ou senha incorretos.")
     st.stop()
 
-# Verificação global de bloqueio no início de tudo
+# Verificação global de bloqueio
 if st.session_state.acesso_bloqueado_definitivo and not st.session_state.liberado_pago_master:
     tela_bloqueio_comercial("Acesso restrito. Tentativa de acesso após esgotar as 4 consultas gratuitas.")
 
@@ -102,7 +104,9 @@ if st.session_state.acesso_bloqueado_definitivo and not st.session_state.liberad
 st.sidebar.title("⚖️ Consultor Master")
 st.sidebar.markdown("Navegação Estratégica")
 
-if not st.session_state.liberado_pago_master:
+if st.session_state.liberado_pago_master:
+    st.sidebar.success("👑 **Modo Gestor Ativo**\n*(Engenharia & Contabilidade)*")
+else:
     st.sidebar.info(f"🎁 Acessos gratuitos restantes: **{st.session_state.simulacoes_restantes} / 4**")
 
 modulo = st.sidebar.radio(
@@ -142,7 +146,6 @@ if modulo == "🚀 Simulador Tributário & Planos":
             if not verificar_bloqueio_antes_de_usar():
                 st.rerun()
 
-            # Executa e desconta 1 uso dos 4 disponíveis
             descontar_um_uso()
 
             simples = fat_anual * 0.09
@@ -313,16 +316,18 @@ elif modulo == "⚙️ Configurações / Painel Master":
     else:
         st.warning(f"🔒 Sistema em Modo Demonstração. Tentativas restantes: {st.session_state.simulacoes_restantes} / 4")
         
-    st.markdown("### 🔑 Resgate de Senha / Liberação Manual")
-    senha_input = st.text_input("Senha de Ativação:", type="password", key="input_painel_senha")
-    if st.button("Ativar Acesso com Senha"):
-        if senha_input in ["cliente 1 2 3x", "contadora 2x"]:
+    st.markdown("### 🔑 Identificação do Gestor ou Resgate de Senha")
+    email_painel = st.text_input("Seu E-mail de Gestor:", key="input_email_painel")
+    senha_input = st.text_input("Ou Senha de Ativação:", type="password", key="input_painel_senha")
+    
+    if st.button("Ativar Acesso Master"):
+        if email_painel.strip().lower() == MEU_EMAIL_GESTOR.lower() or senha_input in ["cliente 1 2 3x", "contadora 2x", "gestorMaster2026!"]:
             st.session_state.liberado_pago_master = True
             st.session_state.acesso_bloqueado_definitivo = False
-            st.success("Licença ativada com sucesso neste dispositivo!")
+            st.success("Licença de gestor ativada com sucesso neste dispositivo!")
             st.rerun()
         else:
-            st.error("Senha incorreta.")
+            st.error("E-mail ou senha incorretos.")
 
     st.markdown("---")
     st.markdown("### 💳 Informações Oficiais de Pagamento (PIX e Cartão)")
@@ -334,4 +339,4 @@ elif modulo == "⚙️ Configurações / Painel Master":
     with col_c2:
         st.markdown(f'<a href="{LINK_PLANO_PRO}" target="_blank" style="background-color: #28a745; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Plano Pro</a>', unsafe_allow_html=True)
     with col_c3:
-        st.markdown(f'<a href="{LINK_PLano_ENTERPRISE if 'LINK_PLano_ENTERPRISE' in globals() else LINK_PLANO_ENTERPRISE}" target="_blank" style="background-color: #6f42c1; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Enterprise</a>', unsafe_allow_html=True)
+        st.markdown(f'<a href="{LINK_PLANO_ENTERPRISE}" target="_blank" style="background-color: #6f42c1; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Enterprise</a>', unsafe_allow_html=True)
