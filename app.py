@@ -25,7 +25,7 @@ def verificar_senha_master(senha_digitada):
     return senha_digitada.strip().lower() == "contadora2x"
 
 # ==========================================
-# FUNÇÃO DA IA MASTER (BLINDADA E REORGANIZADA)
+# FUNÇÃO DA IA MASTER (COM MODELO GEMINI-3.6-FLASH)
 # ==========================================
 def consultar_ia_master(prompt_usuario, historico_chat=None):
     try:
@@ -40,7 +40,8 @@ def consultar_ia_master(prompt_usuario, historico_chat=None):
         if not gemini_api_key:
             return "⚠️ **Chave de API do Gemini não configurada.** Por favor, adicione a sua `GEMINI_API_KEY` nos segredos do Streamlit ou no Painel Master."
 
-        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + gemini_api_key
+        # Modelo atualizado conforme exigido pelo endpoint da Google
+        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=" + gemini_api_key
 
         contexto_sistema = (
             "Você é o 'Consultor Inteligente Master', um auditor fiscal, tributarista sênior e contador consultor de elite. "
