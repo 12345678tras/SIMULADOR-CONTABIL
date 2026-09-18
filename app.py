@@ -242,14 +242,18 @@ elif opcao == "💬 Chat com Consultor IA Avançado":
 
             with st.chat_message("assistant"):
                 with st.spinner("Analisando bases fiscais com IA de código aberto..."):
-                    groq_api_key = os.environ.get("GROQ_API_KEY")
+                    # Tenta buscar a chave do session_state, dos segredos do streamlit ou do ambiente
+                    groq_api_key = (
+                        st.session_state.get("groq_key") or 
+                        st.secrets.get("GROQ_API_KEY", None) if hasattr(st, "secrets") else None
+                    ) or os.environ.get("GROQ_API_KEY")
+
                     resposta_ia = ""
                     
                     if groq_api_key:
                         try:
                             client = Groq(api_key=groq_api_key)
                             
-                            # Monta o payload incluindo a system prompt e o histórico formatado corretamente
                             mensagens_para_api = [
                                 {"role": "system", "content": "Você é um Consultor Tributário Sênior e Contador altamente experiente. Responda com clareza, autoridade e didática."}
                             ] + st.session_state.historico_chat
@@ -288,7 +292,11 @@ elif opcao == "📑 Relatório & Parecer Executivo (PDF/Wpp)":
 
         if st.button("🤖 Gerar Parecer Executivo Oficial com IA", type="primary"):
             with st.spinner("Elaborando parecer executivo de alto padrão..."):
-                groq_api_key = os.environ.get("GROQ_API_KEY")
+                groq_api_key = (
+                    st.session_state.get("groq_key") or 
+                    st.secrets.get("GROQ_API_KEY", None) if hasattr(st, "secrets") else None
+                ) or os.environ.get("GROQ_API_KEY")
+
                 parecer_texto = f"Parecer Técnico Executivo - {cli_nome}\nFaturamento base: R$ {fat_input:,.2f}"
                 if groq_api_key:
                     try:
@@ -413,13 +421,15 @@ elif opcao == "⚙️ Configurações / Painel Master":
             chave_digitada = st.text_input("Digite a chave secreta da Groq:", type="password", key="input_chave_groq_secreta")
             if st.button("Salvar e Ativar Chave", key="btn_salvar_chave_secreta"):
                 if chave_digitada.strip():
+                    st.session_state.groq_key = chave_digitada.strip()
                     os.environ["GROQ_API_KEY"] = chave_digitada.strip()
                     registrar_log("Chave da Groq configurada com sucesso pelo administrador.", "SECURITY")
                     st.success("Chave de API salva com sucesso!")
                 else:
                     st.warning("Insira uma chave válida.")
 
-            if os.environ.get("GROQ_API_KEY"):
+            chave_atual = st.session_state.get("groq_key") or os.environ.get("GROQ_API_KEY")
+            if chave_atual:
                 st.info("Status: **Chave da Groq configurada e ativa neste servidor!** ✅")
             else:
                 st.warning("Status: Nenhuma chave ativa no momento. ⚠️")
