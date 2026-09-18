@@ -24,7 +24,7 @@ registrar_log("Plataforma Consultor Inteligente Master iniciada com sucesso.", "
 def verificar_senha_master(senha_digitada):
     return senha_digitada.strip().lower() == "contadora2x"
 
-# Função da IA Master blindada via REST API com o modelo gemini-3.6-flash
+# Função da IA Master blindada via REST API (Totalmente corrigida e segura)
 def consultar_ia_master(prompt_usuario, historico_chat=None):
     try:
         gemini_api_key = None
@@ -36,9 +36,10 @@ def consultar_ia_master(prompt_usuario, historico_chat=None):
             gemini_api_key = os.environ.get("GOOGLE_API_KEY")
 
         if not gemini_api_key:
-            return "⚠️ **Chave de API do Gemini não configurada.** Por favor, adicione a sua `GEMINI_API_KEY` nos segredos do Streamlit ou nas variáveis de ambiente."
+            return "⚠️ **Chave de API do Gemini não configurada.** Por favor, adicione a sua `GEMINI_API_KEY` nos segredos do Streamlit ou no Painel Master."
 
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={gemini_api_key}"
+        # URL montada de forma segura para evitar qualquer erro de sintaxe
+        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + gemini_api_key
 
         contexto_sistema = (
             "Você é o 'Consultor Inteligente Master', um auditor fiscal, tributarista sênior e contador consultor de elite. "
@@ -60,7 +61,7 @@ def consultar_ia_master(prompt_usuario, historico_chat=None):
         
         headers = {'Content-Type': 'application/json'}
 
-        response = requests.post(url, headers=headers, data=json.dumps(payload), timeout=25)
+        response = requests.post(url, headers=headers, data=json.dumps(payload), timeout=30)
         
         if response.status_code == 200:
             dados = response.json()
@@ -69,6 +70,8 @@ def consultar_ia_master(prompt_usuario, historico_chat=None):
                 return resposta_texto
             except (KeyError, IndexError):
                 return "⚠️ A resposta da API veio num formato inesperado."
+        elif response.status_code == 503:
+            return "⚠️ O servidor do Gemini está com alta demanda temporária (Erro 503). Por favor, aguarde alguns segundos e envie a mensagem novamente."
         else:
             return f"⚠️ Erro de comunicação com a API (Estado {response.status_code}): {response.text}"
 
