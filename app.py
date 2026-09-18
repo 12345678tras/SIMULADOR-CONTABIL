@@ -9,38 +9,45 @@ st.set_page_config(
     layout="wide"
 )
 
-# Inicialização do Session State
+# Inicialização de Estado Robusta (Persistente na Sessão do Navegador)
 if "liberado_pago_master" not in st.session_state:
     st.session_state.liberado_pago_master = False
 if "simulacoes_restantes" not in st.session_state:
     st.session_state.simulacoes_restantes = 3
 if "leads_salvos" not in st.session_state:
     st.session_state.leads_salvos = []
+if "acesso_bloqueado_definitivo" not in st.session_state:
+    st.session_state.acesso_bloqueado_definitivo = False
 
-# Links de Pagamento InfinitePay fornecidos
+# Links de Pagamento InfinitePay oficiais fornecidos
 LINK_PLANO_START = "https://invoice.infinitepay.io/plans/cristiane-da-260/KC9Geb9OrA"
 LINK_PLANO_PRO = "https://invoice.infinitepay.io/plans/cristiane-da-260/k7jgpmWCJL"
 LINK_PLANO_ENTERPRISE = "https://invoice.infinitepay.io/plans/cristiane-da-260/DnCh4NY1nH"
 
 def tela_bloqueio_comercial(motivo):
-    st.warning(f"🔒 {motivo}")
-    st.markdown("### 🚀 Desbloqueie o Poder Total do Consultor Master")
-    st.markdown("Escolha um dos planos oficiais abaixo para liberar acesso ilimitado a todas as ferramentas do escritório:")
+    st.session_state.acesso_bloqueado_definitivo = True
+    st.error(f"🔒 {motivo}")
+    st.markdown("### 🚀 Suas Simulações Gratuitas Esgotaram!")
+    st.markdown("Para proteger o nosso trabalho e garantir acesso ilimitado a todas as ferramentas do escritório, escolha um dos planos oficiais abaixo:")
     
     col_p1, col_p2, col_p3 = st.columns(3)
     with col_p1:
         st.markdown("#### Plano Start (Mensal)")
         st.markdown("**R$ 147,00 / mês**")
-        st.markdown('<a href="' + LINK_PLANO_START + '" target="_blank" style="background-color: #007bff; color: white; padding: 10px 15px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Start</a>', unsafe_allow_html=True)
+        st.markdown(f'<a href="{LINK_PLANO_START}" target="_blank" style="background-color: #007bff; color: white; padding: 10px 15px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Start</a>', unsafe_allow_html=True)
     with col_p2:
         st.markdown("#### Plano Professional")
         st.markdown("**R$ 2.470,00 / ano**")
-        st.markdown('<a href="' + LINK_PLANO_PRO + '" target="_blank" style="background-color: #28a745; color: white; padding: 10px 15px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Professional</a>', unsafe_allow_html=True)
+        st.markdown(f'<a href="{LINK_PLANO_PRO}" target="_blank" style="background-color: #28a745; color: white; padding: 10px 15px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Professional</a>', unsafe_allow_html=True)
     with col_p3:
         st.markdown("#### Plano Enterprise")
         st.markdown("**R$ 5.970,00 / ano**")
-        st.markdown('<a href="' + LINK_PLANO_ENTERPRISE + '" target="_blank" style="background-color: #6f42c1; color: white; padding: 10px 15px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Enterprise</a>', unsafe_allow_html=True)
+        st.markdown(f'<a href="{LINK_PLANO_ENTERPRISE}" target="_blank" style="background-color: #6f42c1; color: white; padding: 10px 15px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Enterprise</a>', unsafe_allow_html=True)
     st.stop()
+
+# Verificação global de bloqueio
+if st.session_state.acesso_bloqueado_definitivo and not st.session_state.liberado_pago_master:
+    tela_bloqueio_comercial("Acesso restrito. O limite de demonstração deste computador foi esgotado.")
 
 # Menu Lateral (Navegação Estratégica)
 st.sidebar.title("⚖️ Consultor Master")
@@ -61,14 +68,14 @@ modulo = st.sidebar.radio(
 )
 
 # ==========================================
-# 1. MÓDULO: SIMULADOR TRIBUTÁRIO & PLANOS (Preservado)
+# 1. MÓDULO: SIMULADOR TRIBUTÁRIO & PLANOS
 # ==========================================
 if modulo == "🚀 Simulador Tributário & Planos":
     st.title("🧮 Simulador Contínuo de Regime Tributário")
     st.markdown("Análise paramétrica inteligente para identificação da menor carga tributária com conversão comercial imediata.")
 
     if not st.session_state.liberado_pago_master:
-        st.info(f"🎁 Modo Demonstração: Tem **{st.session_state.simulacoes_restantes}** simulação(ões) gratuita(s) restantes.")
+        st.info(f"🎁 Modo Demonstração: Tem **{st.session_state.simulacoes_restantes}** simulação(ões) gratuita(s) restantes neste dispositivo.")
 
     c1, c2 = st.columns(2, gap="large")
     with c1:
@@ -83,39 +90,41 @@ if modulo == "🚀 Simulador Tributário & Planos":
     with c2:
         st.subheader("Resultado da Simulação")
         if st.button("⚡ Executar Simulação Completa", type="primary", use_container_width=True, key="btn_exec_sim"):
-            if not st.session_state.liberado_pago_master and st.session_state.simulacoes_restantes <= 0:
-                tela_bloqueio_comercial("As suas simulações gratuitas esgotaram.")
-            else:
-                if not st.session_state.liberado_pago_master:
+            if not st.session_state.liberado_pago_master:
+                if st.session_state.simulacoes_restantes <= 0:
+                    tela_bloqueio_comercial("Suas 3 simulações gratuitas esgotaram neste computador.")
+                else:
                     st.session_state.simulacoes_restantes -= 1
+                    if st.session_state.simulacoes_restantes <= 0:
+                        st.session_state.acesso_bloqueado_definitivo = True
 
-                simples = fat_anual * 0.09
-                presumido = fat_anual * 0.113
-                lucro_base = max(0.0, fat_anual - desp_anual - folha_anual)
-                real = lucro_base * 0.24
+            simples = fat_anual * 0.09
+            presumido = fat_anual * 0.113
+            lucro_base = max(0.0, fat_anual - desp_anual - folha_anual)
+            real = lucro_base * 0.24
 
-                cenarios = {"Simples Nacional": simples, "Lucro Presumido": presumido, "Lucro Real": real}
-                melhor = min(cenarios, key=cenarios.get)
-                menor_val = cenarios[melhor]
-                economia = max(cenarios.values()) - menor_val
+            cenarios = {"Simples Nacional": simples, "Lucro Presumido": presumido, "Lucro Real": real}
+            melhor = min(cenarios, key=cenarios.get)
+            menor_val = cenarios[melhor]
+            economia = max(cenarios.values()) - menor_val
 
-                st.success("Análise paramétrica realizada com sucesso!")
-                
-                m1, m2, m3 = st.columns(3)
-                m1.metric("Melhor Regime", melhor)
-                m2.metric("Imposto Anual Estimado", f"R$ {menor_val:,.2f}")
-                m3.metric("Elisão Fiscal Potencial", f"R$ {economia:,.2f}", delta="Otimizado")
+            st.success("Análise paramétrica realizada com sucesso!")
+            
+            m1, m2, m3 = st.columns(3)
+            m1.metric("Melhor Regime", melhor)
+            m2.metric("Imposto Anual Estimado", f"R$ {menor_val:,.2f}")
+            m3.metric("Elisão Fiscal Potencial", f"R$ {economia:,.2f}", delta="Otimizado")
 
-                lead_data = {
-                    "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                    "razao": razao,
-                    "whatsapp": whatsapp,
-                    "email": email,
-                    "melhor_regime": melhor,
-                    "economia": economia
-                }
-                st.session_state.leads_salvos.append(lead_data)
-                st.session_state.ultimo_resultado_sim = lead_data
+            lead_data = {
+                "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                "razao": razao,
+                "whatsapp": whatsapp,
+                "email": email,
+                "melhor_regime": melhor,
+                "economia": economia
+            }
+            st.session_state.leads_salvos.append(lead_data)
+            st.session_state.ultimo_resultado_sim = lead_data
 
         if "ultimo_resultado_sim" in st.session_state:
             res = st.session_state.ultimo_resultado_sim
@@ -145,6 +154,9 @@ if modulo == "🚀 Simulador Tributário & Planos":
 elif modulo == "💬 Chat IA Master Sênior":
     st.title("💬 Chat IA Master Sênior - Direito Tributário & Contabilidade")
     st.markdown("Faça perguntas técnicas avançadas sobre legislação brasileira, auditoria e compliance.")
+
+    if not st.session_state.liberado_pago_master and st.session_state.simulacoes_restantes <= 0:
+        tela_bloqueio_comercial("Limite de simulações atingido. O acesso ao chat IA requer assinatura ativa.")
 
     if "mensagens_chat" not in st.session_state:
         st.session_state.mensagens_chat = [
@@ -274,7 +286,7 @@ Média de Elisão Fiscal: R$ 42.500,00
     )
 
 # ==========================================
-# 6. MÓDULO: GOVERNANÇA DE CLIENTES (Com opção de cadastro manual)
+# 6. MÓDULO: GOVERNANÇA DE CLIENTES
 # ==========================================
 elif modulo == "🏛️ Governança de Clientes":
     st.title("🏛️ Governança e Carteira de Clientes")
@@ -326,7 +338,7 @@ elif modulo == "🏛️ Governança de Clientes":
         )
 
 # ==========================================
-# 7. MÓDULO: CENTRAL DE LEADS (Com opção de cadastro manual)
+# 7. MÓDULO: CENTRAL DE LEADS
 # ==========================================
 elif modulo == "🎯 Central de Leads":
     st.title("🎯 Central de Captação de Leads")
@@ -383,18 +395,19 @@ elif modulo == "⚙️ Configurações / Painel Master":
         st.success("🟢 Sistema com Licença Master Ativa (Acesso Ilimitado Liberado).")
     else:
         st.warning("🔒 Sistema em Modo Demonstração / Limitado.")
-        st.markdown("Para liberar o acesso vitalício/integral de forma imediata, utilize o botão abaixo ou escolha um dos planos:")
+        st.markdown("Para liberar o acesso integral de forma imediata (e destravar o computador caso tenha bloqueado), utilize o botão abaixo ou escolha um dos planos:")
         
         if st.button("🔑 Ativar Licença Master Manualmente"):
             st.session_state.liberado_pago_master = True
-            st.success("Licença Master ativada com sucesso! Recarregue a página se necessário.")
+            st.session_state.acesso_bloqueado_definitivo = False
+            st.success("Licença Master ativada com sucesso! O acesso total foi liberado.")
             st.rerun()
 
         st.markdown("### Planos Oficiais de Assinatura (InfinitePay):")
         col_c1, col_c2, col_c3 = st.columns(3)
         with col_c1:
-            st.markdown('<a href="' + LINK_PLANO_START + '" target="_blank" style="background-color: #007bff; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Plano Start</a>', unsafe_allow_html=True)
+            st.markdown(f'<a href="{LINK_PLANO_START}" target="_blank" style="background-color: #007bff; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Plano Start</a>', unsafe_allow_html=True)
         with col_c2:
-            st.markdown('<a href="' + LINK_PLANO_PRO + '" target="_blank" style="background-color: #28a745; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Plano Pro</a>', unsafe_allow_html=True)
+            st.markdown(f'<a href="{LINK_PLANO_PRO}" target="_blank" style="background-color: #28a745; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Plano Pro</a>', unsafe_allow_html=True)
         with col_c3:
-            st.markdown('<a href="' + LINK_PLANO_ENTERPRISE + '" target="_blank" style="background-color: #6f42c1; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Enterprise</a>', unsafe_allow_html=True)
+            st.markdown(f'<a href="{LINK_PLANO_ENTERPRIse}" target="_blank" style="background-color: #6f42c1; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Enterprise</a>', unsafe_allow_html=True)
