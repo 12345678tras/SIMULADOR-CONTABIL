@@ -24,7 +24,7 @@ registrar_log("Plataforma Consultor Inteligente Master iniciada com REST API pur
 def verificar_senha_master(senha_digitada):
     return senha_digitada.strip().lower() == "contadora2x"
 
-# Função da IA Master blindada via REST API com o modelo correto atualizado
+# Função da IA Master blindada via REST API com o modelo gemini-3.6-flash
 def consultar_ia_master(prompt_usuario, historico_chat=None):
     try:
         gemini_api_key = None
@@ -36,13 +36,13 @@ def consultar_ia_master(prompt_usuario, historico_chat=None):
             gemini_api_key = os.environ.get("GOOGLE_API_KEY")
 
         if not gemini_api_key:
-            return "⚠️ **Chave de API do Gemini não configurada.** Por favor, adicione sua `GEMINI_API_KEY` nos Secrets do Streamlit ou no Painel Master."
+            return "⚠️ **Chave de API do Gemini não configurada.** Por favor, adicione a sua `GEMINI_API_KEY` nos Secrets do Streamlit ou no Painel Master."
 
-        # Endpoint oficial atualizado com o modelo gemini-2.5-flash
-url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={gemini_api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={gemini_api_key}"
+
         contexto_sistema = (
             "Você é o 'Consultor Inteligente Master', um auditor fiscal, tributarista sênior e contador consultor de elite. "
-            "Suas respostas devem ser profundas, altamente técnicas, precisas, fundamentadas na legislação brasileira e estruturadas com didática executiva.\n\n"
+            "As suas respostas devem ser profundas, altamente técnicas, precisas, fundamentadas na legislação brasileira e estruturadas com didática executiva.\n\n"
         )
 
         texto_completo = contexto_sistema
@@ -68,9 +68,9 @@ url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash
                 resposta_texto = dados["candidates"][0]["content"]["parts"][0]["text"]
                 return resposta_texto
             except (KeyError, IndexError):
-                return "⚠️ A resposta da API veio em formato inesperado."
+                return "⚠️ A resposta da API veio num formato inesperado."
         else:
-            return f"⚠️ Erro de comunicação com a API (Status {response.status_code}): {response.text}"
+            return f"⚠️ Erro de comunicação com a API (Estado {response.status_code}): {response.text}"
 
     except Exception as e:
         registrar_log(f"Erro crítico na REST API da IA Master: {e}", "AI_ERROR")
@@ -180,7 +180,7 @@ if modulo == "🚀 Simulador Tributário & Planos":
     st.markdown("Análise paramétrica inteligente para identificação da menor carga tributária.")
 
     if not st.session_state.liberado_pago_master:
-        st.info(f"🎁 Modo Demonstração: Você possui **{st.session_state.simulacoes_restantes}** simulação(ões) gratuita(s).")
+        st.info(f"🎁 Modo Demonstração: Tem **{st.session_state.simulacoes_restantes}** simulação(ões) gratuita(s).")
 
     c1, c2 = st.columns(2, gap="large")
     with c1:
@@ -196,7 +196,7 @@ if modulo == "🚀 Simulador Tributário & Planos":
         st.subheader("Resultado da Simulação")
         if st.button("⚡ Executar Simulação Completa", type="primary", use_container_width=True):
             if not st.session_state.liberado_pago_master and st.session_state.simulacoes_restantes <= 0:
-                st.warning("Suas simulações gratuitas acabaram.")
+                st.warning("As suas simulações gratuitas esgotaram.")
             else:
                 if not st.session_state.liberado_pago_master:
                     st.session_state.simulacoes_restantes -= 1
@@ -220,7 +220,7 @@ if modulo == "🚀 Simulador Tributário & Planos":
 
     if not st.session_state.liberado_pago_master and st.session_state.simulacoes_restantes <= 0:
         st.markdown("---")
-        tela_bloqueio_comercial("Suas simulações gratuitas esgotaram.")
+        tela_bloqueio_comercial("As suas simulações gratuitas esgotaram.")
 
 # ==========================================
 # 4. MÓDULO: CHAT IA MASTER SÊNIOR
@@ -230,7 +230,7 @@ elif modulo == "🤖 Chat IA Master Sênior":
     st.markdown("Tire dúvidas tributárias, societárias e fiscais complexas com inteligência artificial de alta performance.")
 
     if not st.session_state.liberado_pago_master:
-        st.info(f"🎁 Modo Demonstração: Você possui **{st.session_state.mensagens_ia_restantes}** mensagem(ns) gratuita(s) no chat.")
+        st.info(f"🎁 Modo Demonstração: Tem **{st.session_state.mensagens_ia_restantes}** mensagem(ns) gratuita(s) no chat.")
 
     for msg in st.session_state.historico_chat_master:
         with st.chat_message(msg["role"]):
@@ -239,10 +239,10 @@ elif modulo == "🤖 Chat IA Master Sênior":
     bloquear_chat = not st.session_state.liberado_pago_master and st.session_state.mensagens_ia_restantes <= 0
 
     if bloquear_chat:
-        st.warning("🔒 Suas mensagens gratuitas no chat acabaram.")
-        tela_bloqueio_comercial("Assine um plano para continuar conversando ilimitadamente com o Consultor Inteligente Master.")
+        st.warning("🔒 As suas mensagens gratuitas no chat esgotaram.")
+        tela_bloqueio_comercial("Assine um plano para continuar a conversar ilimitadamente com o Consultor Inteligente Master.")
     else:
-        pergunta = st.chat_input("Digite sua dúvida tributária, fiscal ou contábil...")
+        pergunta = st.chat_input("Digite a sua dúvida tributária, fiscal ou contábil...")
         if pergunta:
             if not st.session_state.liberado_pago_master:
                 st.session_state.mensagens_ia_restantes -= 1
@@ -252,7 +252,7 @@ elif modulo == "🤖 Chat IA Master Sênior":
                 st.markdown(pergunta)
 
             with st.chat_message("assistant"):
-                with st.spinner("Consultando bases legislativas com o Consultor Master..."):
+                with st.spinner("A consultar bases legislativas com o Consultor Master..."):
                     resposta_ia = consultar_ia_master(pergunta, st.session_state.historico_chat_master[:-1])
                     st.markdown(resposta_ia)
                     st.session_state.historico_chat_master.append({"role": "assistant", "content": resposta_ia})
@@ -284,7 +284,7 @@ elif modulo == "📑 Parecer Executivo & Disparos":
             gerar_btn = st.form_submit_button("Gerar Laudo Técnico com IA Master", type="primary")
 
         if gerar_btn:
-            with st.spinner("Elaborando laudo formal de auditoria..."):
+            with st.spinner("A elaborar laudo formal de auditoria..."):
                 prompt_laudo = f"Elabore um parecer técnico formal, detalhado e de alto padrão para a empresa {cli_n}, com faturamento mensal de R$ {cli_f:,.2f}, com foco em {objetivo}."
                 laudo = consultar_ia_master(prompt_laudo)
                 
@@ -308,13 +308,13 @@ elif modulo == "🛡️ Auditoria Preventiva (XML/SPED)":
     if not st.session_state.liberado_pago_master:
         tela_bloqueio_comercial("A auditoria preventiva é restrita a assinantes.")
     else:
-        xml_file = st.file_uploader("Carregar Arquivo Fiscal (XML, TXT, CSV):", type=["xml", "txt", "csv"])
+        xml_file = st.file_uploader("Carregar Ficheiro Fiscal (XML, TXT, CSV):", type=["xml", "txt", "csv"])
         if xml_file:
-            st.success(f"Arquivo `{xml_file.name}` carregado!")
-            if st.button("🔍 Rodar Varredura de Inconsistências", type="primary"):
+            st.success(f"Ficheiro `{xml_file.name}` carregado!")
+            if st.button("🔍 Executar Varredura de Inconsistências", type="primary"):
                 st.metric("Riscos de Malha Fina", "Baixo Risco", delta="Conforme")
         else:
-            st.info("Faça upload de um arquivo fiscal para análise.")
+            st.info("Faça o upload de um ficheiro fiscal para análise.")
 
 # ==========================================
 # 7. INDICADORES DO ESCRITÓRIO
@@ -395,9 +395,9 @@ elif modulo == "⚙️ Configurações / Painel Master":
                     logs = f.readlines()
                 st.code("".join(logs[-50:]), language="text")
             else:
-                st.info("Nenhum log registrado.")
+                st.info("Nenhum log registado.")
     else:
         if senha_adm_input:
             st.error("Senha incorreta.")
         else:
-            st.info("Digite a senha master para acessar as configurações.")
+            st.info("Digite a senha master para aceder às configurações.")
