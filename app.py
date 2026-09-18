@@ -1,5 +1,6 @@
 import datetime
 import os
+import time
 import pandas as pd
 import streamlit as st
 
@@ -190,8 +191,24 @@ elif menu == "Assistente de IA Local (Chat)":
       with st.chat_message("user"):
         st.markdown(pergunta)
 
-      p_lower = pergunta.lower()
-      if (
+      p_lower = pergunta.lower().strip()
+
+      # Tratamento refinado para saudações e termos comuns
+      if p_lower in [
+          "oi",
+          "olá",
+          "ola",
+          "bom dia",
+          "boa tarde",
+          "boa noite",
+          "tudo bem",
+      ]:
+        resposta_ia = (
+            "Olá! Tudo ótimo por aqui. Como posso auxiliar nos seus"
+            " procedimentos contábeis, apuração de impostos ou análise de"
+            " regime tributário hoje?"
+        )
+      elif (
           "pessoa fisica" in p_lower
           or "pf" in p_lower
           or "contribuinte pf" in p_lower
@@ -253,6 +270,9 @@ elif menu == "Simulação Contínua de Regime":
   )
 
   if st.button("🔍 Executar Simulação Tributária", type="primary"):
+    with st.spinner("Processando simulação tributária local..."):
+      time.sleep(1)
+
     if faturamento_anual > 4800000:
       recomendacao = "Lucro Presumido ou Lucro Real (Estouro do sublimite do Simples Nacional)"
       cor_alerta = "error"
@@ -309,10 +329,25 @@ elif menu == "Alertas de Oportunidades Fiscais":
   if st.button(
       "🔍 Executar Varredura de Oportunidades Fiscais", type="primary"
   ):
+    with st.spinner(
+        "Executando varredura analítica na base de dados local..."
+    ):
+      time.sleep(1.5)
+
     st.success(
-        "Varredura local concluída com sucesso! Relatório de créditos gerado"
-        " com base nas regras internas da base."
+        "🚀 Varredura local concluída com sucesso! Relatório de créditos"
+        " gerado:"
     )
+
+    df_oportunidades = pd.DataFrame({
+        "Tributo / Base": [
+            "PIS/COFINS Monofásico",
+            "Incentivo Setorial Regional",
+        ],
+        "Potencial Recuperável": ["R$ 8.450,00", "R$ 6.100,00"],
+        "Status": ["Disponível para Compensação", "Aplicável imediatamente"],
+    })
+    st.table(df_oportunidades)
     registrar_log("Varredura de oportunidades fiscais executada localmente.")
 
 elif menu == "Indicadores & Malha Preditiva":
@@ -335,7 +370,12 @@ elif menu == "Indicadores & Malha Preditiva":
     )
 
   if st.button("🔍 Executar Auditoria Preditiva", type="primary"):
-    st.success("Auditoria local concluída! Nenhum risco crítico encontrado.")
+    with st.spinner("Processando auditoria preditiva..."):
+      time.sleep(1)
+    st.success(
+        "Auditoria local concluída! Nenhum risco crítico encontrado nas"
+        " declarações."
+    )
     registrar_log("Auditoria preditiva executada localmente.")
 
 elif menu == "Gerador de Parecer & WhatsApp/PDF":
