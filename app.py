@@ -123,7 +123,7 @@ else:
 st.sidebar.markdown("---")
 
 # ==========================================
-# 4. CONFIGURAÇÃO DA INTELIGÊNCIA ARTIFICIAL (GEMINI 1.5 FLASH)
+# 4. CONFIGURAÇÃO DA INTELIGÊNCIA ARTIFICIAL (BLINDADA)
 # ==========================================
 model = None
 
@@ -131,16 +131,11 @@ try:
   google_api_key_nuvem = st.secrets.get("GEMINI_API_KEY", "")
   if google_api_key_nuvem:
     genai.configure(api_key=google_api_key_nuvem)
-    generation_config = {"temperature": 0.3, "max_output_tokens": 1000}
-    model = genai.GenerativeModel(
-        model_name="gemini-1.5-flash",
-        generation_config=generation_config,
-        system_instruction=(
-            "Você é um Consultor Contábil Virtual Especializado, focado em"
-            " contabilidade brasileira, planejamento tributário, Fator R e"
-            " malha fiscal."
-        ),
-    )
+    # Chamada universal e blindada compatível com qualquer versão de API
+    try:
+      model = genai.GenerativeModel("gemini-pro")
+    except Exception:
+      model = genai.GenerativeModel("gemini-1.5-flash")
 except Exception as e:
   registrar_log(f"Erro ao configurar Gemini: {e}", "ERRO")
 
@@ -198,9 +193,7 @@ else:
     with col2:
       st.metric("Potenciais", len(df_potenciais))
     with col3:
-      st.metric(
-          "Motor IA", "Gemini 1.5 Flash ⚡" if model else "Sem Chave ⚠️"
-      )
+      st.metric("Motor IA", "Ativo ⚡" if model else "Sem Chave ⚠️")
     with col4:
       rest = (
           "Ilimitado 🛡️"
@@ -223,14 +216,14 @@ else:
         st.info("Nenhum potencial cadastrado.")
 
   elif menu == "Assistente Contábil":
-    st.title("🤖 Assistente Contábil (Powered by Gemini 1.5 Flash)")
+    st.title("🤖 Assistente Contábil (Powered by Gemini)")
 
     if "mensagens" not in st.session_state:
       st.session_state.mensagens = [{
           "role": "assistant",
           "content": (
-              "Olá! Sou seu assistente contábil com Gemini 1.5 Flash. Como posso"
-              " ajudar?"
+              "Olá! Sou o seu Assistente Contábil inteligente. Como posso"
+              " ajudar nas suas dúvidas fiscais hoje?"
           ),
       }]
 
@@ -250,7 +243,7 @@ else:
           st.markdown(pergunta)
 
         with st.chat_message("assistant"):
-          with st.spinner("Consultando Gemini 1.5 Flash..."):
+          with st.spinner("Consultando IA..."):
             try:
               if model:
                 chat_history = [
@@ -263,9 +256,9 @@ else:
                 chat = model.start_chat(history=chat_history)
                 resposta = chat.send_message(pergunta).text
               else:
-                resposta = "⚠️ Chave do Gemini não configurada."
+                resposta = "⚠️ Chave do Gemini não configurada nos segredos."
             except Exception as ex:
-              resposta = f"Erro ao consultar Gemini: {ex}"
+              resposta = f"Erro ao consultar IA: {ex}"
             st.markdown(resposta)
 
         st.session_state.mensagens.append(
