@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import os
 import datetime
-from openai import OpenAI
+from groq import Groq
 
 # ==========================================
 # 0. SISTEMA ESPIÃO DE AUDITORIA & BLINDAGEM
@@ -18,7 +18,7 @@ def registrar_log(acao, tipo="INFO"):
     except Exception as e:
         print(f"Erro no log espião: {e}")
 
-registrar_log("Sistema iniciado com protocolos de blindagem ativados.", "STARTUP")
+registrar_log("Sistema iniciado com protocolos de blindagem ativados (Groq Open Source).", "STARTUP")
 
 def verificar_senha_master(senha_digitada):
     senha_limpa = senha_digitada.strip().lower()
@@ -208,7 +208,7 @@ if opcao == "🚀 Simulador Contínuo & Planos":
 # 4. MÓDULO: CHAT COM CONSULTOR IA AVANÇADO
 # ==========================================
 elif opcao == "💬 Chat com Consultor IA Avançado":
-    st.title("🤖 Consultor Inteligente Sênior de Plantão")
+    st.title("🤖 Consultor Inteligente Sênior de Plantão (Código Aberto)")
     st.markdown("Tire dúvidas tributárias, fiscais e societárias com nossa inteligência artificial sênior.")
 
     if not st.session_state.liberado_pago_contabil:
@@ -242,26 +242,26 @@ elif opcao == "💬 Chat com Consultor IA Avançado":
                 st.markdown(pergunta_usuario)
 
             with st.chat_message("assistant"):
-                with st.spinner("Analisando bases fiscais e elaborando resposta sênior..."):
-                    api_key_openai = os.environ.get("OPENAI_API_KEY")
+                with st.spinner("Analisando bases fiscais com IA de código aberto..."):
+                    groq_api_key = os.environ.get("GROQ_API_KEY")
                     resposta_ia = ""
                     
-                    if api_key_openai:
+                    if groq_api_key:
                         try:
-                            client = OpenAI(api_key=api_key_openai)
+                            client = Groq(api_key=groq_api_key)
                             resposta = client.chat.completions.create(
-                                model="gpt-4o",
+                                model="llama3-70b-8192",
                                 messages=st.session_state.historico_chat,
                                 temperature=0.3,
                                 max_tokens=800
                             )
                             resposta_ia = resposta.choices[0].message.content
                         except Exception as e:
-                            resposta_ia = f"Erro técnico na comunicação com a API da OpenAI: {e}"
+                            resposta_ia = f"Erro técnico na comunicação com a API da Groq: {e}"
                     else:
                         resposta_ia = (
-                            "⚠️ **Serviço de Inteligência Artificial Temporariamente Indisponível.**\n\n"
-                            "Por favor, entre em contato com o suporte técnico do escritório para habilitar o sistema."
+                            "⚠️ **Chave da Groq não configurada.**\n\n"
+                            "Por favor, insira sua chave gratuita da Groq no Painel Master (Configurações) para habilitar o chat."
                         )
 
                     st.markdown(resposta_ia)
@@ -283,13 +283,13 @@ elif opcao == "📑 Relatório & Parecer Executivo (PDF/Wpp)":
 
         if st.button("🤖 Gerar Parecer Executivo Oficial com IA", type="primary"):
             with st.spinner("Elaborando parecer executivo de alto padrão..."):
-                api_key_openai = os.environ.get("OPENAI_API_KEY")
+                groq_api_key = os.environ.get("GROQ_API_KEY")
                 parecer_texto = f"Parecer Técnico Executivo - {cli_nome}\nFaturamento base: R$ {fat_input:,.2f}"
-                if api_key_openai:
+                if groq_api_key:
                     try:
-                        client = OpenAI(api_key=api_key_openai)
+                        client = Groq(api_key=groq_api_key)
                         resposta = client.chat.completions.create(
-                            model="gpt-4o",
+                            model="llama3-70b-8192",
                             messages=[
                                 {"role": "system", "content": "Você é um consultor tributário sênior e auditor fiscal."},
                                 {"role": "user", "content": f"Elabore um parecer tributário executivo para {cli_nome}, faturamento mensal de R$ {fat_input:,.2f}."}
@@ -400,21 +400,22 @@ elif opcao == "⚙️ Configurações / Painel Master":
     if verificar_senha_master(senha_master_input):
         st.success("🔓 **Autenticação Realizada com Sucesso!**")
         
-        tab_api, tab_logs = st.tabs(["🔑 Chave de API da OpenAI", "🕵️‍♂️ Painel Espião & Logs de Segurança"])
+        tab_api, tab_logs = st.tabs(["🔑 Chave de API da Groq (Gratuita)", "🕵️‍♂️ Painel Espião & Logs de Segurança"])
 
         with tab_api:
-            st.subheader("Configuração da OpenAI API Key")
-            chave_digitada = st.text_input("Digite a chave secreta da API:", type="password", key="input_chave_openai_secreta")
+            st.subheader("Configuração da Groq API Key (Llama 3 Code Open Source)")
+            st.markdown("Insira sua chave gratuita gerada em `console.groq.com` para ativar a inteligência artificial sem custos.")
+            chave_digitada = st.text_input("Digite a chave secreta da Groq:", type="password", key="input_chave_groq_secreta")
             if st.button("Salvar e Ativar Chave", key="btn_salvar_chave_secreta"):
                 if chave_digitada.strip():
-                    os.environ["OPENAI_API_KEY"] = chave_digitada.strip()
-                    registrar_log("Chave de API configurada com sucesso pelo administrador.", "SECURITY")
+                    os.environ["GROQ_API_KEY"] = chave_digitada.strip()
+                    registrar_log("Chave da Groq configurada com sucesso pelo administrador.", "SECURITY")
                     st.success("Chave de API salva com sucesso!")
                 else:
                     st.warning("Insira uma chave válida.")
 
-            if os.environ.get("OPENAI_API_KEY"):
-                st.info("Status: **Chave de API configurada e ativa neste servidor!** ✅")
+            if os.environ.get("GROQ_API_KEY"):
+                st.info("Status: **Chave da Groq configurada e ativa neste servidor!** ✅")
             else:
                 st.warning("Status: Nenhuma chave ativa no momento. ⚠️")
 
