@@ -39,7 +39,7 @@ def consultar_ia_master(prompt_usuario, historico_chat=None):
             return "⚠️ **Chave de API do Gemini não configurada.** Por favor, adicione a sua `GEMINI_API_KEY` nos segredos do Streamlit ou no Painel Master."
 
         # URL montada de forma segura para evitar qualquer erro de sintaxe
-        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + gemini_api_key
+       url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + gemini_api_key
 
         contexto_sistema = (
             "Você é o 'Consultor Inteligente Master', um auditor fiscal, tributarista sênior e contador consultor de elite. "
