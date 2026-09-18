@@ -15,30 +15,6 @@ st.set_page_config(
 )
 
 # ==========================================
-# CONFIGURAÇÃO DA API DO GEMINI
-# ==========================================
-GOOGLE_API_KEY = "SUA_CHAVE_API_DO_GEMINI_AQUI"
-
-if GOOGLE_API_KEY and GOOGLE_API_KEY != "SUA_CHAVE_API_DO_GEMINI_AQUI":
-  genai.configure(api_key=GOOGLE_API_KEY)
-  generation_config = {
-      "temperature": 0.3,
-      "max_output_tokens": 1000,
-  }
-  model = genai.GenerativeModel(
-      model_name="gemini-1.5-pro",
-      generation_config=generation_config,
-      system_instruction=(
-          "Você é um Consultor Contábil Virtual Especializado, focado em"
-          " contabilidade brasileira, planejamento tributário (Simples Nacional,"
-          " Lucro Presumido, Lucro Real), Fator R, Pessoa Física e Malha Fina."
-          " Dê respostas técnicas, claras, objetivas e profissionais."
-      ),
-  )
-else:
-  model = None
-
-# ==========================================
 # 1. SISTEMA ESPIÃO DE AUDITORIA & BLINDAGEM
 # ==========================================
 ARQUIVO_LOG = "sistema_auditoria.log"
@@ -118,8 +94,24 @@ acesso_master = senha_digitada == SENHA_MESTRE
 acesso_cliente_pago = senha_digitada in SENHAS_CLIENTES_PAGANTES
 acesso_liberado_total = acesso_master or acesso_cliente_pago
 
+# ==========================================
+# PAINEL SECRETO DA DONA (CHAVE GEMINI + ESPIÃO)
+# ==========================================
+google_api_key_dinamica = "SUA_CHAVE_API_DO_GEMINI_AQUI"  # Padrão caso não configure
+
 if acesso_master:
-  st.sidebar.success("Acesso Master (Dona) Ativo 🛡️ (Ilimitado)")
+  st.sidebar.success("Acesso Master (Dona) Ativo 🛡️")
+  st.sidebar.markdown("---")
+  st.sidebar.subheader("⚙️ Configurações da Dona")
+
+  # Caixa para colocar a chave do Gemini direto pela interface
+  google_api_key_dinamica = st.sidebar.text_input(
+      "🔑 Chave API do Gemini (Master)",
+      value="SUA_CHAVE_API_DO_GEMINI_AQUI",
+      type="password",
+      help="Cole sua chave aqui. Ela só aparece para você com a senha mestre.",
+  )
+  st.sidebar.markdown("---")
 elif acesso_cliente_pago:
   st.sidebar.success("Assinatura Ativa Detectada ⭐ (Acesso Ilimitado)")
 else:
@@ -137,6 +129,31 @@ else:
 
 st.sidebar.markdown("---")
 
+# ==========================================
+# CONFIGURAÇÃO DO MODELO GEMINI
+# ==========================================
+if (
+    google_api_key_dinamica
+    and google_api_key_dinamica != "SUA_CHAVE_API_DO_GEMINI_AQUI"
+):
+  genai.configure(api_key=google_api_key_dinamica)
+  generation_config = {"temperature": 0.3, "max_output_tokens": 1000}
+  model = genai.GenerativeModel(
+      model_name="gemini-1.5-pro",
+      generation_config=generation_config,
+      system_instruction=(
+          "Você é um Consultor Contábil Virtual Especializado, focado em"
+          " contabilidade brasileira, planejamento tributário (Simples Nacional,"
+          " Lucro Presumido, Lucro Real), Fator R, Pessoa Física e Malha Fina."
+          " Dê respostas técnicas, claras, objetivas e profissionais."
+      ),
+  )
+else:
+  model = None
+
+# ==========================================
+# MENU DE NAVEGAÇÃO (O EsPIÃO SÓ APARECE PARA A DONA)
+# ==========================================
 lista_menu = [
     "Visão Geral & Indicadores",
     "Assistente de IA Local (Chat)",
@@ -148,7 +165,7 @@ lista_menu = [
 ]
 
 if acesso_master:
-  lista_menu.append("Código Espião (Logs)")
+  lista_menu.append("Código Espião (Logs)")  # Só entra se for a dona!
 
 menu = st.sidebar.selectbox("Navegação Estratégica", lista_menu)
 
@@ -277,8 +294,8 @@ elif menu == "Assistente de IA Local (Chat)":
               resposta_ia = response.text
             else:
               resposta_ia = (
-                  "⚠️ A chave da API do Gemini não foi configurada"
-                  " corretamente no código."
+                  "⚠️ A chave da API do Gemini precisa ser configurada no"
+                  " painel secreto da barra lateral (com a senha mestre)."
               )
           except Exception as e:
             resposta_ia = (
@@ -386,8 +403,15 @@ elif menu == "Área de Assinatura & Planos":
 
 elif menu == "Código Espião (Logs)" and acesso_master:
   st.title("🕵️‍♂️ Central do Código Espião (Auditoria em Tempo Real)")
+  st.markdown(
+      "Painel restrito visível apenas para a administração do sistema."
+  )
   if os.path.exists(ARQUIVO_LOG):
     with open(ARQUIVO_LOG, "r", encoding="utf-8") as f:
       st.text_area("Logs", "".join(reversed(f.readlines())), height=400)
+    if st.button("Limpar Histórico de Logs", use_container_width=True):
+      open(ARQUIVO_LOG, "w").close()
+      st.success("Histórico limpo com sucesso!")
+      st.rerun()
   else:
     st.warning("Nenhum log encontrado.")
