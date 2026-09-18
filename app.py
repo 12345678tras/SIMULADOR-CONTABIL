@@ -18,11 +18,34 @@ def registrar_log(acao, tipo="INFO"):
     except Exception as e:
         print(f"Erro no log espião: {e}")
 
-registrar_log("Sistema iniciado com protocolos de blindagem ativados (Google GenAI).", "STARTUP")
+registrar_log("Sistema iniciado com protocolos de blindagem e redundância de IA.", "STARTUP")
 
 def verificar_senha_master(senha_digitada):
     senha_limpa = senha_digitada.strip().lower()
     return senha_limpa == "contadora2x"
+
+# Função de Inteligência com Redundância Automática (Fallback de Modelos)
+def gerar_resposta_ia_blindada(client, prompt):
+    # Lista de modelos para tentar em ordem de prioridade se houver instabilidade/sobrecarga
+    modelos_para_tentar = ["gemini-3.6-flash", "gemini-2.5-flash", "gemini-1.5-flash"]
+    
+    ultimo_erro = ""
+    for modelo in modelos_para_tentar:
+        try:
+            registrar_log(f"Tentando comunicação com o modelo IA: {modelo}", "AI_ATTEMPT")
+            resposta = client.models.generate_content(
+                model=modelo,
+                contents=prompt
+            )
+            if resposta and hasattr(resposta, "text") and resposta.text:
+                registrar_log(f"Sucesso com o modelo: {modelo}", "AI_SUCCESS")
+                return resposta.text
+        except Exception as e:
+            ultimo_erro = str(e)
+            registrar_log(f"Falha no modelo {modelo}: {e}", "AI_WARNING")
+            continue
+            
+    return f"⚠️ Erro crítico em todos os modelos de IA disponíveis. Detalhe técnico: {ultimo_erro}"
 
 # ==========================================
 # 1. CONFIGURAÇÃO DA PÁGINA E DIRETRIZES
@@ -239,7 +262,7 @@ elif opcao == "💬 Chat com Consultor IA Avançado":
                 st.markdown(pergunta_usuario)
 
             with st.chat_message("assistant"):
-                with st.spinner("Consultando bases fiscais com Gemini..."):
+                with st.spinner("Consultando bases fiscais com Gemini (Com Redundância Ativa)..."):
                     gemini_api_key = None
                     try:
                         if "GEMINI_API_KEY" in st.secrets:
@@ -260,18 +283,14 @@ elif opcao == "💬 Chat com Consultor IA Avançado":
                             for h in st.session_state.historico_chat:
                                 prompt_completo += f"{h['role'].upper()}: {h['content']}\n"
 
-                            # CORRIGIDO PARA O MODELO MAIS RECENTE
-                            resposta = client.models.generate_content(
-                                model="gemini-3.6-flash",
-                                contents=prompt_completo
-                            )
-                            resposta_ia = resposta.text
+                            # CHAMA A FUNÇÃO BLINDADA COM REDUNDÂNCIA
+                            resposta_ia = gerar_resposta_ia_blindada(client, prompt_completo)
                         except Exception as e:
-                            resposta_ia = f"Erro técnico na comunicação com a API do Gemini: {e}"
+                            resposta_ia = f"Erro técnico crítico na inicialização do cliente Gemini: {e}"
                     else:
                         resposta_ia = (
                             "⚠️ **Chave da API do Gemini não configurada.**\n\n"
-                            "Por favor, certifique-se de configurar a chave `GEMINI_API_KEY` nos **Secrets** do Streamlit ou insira-a no **Painel Master (Configurações)**."
+                            "Por favor, configure a chave `GEMINI_API_KEY` nos **Secrets** do Streamlit ou insira-a no **Painel Master (Configurações)**."
                         )
 
                     st.markdown(resposta_ia)
@@ -282,17 +301,31 @@ elif opcao == "💬 Chat com Consultor IA Avançado":
 # ==========================================
 elif opcao == "📑 Relatório & Parecer Executivo (PDF/Wpp)":
     st.title("📑 Emissor de Parecer Executivo & Disparador Inteligente")
+    st.markdown("Insira os dados da empresa cliente para gerar instantaneamente o laudo técnico tributário estruturado e pronto para envio.")
     
     if not st.session_state.liberado_pago_contabil:
         tela_bloqueio_pagamento("O módulo de emissão de Pareceres Executivos é exclusivo para assinantes.")
     else:
-        cli_nome = st.text_input("Nome do Cliente / Empresa Destinatária:", value="Empresa Exemplo Ltda")
-        cli_whats = st.text_input("WhatsApp para Envio (com DDD):", value="64993044147")
-        cli_email = st.text_input("E-mail para Envio:", value="cliente@empresa.com.br")
-        fat_input = st.number_input("Faturamento Mensal Base (R$):", value=30000.0)
+        with st.form("form_parecer_executivo"):
+            col_p1, col_p2 = st.columns(2)
+            with col_p1:
+                cli_nome = st.text_input("Nome da Empresa / Cliente:", value="Comércio Exemplo Ltda")
+                cli_whats = st.text_input("WhatsApp para Envio (com DDD):", value="64993044147")
+            with col_p2:
+                cli_email = st.text_input("E-mail do Cliente:", value="financeiro@empresa.com.br")
+                fat_input = st.number_input("Faturamento Mensal Atual (R$):", value=45000.0, step=5000.0)
+            
+            assunto_parecer = st.selectbox("Objetivo do Parecer:", [
+                "Planejamento Tributário Anual", 
+                "Migração de Simples para Lucro Presumido", 
+                "Análise Preventiva de Riscos Fiscais",
+                "Recuperação de Créditos Tributários"
+            ])
+            
+            gerar_laudo_btn = st.form_submit_button("🤖 Gerar Parecer Executivo Oficial com IA", type="primary")
 
-        if st.button("🤖 Gerar Parecer Executivo Oficial com IA", type="primary"):
-            with st.spinner("Elaborando parecer executivo de alto padrão..."):
+        if gerar_laudo_btn:
+            with st.spinner("Elaborando parecer executivo de alto padrão com redundância de IA..."):
                 gemini_api_key = None
                 try:
                     if "GEMINI_API_KEY" in st.secrets:
@@ -307,26 +340,33 @@ elif opcao == "📑 Relatório & Parecer Executivo (PDF/Wpp)":
                 if gemini_api_key:
                     try:
                         client = genai.Client(api_key=gemini_api_key)
-                        # CORRIGIDO PARA O MODELO MAIS RECENTE
-                        resposta = client.models.generate_content(
-                            model="gemini-3.6-flash",
-                            contents=f"Você é um consultor tributário sênior e auditor fiscal. Elabore um parecer tributário executivo para {cli_nome}, faturamento mensal de R$ {fat_input:,.2f}."
+                        prompt_parecer = (
+                            f"Você é um consultor tributário sênior e auditor fiscal. "
+                            f"Elabore um parecer técnico formal, detalhado e executivo para a empresa {cli_nome}, "
+                            f"com faturamento mensal de R$ {fat_input:,.2f}, focado em: {assunto_parecer}. "
+                            "Estruture o parecer com introdução, diagnóstico, fundamentação legal resumida e recomendação estratégica."
                         )
-                        parecer_texto = resposta.text
+                        # CHAMA A FUNÇÃO BLINDADA COM REDUNDÂNCIA
+                        parecer_texto = gerar_resposta_ia_blindada(client, prompt_parecer)
                     except Exception as e:
-                        st.error(f"Erro ao gerar com IA: {e}")
+                        st.error(f"Erro ao conectar com a IA: {e}")
 
-                st.success("Parecer gerado com sucesso!")
-                st.text_area("Visualização do Laudo Executivo:", value=parecer_texto, height=250)
+                st.success("Parecer executivo gerado com sucesso!")
+                st.text_area("Visualização Oficial do Laudo Gerado:", value=parecer_texto, height=300)
 
+                st.markdown("---")
+                st.subheader("📤 Canais de Envio Imediato ao Cliente")
+                
                 wpp_limpo = ''.join(filter(str.isdigit, str(cli_whats)))
-                link_envio_wpp = f"https://wa.me/55{wpp_limpo}?text=Olá%20{cli_nome},%20segue%20o%20seu%20Parecer%20Tributário%20Executivo."
+                # Link formatado para disparar diretamente via WhatsApp com texto codificado
+                texto_wpp_formatado = f"Olá {cli_nome}, segue o seu Parecer Técnico Executivo gerado pelo nosso sistema contábil."
+                link_envio_wpp = f"https://wa.me/55{wpp_limpo}?text={texto_wpp_formatado}"
                 
                 col_env1, col_env2 = st.columns(2)
                 with col_env1:
-                    st.markdown(f'<a href="{link_envio_wpp}" target="_blank" style="background-color: #25D366; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">📲 Enviar via WhatsApp</a>', unsafe_allow_html=True)
+                    st.markdown(f'<a href="{link_envio_wpp}" target="_blank" style="background-color: #25D366; color: white; padding: 12px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">📲 Enviar Parecer via WhatsApp</a>', unsafe_allow_html=True)
                 with col_env2:
-                    st.markdown(f'<a href="mailto:{cli_email}?subject=Parecer%20Tributário" style="background-color: #1E3A8A; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">📧 Enviar via E-mail</a>', unsafe_allow_html=True)
+                    st.markdown(f'<a href="mailto:{cli_email}?subject=Parecer%20Tributário%20Executivo&body=Prezado,%20segue%20em%20anexo/mensagem%20o%20laudo%20contábil." style="background-color: #1E3A8A; color: white; padding: 12px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">📧 Enviar via E-mail</a>', unsafe_allow_html=True)
 
 # ==========================================
 # 6. MÓDULO: AUDITORIA PREVENTIVA & MALHA FINA (XML)
