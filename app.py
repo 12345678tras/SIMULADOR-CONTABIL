@@ -1,4 +1,4 @@
-datetime
+import datetime
 import os
 import time
 import google.generativeai as genai
@@ -17,12 +17,10 @@ st.set_page_config(
 # ==========================================
 # CONFIGURAÇÃO DA API DO GEMINI
 # ==========================================
-# Dica: Você pode colocar sua chave diretamente aqui ou usar st.secrets["GEMINI_API_KEY"]
 GOOGLE_API_KEY = "SUA_CHAVE_API_DO_GEMINI_AQUI"
 
 if GOOGLE_API_KEY and GOOGLE_API_KEY != "SUA_CHAVE_API_DO_GEMINI_AQUI":
   genai.configure(api_key=GOOGLE_API_KEY)
-  # Usando o modelo mais recente e eficiente
   generation_config = {
       "temperature": 0.3,
       "max_output_tokens": 1000,
@@ -265,7 +263,6 @@ elif menu == "Assistente de IA Local (Chat)":
         with st.spinner("Consultando a Inteligência Gemini..."):
           try:
             if model:
-              # Formata o histórico recente para o chat do Gemini
               chat_history = []
               for m in st.session_state.mensagens[:-1]:
                 role_gemini = (
@@ -298,11 +295,6 @@ elif menu == "Assistente de IA Local (Chat)":
 
 elif menu == "Simulação Contínua de Regime":
   st.title("📊 Simulação Contínua & Migração de Regime")
-  st.markdown(
-      "Insira o faturamento e escolha o segmento para calcular o momento ideal"
-      " de migração."
-  )
-
   if not verificar_e_consumir_uso():
     exibir_aviso_limite_esgotado()
   else:
