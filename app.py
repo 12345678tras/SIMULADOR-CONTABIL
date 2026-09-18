@@ -193,7 +193,6 @@ elif menu == "Assistente de IA Local (Chat)":
 
       p_lower = pergunta.lower().strip()
 
-      # Tratamento refinado para saudações e termos comuns
       if p_lower in [
           "oi",
           "olá",
@@ -269,10 +268,19 @@ elif menu == "Simulação Contínua de Regime":
       "Segmento da Empresa", ["Comércio", "Serviço (Fator R)", "Indústria"]
   )
 
+  if "simulacao_executada" not in st.session_state:
+    st.session_state.simulacao_executada = False
+
   if st.button("🔍 Executar Simulação Tributária", type="primary"):
     with st.spinner("Processando simulação tributária local..."):
       time.sleep(1)
+    st.session_state.simulacao_executada = True
+    registrar_log(
+        f"Simulação de migração executada para faturamento anual de R$"
+        f" {faturamento_anual}"
+    )
 
+  if st.session_state.simulacao_executada:
     if faturamento_anual > 4800000:
       recomendacao = "Lucro Presumido ou Lucro Real (Estouro do sublimite do Simples Nacional)"
       cor_alerta = "error"
@@ -304,10 +312,6 @@ elif menu == "Simulação Contínua de Regime":
         ],
     })
     st.table(df_projecao)
-    registrar_log(
-        f"Simulação de migração executada para faturamento anual de R$"
-        f" {faturamento_anual}"
-    )
 
 elif menu == "Alertas de Oportunidades Fiscais":
   st.title("⚡ Alertas Automáticos de Oportunidades Fiscais")
@@ -326,6 +330,9 @@ elif menu == "Alertas de Oportunidades Fiscais":
       " para o setor de atuação via incentivos regionais cadastrados."
   )
 
+  if "varredura_executada" not in st.session_state:
+    st.session_state.varredura_executada = False
+
   if st.button(
       "🔍 Executar Varredura de Oportunidades Fiscais", type="primary"
   ):
@@ -333,7 +340,10 @@ elif menu == "Alertas de Oportunidades Fiscais":
         "Executando varredura analítica na base de dados local..."
     ):
       time.sleep(1.5)
+    st.session_state.varredura_executada = True
+    registrar_log("Varredura de oportunidades fiscais executada localmente.")
 
+  if st.session_state.varredura_executada:
     st.success(
         "🚀 Varredura local concluída com sucesso! Relatório de créditos"
         " gerado:"
@@ -348,7 +358,6 @@ elif menu == "Alertas de Oportunidades Fiscais":
         "Status": ["Disponível para Compensação", "Aplicável imediatamente"],
     })
     st.table(df_oportunidades)
-    registrar_log("Varredura de oportunidades fiscais executada localmente.")
 
 elif menu == "Indicadores & Malha Preditiva":
   st.title("📈 Indicadores Financeiros & Malha Fina Preditiva")
@@ -369,14 +378,20 @@ elif menu == "Indicadores & Malha Preditiva":
         " local. Risco de autuação: **Baixo**."
     )
 
+  if "auditoria_executada" not in st.session_state:
+    st.session_state.auditoria_executada = False
+
   if st.button("🔍 Executar Auditoria Preditiva", type="primary"):
     with st.spinner("Processando auditoria preditiva..."):
       time.sleep(1)
+    st.session_state.auditoria_executada = True
+    registrar_log("Auditoria preditiva executada localmente.")
+
+  if st.session_state.auditoria_executada:
     st.success(
         "Auditoria local concluída! Nenhum risco crítico encontrado nas"
         " declarações."
     )
-    registrar_log("Auditoria preditiva executada localmente.")
 
 elif menu == "Gerador de Parecer & WhatsApp/PDF":
   st.title("📄 Relatório, Parecer PDF & Envio Direto para o WhatsApp")
@@ -417,15 +432,16 @@ Atenciosamente, Sua Equipe Contábil."""
         file_name=f"Parecer_{nome_cliente_rel.replace(' ', '_')}.txt",
         mime="text/plain",
         type="primary",
+        use_container_width=True,
     )
 
   with col_b2:
     link_whatsapp = f"https://wa.me/{telefone_cliente}?text={parecer_texto.replace(' ', '%20').replace(chr(10), '%0A')}"
     st.markdown(
-        f"""<a href="{link_whatsapp}" target="_blank">
-            <button style="width:100%; background-color:#25D366; color:white; border:none; padding:10px 20px; border-radius:5px; font-weight:bold; cursor:pointer;">
+        f"""<a href="{link_whatsapp}" target="_blank" style="text-decoration:none;">
+            <div style="width:100%; background-color:#25D366; color:white; text-align:center; padding:10px 20px; border-radius:5px; font-weight:bold; cursor:pointer;">
                 💬 Enviar Parecer no WhatsApp
-            </button>
+            </div>
         </a>""",
         unsafe_allow_html=True,
     )
@@ -479,7 +495,7 @@ elif menu == "Código Espião (Logs)" and acesso_master:
   st.title("🕵️‍♂️ Central do Código Espião (Auditoria em Tempo Real)")
   st.markdown(
       "Monitoramento completo de todas as ações executadas pelos usuários no"
-      " sistema."
+      " systema."
   )
 
   if os.path.exists(ARQUIVO_LOG):
