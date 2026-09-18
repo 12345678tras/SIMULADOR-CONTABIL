@@ -19,7 +19,7 @@ def registrar_log(acao, tipo="INFO"):
     except Exception as e:
         print(f"Erro no log: {e}")
 
-registrar_log("Plataforma Consultor Inteligente Master iniciada com REST API pura.", "STARTUP")
+registrar_log("Plataforma Consultor Inteligente Master iniciada com sucesso.", "STARTUP")
 
 def verificar_senha_master(senha_digitada):
     return senha_digitada.strip().lower() == "contadora2x"
@@ -36,7 +36,7 @@ def consultar_ia_master(prompt_usuario, historico_chat=None):
             gemini_api_key = os.environ.get("GOOGLE_API_KEY")
 
         if not gemini_api_key:
-            return "⚠️ **Chave de API do Gemini não configurada.** Por favor, adicione a sua `GEMINI_API_KEY` nos Secrets do Streamlit ou no Painel Master."
+            return "⚠️ **Chave de API do Gemini não configurada.** Por favor, adicione a sua `GEMINI_API_KEY` nos segredos do Streamlit ou nas variáveis de ambiente."
 
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key={gemini_api_key}"
 
@@ -60,7 +60,7 @@ def consultar_ia_master(prompt_usuario, historico_chat=None):
         
         headers = {'Content-Type': 'application/json'}
 
-        response = requests.post(url, headers=headers, data=json.dumps(payload), timeout=30)
+        response = requests.post(url, headers=headers, data=json.dumps(payload), timeout=25)
         
         if response.status_code == 200:
             dados = response.json()
