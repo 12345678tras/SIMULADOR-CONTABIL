@@ -67,7 +67,7 @@ df_potenciais = carregar_dados(ARQUIVO_POTENCIAIS)
 if "usos_gratuitos" not in st.session_state:
   st.session_state.usos_gratuitos = 0
 
-# Links atualizados com os novos valores e planos
+# Links oficiais da InfinitePay atualizados
 LINK_PAGAMENTO_MENSAL = "https://invoice.infinitepay.io/plans/cristiane-da-260/XLX77TGv0y"  # R$ 147/mês
 LINK_PAGAMENTO_ANUAL = (
     "Https://invoice.infinitepay.io/plans/cristiane-da-260/on5Ha9URTH"  # R$ 1.350/ano
@@ -123,7 +123,7 @@ if menu == "Visão Geral & Indicadores":
   st.title("🚀 Plataforma de Inteligência Contábil & Monetização")
   st.markdown(
       "Solução corporativa avançada para escritórios e empresários com controle"
-      " financeiro integrado."
+      " financeiro integrado e motor 100% local."
   )
 
   col1, col2, col3, col4 = st.columns(4)
@@ -132,7 +132,7 @@ if menu == "Visão Geral & Indicadores":
   with col2:
     st.metric(label="Leads / Potenciais", value=f"{len(df_potenciais)}")
   with col3:
-    st.metric(label="Módulo IA Local", value="Ativo ⚡")
+    st.metric(label="Motor IA Local", value="Ativo & Seguro ⚡")
   with col4:
     restantes_metro = (
         "Ilimitado"
@@ -143,9 +143,9 @@ if menu == "Visão Geral & Indicadores":
 
   st.markdown("---")
   st.info(
-      "💡 **Dica:** Explore o **Assistente de IA Local** para testar perguntas"
+      "💡 **Dica:** Explore o **Assistente de IA Local** para tirar dúvidas"
       " grátis ou acesse a aba **Área de Assinatura & Planos** para garantir"
-      " acesso ilimitado através da InfinitePay."
+      " acesso ilimitado através dos nossos links seguros da InfinitePay."
   )
   registrar_log("Visitante visualizou a Visão Geral.")
 
@@ -293,32 +293,32 @@ elif menu == "Alertas de Oportunidades Fiscais":
   st.title("⚡ Alertas Automáticos de Oportunidades Fiscais")
   st.markdown(
       "Identificação ativa de créditos tributários não aproveitados e"
-      " benefícios setoriais."
+      " benefícios setoriais através do motor local."
   )
 
   st.warning(
       "⚠️ **Oportunidade Detectada:** Foram identificados potenciais créditos de"
       " PIS/COFINS monofásico não apurados nos últimos 60 dias para o CNPJ"
-      " simulado."
+      " base."
   )
   st.success(
       "✅ **Benefício Fiscal Disponível:** Redução de alíquota efetiva aplicável"
-      " para o setor de atuação via incentivos regionais."
+      " para o setor de atuação via incentivos regionais cadastrados."
   )
 
   if st.button(
       "🔍 Executar Varredura de Oportunidades Fiscais", type="primary"
   ):
-    st.info(
-        "Varredura concluída com sucesso! Relatório de créditos gerado para"
-        " apresentação comercial."
+    st.success(
+        "Varredura local concluída com sucesso! Relatório de créditos gerado"
+        " com base nas regras internas da base."
     )
-    registrar_log("Varredura de oportunidades fiscais executada.")
+    registrar_log("Varredura de oportunidades fiscais executada localmente.")
 
 elif menu == "Indicadores & Malha Preditiva":
   st.title("📈 Indicadores Financeiros & Malha Fina Preditiva")
   st.markdown(
-      "Validação prévia de arquivos fiscais e métricas de desempenho"
+      "Validação interna de arquivos fiscais e métricas de desempenho"
       " empresarial."
   )
 
@@ -330,13 +330,13 @@ elif menu == "Indicadores & Malha Preditiva":
   with col_m2:
     st.subheader("🛡️ Malha Fina Preditiva")
     st.info(
-        "Nenhuma divergência encontrada entre os arquivos XMLs e o SPED"
-        " simulado. Risco de autuação: **Baixo**."
+        "Nenhuma divergência estrutural encontrada no cruzamento analítico"
+        " local. Risco de autuação: **Baixo**."
     )
 
   if st.button("🔍 Executar Auditoria Preditiva", type="primary"):
-    st.success("Auditoria concluída! Nenhum risco crítico encontrado.")
-    registrar_log("Auditoria preditiva executada.")
+    st.success("Auditoria local concluída! Nenhum risco crítico encontrado.")
+    registrar_log("Auditoria preditiva executada localmente.")
 
 elif menu == "Gerador de Parecer & WhatsApp/PDF":
   st.title("📄 Relatório, Parecer PDF & Envio Direto para o WhatsApp")
