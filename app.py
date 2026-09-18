@@ -28,9 +28,7 @@ def registrar_log(acao, tipo="INFO"):
     print(f"Erro no log espião: {e}")
 
 
-registrar_log(
-    "Sistema iniciado com links separados da InfinitePay (Mensal e Anual)."
-)
+registrar_log("Sistema iniciado com ferramentas de PDF, WhatsApp e Pesquisa.")
 
 # ==========================================
 # 2. CARREGAMENTO DE DADOS (PLANILHAS)
@@ -69,7 +67,6 @@ df_potenciais = carregar_dados(ARQUIVO_POTENCIAIS)
 if "usos_gratuitos" not in st.session_state:
   st.session_state.usos_gratuitos = 0
 
-# SEUS LINKS OFICIAIS DA INFINITEPAY SEPARADOS
 LINK_PAGAMENTO_MENSAL = "https://invoice.infinitepay.io/plans/cristiane-da-260/XLX77TGv0y"
 LINK_PAGAMENTO_ANUAL = "https://invoice.infinitepay.io/plans/cristiane-da-260/qTSP5k9f6S"
 
@@ -107,7 +104,7 @@ menu = st.sidebar.selectbox(
         "Simulação Contínua de Regime",
         "Alertas de Oportunidades Fiscais",
         "Indicadores & Malha Preditiva",
-        "Gerador de Parecer Executivo",
+        "Gerador de Parecer & WhatsApp/PDF",
         "Área de Assinatura & Planos",
         "Código Espião (Logs)",
     ],
@@ -250,7 +247,8 @@ elif menu == "Simulação Contínua de Regime":
       "Segmento da Empresa", ["Comércio", "Serviço (Fator R)", "Indústria"]
   )
 
-  if st.button("Analisar Viabilidade de Migração", type="primary"):
+  # BOTÃO DE PESQUISA / ANÁLISE ADICIONADO
+  if st.button("🔍 Executar Simulação Tributária", type="primary"):
     if faturamento_anual > 4800000:
       recomendacao = "Lucro Presumido ou Lucro Real (Estouro do sublimite do Simples Nacional)"
       cor_alerta = "error"
@@ -304,10 +302,13 @@ elif menu == "Alertas de Oportunidades Fiscais":
       " para o setor de atuação via incentivos regionais."
   )
 
-  if st.button("Executar Varredura de Oportunidades"):
+  # BOTÃO DE VARREDURA INTERATIVO ADICIONADO[span_1](start_span)[span_1](end_span)
+  if st.button(
+      "🔍 Executar Varredura de Oportunidades Fiscais", type="primary"
+  ):
     st.info(
-        "Varredura concluída! Relatório de créditos gerado para apresentação"
-        " comercial."
+        "Varredura concluída com sucesso! Relatório de créditos gerado para"
+        " apresentação comercial."
     )
     registrar_log("Varredura de oportunidades fiscais executada.")
 
@@ -329,13 +330,16 @@ elif menu == "Indicadores & Malha Preditiva":
         "Nenhuma divergência encontrada entre os arquivos XMLs e o SPED"
         " simulado. Risco de autuação: **Baixo**."
     )
-  registrar_log("Usuário consultou indicadores e malha preditiva.")
 
-elif menu == "Gerador de Parecer Executivo":
-  st.title("📄 Relatório / Parecer Automático em PDF Executivo")
+  if st.button("🔍 Executar Auditoria Preditiva", type="primary"):
+    st.success("Auditoria concluída! Nenhum risco crítico encontrado.")
+    registrar_log("Auditoria preditiva executada.")
+
+elif menu == "Gerador de Parecer & WhatsApp/PDF":
+  st.title("📄 Relatório, Parecer PDF & Envio Direto para o WhatsApp")
   st.markdown(
-      "Gere resumos visuais com linguagem simples, prontos para enviar no"
-      " WhatsApp ou E-mail do cliente."
+      "Gere resumos visuais com linguagem simples, baixe em formato de texto"
+      " estruturado ou envie diretamente para o WhatsApp do cliente."
   )
 
   nome_cliente_rel = st.text_input(
@@ -344,23 +348,49 @@ elif menu == "Gerador de Parecer Executivo":
   economia_estimada = st.text_input(
       "Economia Financeira Projetada (R$)", "R$ 14.500,00/ano"
   )
+  telefone_cliente = st.text_input(
+      "Telefone / WhatsApp do Cliente (com DDD)", "5511999999999"
+  )
 
-  parecer_texto = f"""
-    *PARECER TÉCNICO EXECUTIVO - CONTABILIDADE INTELIGENTE*
-    Prezado(a) gestor(a) da {nome_cliente_rel},
-    Após nossa análise tributária avançada, identificamos uma oportunidade clara de otimização para o seu negócio.
-    💰 *Economia Direta Estimada:* {economia_estimada}
-    Recomendamos a adoção imediata das estratégias mapeadas para evitar bitributação e garantir total segurança fiscal.
-    Atenciosamente, Sua Equipe Contábil.
-    """
+  parecer_texto = f"""PARECER TÉCNICO EXECUTIVO - CONTABILIDADE INTELIGENTE
+Prezado(a) gestor(a) da {nome_cliente_rel},
+Após nossa análise tributária avançada, identificamos uma oportunidade clara de otimização para o seu negócio.
+- Economia Direta Estimada: {economia_estimada}
+Recomendamos a adoção imediata das estratégias mapeadas para evitar bitributação e garantir total segurança fiscal.
+Atenciosamente, Sua Equipe Contábil."""
 
   st.text_area(
-      "Texto pronto para envio (Copie e cole no WhatsApp):",
+      "Prévia do Parecer:",
       parecer_texto,
-      height=200,
+      height=180,
   )
+
+  col_b1, col_b2 = st.columns(2)
+
+  with col_b1:
+    # Botão para Baixar Parecer em arquivo TXT (simulando relatório descarregável)
+    st.download_button(
+        label="📥 Baixar Parecer (Relatório)",
+        data=parecer_texto,
+        file_name=f"Parecer_{nome_cliente_rel.replace(' ', '_')}.txt",
+        mime="text/plain",
+        type="primary",
+    )
+
+  with col_b2:
+    # Link direto para abrir o WhatsApp Web com a mensagem pronta
+    link_whatsapp = f"https://wa.me/{telefone_cliente}?text={urllib.parse.quote(parecer_texto) if 'urllib' in globals() else parecer_texto.replace(' ', '%20')}"
+    st.markdown(
+        f"""<a href="{link_whatsapp}" target="_blank">
+            <button style="width:100%; background-color:#25D366; color:white; border:none; padding:10px 20px; border-radius:5px; font-weight:bold; cursor:pointer;">
+                💬 Enviar Parecer no WhatsApp
+            </button>
+        </a>""",
+        unsafe_allow_html=True,
+    )
+
   registrar_log(
-      f"Parecer executivo gerado para o cliente: {nome_cliente_rel}"
+      f"Gerador de parecer e envio acessado para o cliente: {nome_cliente_rel}"
   )
 
 elif menu == "Área de Assinatura & Planos":
