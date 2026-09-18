@@ -67,26 +67,37 @@ df_potenciais = carregar_dados(ARQUIVO_POTENCIAIS)
 # ==========================================
 # 3. CONTROLE DE USO, TESTE GRATUITO & PAGAMENTO
 # ==========================================
+LIMITE_GRATIS = 3
+
 if "usos_gratuitos" not in st.session_state:
   st.session_state.usos_gratuitos = 0
 
 LINK_PAGAMENTO_MENSAL = "https://invoice.infinitepay.io/plans/cristiane-da-260/XLX77TGv0y"
 LINK_PAGAMENTO_ANUAL = "https://invoice.infinitepay.io/plans/cristiane-da-260/on5Ha9URTH"
-LIMITE_GRATIS = 3
 
-st.sidebar.title("🔐 Painel de Controle")
+st.sidebar.title("🔐 Painel de Controle & Acesso")
 st.sidebar.markdown("---")
 
 senha_digitada = st.sidebar.text_input(
-    "Chave Master (Apenas Admin)",
+    "Digite sua Senha de Acesso (ou Chave Master)",
     type="password",
-    placeholder="Senha de dono...",
+    placeholder="Sua senha...",
 )
+
+# Senha de Dona (Master) e Senha padrão para Clientes Pagantes
 SENHA_MESTRE = "contadora2x"
+SENHAS_CLIENTES_PAGANTES = [
+    "cliente123x",
+]
+
 acesso_master = senha_digitada == SENHA_MESTRE
+acesso_cliente_pago = senha_digitada in SENHAS_CLIENTES_PAGANTES
+acesso_liberado_total = acesso_master or acesso_cliente_pago
 
 if acesso_master:
-  st.sidebar.success("Acesso Master Ativo 🛡️ (Ilimitado)")
+  st.sidebar.success("Acesso Master (Dona) Ativo 🛡️ (Ilimitado)")
+elif acesso_cliente_pago:
+  st.sidebar.success("Assinatura Ativa Detectada ⭐ (Acesso Ilimitado)")
 else:
   restantes = max(0, LIMITE_GRATIS - st.session_state.usos_gratuitos)
   if restantes > 0:
@@ -96,8 +107,8 @@ else:
     )
   else:
     st.sidebar.error(
-        "🔒 **Limite de 3 acessos esgotado!**\n\nAssine para liberar o uso"
-        " ilimitado."
+        "🔒 **Limite de 3 acessos esgotado!**\n\nInsira sua senha de assinante"
+        " ou assine abaixo."
     )
 
 st.sidebar.markdown("---")
@@ -119,11 +130,49 @@ menu = st.sidebar.selectbox("Navegação Estratégica", lista_menu)
 
 
 def verificar_e_consumir_uso():
-  if acesso_master:
+  if acesso_liberado_total:
     return True
   if st.session_state.usos_gratuitos >= LIMITE_GRATIS:
     return False
   return True
+
+
+def exibir_aviso_limite_esgotado():
+  st.error(
+      "🔒 **Você atingiu o limite de 3 acessos gratuitos desta plataforma!**"
+  )
+  st.warning(
+      "Se você já é assinante, digite sua senha de cliente na barra lateral à"
+      " esquerda (`cliente123x`). Caso contrário, escolha um plano abaixo:"
+  )
+
+  col_p1, col_p2 = st.columns(2)
+  with col_p1:
+    st.markdown(
+        "### 🔹 Plano Mensal Profissional\n- Acesso Ilimitado\n- **R$ 147,00 /"
+        " mês**"
+    )
+    st.markdown(
+        f"""<a href="{LINK_PAGAMENTO_MENSAL}" target="_blank" style="text-decoration:none;">
+            <div style="width:100%; background-color:#0066cc; color:white; text-align:center; padding:12px; border-radius:6px; font-weight:bold;">
+                💳 Assinar Plano Mensal
+            </div>
+        </a>""",
+        unsafe_allow_html=True,
+    )
+  with col_p2:
+    st.markdown(
+        "### ⭐ Plano Anual Profissional\n- Acesso Contínuo & Prioritário\n-"
+        " **R$ 1.350,00 / ano**"
+    )
+    st.markdown(
+        f"""<a href="{LINK_PAGAMENTO_ANUAL}" target="_blank" style="text-decoration:none;">
+            <div style="width:100%; background-color:#28a745; color:white; text-align:center; padding:12px; border-radius:6px; font-weight:bold;">
+                ⭐ Assinar Plano Anual
+            </div>
+        </a>""",
+        unsafe_allow_html=True,
+    )
 
 
 # ==========================================
@@ -145,18 +194,19 @@ if menu == "Visão Geral & Indicadores":
   with col3:
     st.metric(label="Motor IA Local", value="Ativo & Seguro ⚡")
   with col4:
-    restantes_metro = (
-        "Ilimitado"
-        if acesso_master
-        else max(0, LIMITE_GRATIS - st.session_state.usos_gratuitos)
-    )
+    if acesso_liberado_total:
+      restantes_metro = "Ilimitado 🛡️"
+    else:
+      restantes_metro = max(
+          0, LIMITE_GRATIS - st.session_state.usos_gratuitos
+      )
     st.metric(label="Consultas Restantes", value=restantes_metro)
 
   st.markdown("---")
   st.info(
       "💡 **Regra de Uso:** São permitidos **3 acessos gratuitos** em toda a"
-      " plataforma. Após o consumo, o sistema exigirá a contratação de um dos"
-      " planos na aba **Área de Assinatura & Planos**."
+      " plataforma. Clientes pagantes que utilizam a senha `cliente123x` possuem"
+      " acesso ilimitado."
   )
 
 elif menu == "Assistente de IA Local (Chat)":
@@ -180,15 +230,12 @@ elif menu == "Assistente de IA Local (Chat)":
     with st.chat_message(msg["role"]):
       st.markdown(msg["content"])
 
-  if not acesso_master and st.session_state.usos_gratuitos >= LIMITE_GRATIS:
-    st.error(
-        "🔒 **Você utilizou seus 3 acessos gratuitos!**\n\nO chat foi bloqueado."
-        " Assine um plano na aba **'Área de Assinatura & Planos'**."
-    )
+  if not acesso_liberado_total and st.session_state.usos_gratuitos >= LIMITE_GRATIS:
+    exibir_aviso_limite_esgotado()
   else:
     pergunta = st.chat_input("Digite sua dúvida contábil aqui...")
     if pergunta:
-      if not acesso_master:
+      if not acesso_liberado_total:
         st.session_state.usos_gratuitos += 1
 
       st.session_state.mensagens.append({"role": "user", "content": pergunta})
@@ -244,7 +291,7 @@ elif menu == "Simulação Contínua de Regime":
   )
 
   if not verificar_e_consumir_uso():
-    st.error("🔒 **Limite de 3 acessos esgotado!** Assine na aba lateral.")
+    exibir_aviso_limite_esgotado()
   else:
     faturamento_anual = st.number_input(
         "Faturamento Acumulado Anual (R$)",
@@ -259,7 +306,7 @@ elif menu == "Simulação Contínua de Regime":
     if st.button(
         "🔍 Calcular Simulação Real", type="primary", use_container_width=True
     ):
-      if not acesso_master:
+      if not acesso_liberado_total:
         st.session_state.usos_gratuitos += 1
 
       with st.spinner("Processando cálculos..."):
@@ -297,7 +344,7 @@ elif menu == "Alertas de Oportunidades Fiscais":
   st.markdown("Digite os dados de faturamento para calcular créditos reais.")
 
   if not verificar_e_consumir_uso():
-    st.error("🔒 **Limite de 3 acessos esgotado!** Assine na aba lateral.")
+    exibir_aviso_limite_esgotado()
   else:
     col_op1, col_op2 = st.columns(2)
     with col_op1:
@@ -319,7 +366,7 @@ elif menu == "Alertas de Oportunidades Fiscais":
         type="primary",
         use_container_width=True,
     ):
-      if not acesso_master:
+      if not acesso_liberado_total:
         st.session_state.usos_gratuitos += 1
 
       with st.spinner("Calculando créditos fiscais..."):
@@ -361,7 +408,7 @@ elif menu == "Indicadores & Malha Preditiva":
   )
 
   if not verificar_e_consumir_uso():
-    st.error("🔒 **Limite de 3 acessos esgotado!** Assine na aba lateral.")
+    exibir_aviso_limite_esgotado()
   else:
     st.subheader("📝 Dados Financeiros para Análise")
     col_input1, col_input2 = st.columns(2)
@@ -408,7 +455,7 @@ elif menu == "Indicadores & Malha Preditiva":
         type="primary",
         use_container_width=True,
     ):
-      if not acesso_master:
+      if not acesso_liberado_total:
         st.session_state.usos_gratuitos += 1
 
       with st.spinner("Processando cruzamento analítico..."):
@@ -445,58 +492,82 @@ elif menu == "Indicadores & Malha Preditiva":
 elif menu == "Gerador de Parecer & WhatsApp/PDF":
   st.title("📄 Relatório, Parecer PDF & Envio Direto para o WhatsApp")
   st.markdown(
-      "Preencha os dados, clique em gerar para ver o resultado na tela e só"
-      " depois baixe ou envie."
+      "Preencha os dados e os valores calculados de economia para gerar o"
+      " parecer dinâmico com envio direto."
   )
 
   if not verificar_e_consumir_uso():
-    st.error("🔒 **Limite de 3 acessos esgotado!** Assine na aba lateral.")
+    exibir_aviso_limite_esgotado()
   else:
-    nome_cliente_rel = st.text_input(
-        "Nome do Cliente / Empresa", "Empresa Exemplo Ltda"
-    )
-    economia_estimada = st.text_input(
-        "Economia Financeira Projetada (R$)", "R$ 14.500,00/ano"
-    )
-    telefone_cliente = st.text_input(
-        "Telefone / WhatsApp do Cliente (com DDD)", "5511999999999"
-    )
+    col_g1, col_g2 = st.columns(2)
+    with col_g1:
+      nome_cliente_rel = st.text_input(
+          "Nome do Cliente / Empresa", "Empresa Exemplo Ltda"
+      )
+      telefone_cliente = st.text_input(
+          "Telefone / WhatsApp do Cliente (com DDD e DDI)", "5511999999999"
+      )
+    with col_g2:
+      valor_economia_num = st.number_input(
+          "Valor da Economia Calculada (R$/ano)",
+          min_value=0.0,
+          value=14500.0,
+          step=500.0,
+      )
+      honorario_cobranca = st.number_input(
+          "Honorário / Proposta Comercial (R$)",
+          min_value=0.0,
+          value=1500.0,
+          step=100.0,
+      )
 
     if st.button(
         "⚙️ Processar e Gerar Parecer na Tela",
         type="primary",
         use_container_width=True,
     ):
-      if not acesso_master:
+      if not acesso_liberado_total:
         st.session_state.usos_gratuitos += 1
       st.session_state.parecer_gerado = True
+      st.session_state.texto_parecer_dinamico = f"""PARECER TÉCNICO EXECUTIVO - CONTABILIDADE INTELIGENTE
+Prezado(a) gestor(a) da {nome_cliente_rel},
+
+Após nossa análise tributária avançada, identificamos uma oportunidade clara de otimização para o seu negócio:
+- Economia Direta Projetada: R$ {valor_economia_num:,.2f} / ano
+- Proposta de Implementação / Honorários: R$ {honorario_cobranca:,.2f}
+
+Recomendamos a adoção imediata das estratégias mapeadas para evitar bitributação e garantir total segurança fiscal.
+
+Atenciosamente, Sua Equipe Contábil."""
       registrar_log(f"Parecer processado para: {nome_cliente_rel}")
 
     if st.session_state.get("parecer_gerado", False):
       st.markdown("---")
       st.subheader("📋 Prévia do Parecer Gerado (Validado)")
 
-      parecer_texto = f"""PARECER TÉCNICO EXECUTIVO - CONTABILIDADE INTELIGENTE
-Prezado(a) gestor(a) da {nome_cliente_rel},
-Após nossa análise tributária avançada, identificamos uma oportunidade clara de otimização para o seu negócio.
-- Economia Direta Estimada: {economia_estimada}
-Recomendamos a adoção imediata das estratégias mapeadas para evitar bitributação e garantir total segurança fiscal.
-Atenciosamente, Sua Equipe Contábil."""
-
-      st.text_area("Texto do Parecer:", parecer_texto, height=180)
+      st.text_area(
+          "Texto do Parecer:",
+          st.session_state.texto_parecer_dinamico,
+          height=200,
+      )
 
       col_b1, col_b2 = st.columns(2)
       with col_b1:
         st.download_button(
             label="📥 Baixar Parecer (Relatório)",
-            data=parecer_texto,
+            data=st.session_state.texto_parecer_dinamico,
             file_name=f"Parecer_{nome_cliente_rel.replace(' ', '_')}.txt",
             mime="text/plain",
             type="primary",
             use_container_width=True,
         )
       with col_b2:
-        link_whatsapp = f"https://wa.me/{telefone_cliente}?text={parecer_texto.replace(' ', '%20').replace(chr(10), '%0A')}"
+        texto_zap = st.session_state.texto_parecer_dinamico.replace(
+            " ", "%20"
+        ).replace(chr(10), "%0A")
+        link_whatsapp = (
+            f"https://wa.me/{telefone_cliente}?text={texto_zap}"
+        )
         st.markdown(
             f"""<a href="{link_whatsapp}" target="_blank" style="text-decoration:none;">
                 <div style="width:100%; background-color:#25D366; color:white; text-align:center; padding:10px 20px; border-radius:5px; font-weight:bold; cursor:pointer;">
@@ -508,7 +579,8 @@ Atenciosamente, Sua Equipe Contábil."""
     else:
       st.info(
           "👆 Preencha os campos acima e clique em **'Processar e Gerar Parecer"
-          " na Tela'** para visualizar os resultados e liberar o download/Zap."
+          " na Tela'** para visualizar os resultados reais e liberar o"
+          " download/Zap."
       )
 
 elif menu == "Área de Assinatura & Planos":
@@ -524,7 +596,11 @@ elif menu == "Área de Assinatura & Planos":
     st.markdown("- Acesso Ilimitado ao Chat\n- Simulações Avançadas")
     st.markdown("### **R$ 147,00 / mês**")
     st.markdown(
-        f"[Pagar com InfinitePay (Mensal)]({LINK_PAGAMENTO_MENSAL})",
+        f"""<a href="{LINK_PAGAMENTO_MENSAL}" target="_blank" style="text-decoration:none;">
+            <div style="width:100%; background-color:#0066cc; color:white; text-align:center; padding:12px; border-radius:6px; font-weight:bold;">
+                💳 Pagar Plano Mensal
+            </div>
+        </a>""",
         unsafe_allow_html=True,
     )
   with col_p2:
@@ -532,7 +608,11 @@ elif menu == "Área de Assinatura & Planos":
     st.markdown("- Tudo do Mensal\n- Acesso Contínuo e Prioritário")
     st.markdown("### **R$ 1.350,00 / ano**")
     st.markdown(
-        f"[Pagar com InfinitePay (Anual)]({LINK_PAGAMENTO_ANUAL})",
+        f"""<a href="{LINK_PAGAMENTO_ANUAL}" target="_blank" style="text-decoration:none;">
+            <div style="width:100%; background-color:#28a745; color:white; text-align:center; padding:12px; border-radius:6px; font-weight:bold;">
+                ⭐ Pagar Plano Anual
+            </div>
+        </a>""",
         unsafe_allow_html=True,
     )
 
