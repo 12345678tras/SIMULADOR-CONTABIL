@@ -9,11 +9,11 @@ st.set_page_config(
     layout="wide"
 )
 
-# Inicialização de Estado Robusta
+# Inicialização de Estado Robusta (4 acessos totalmente livres)
 if "liberado_pago_master" not in st.session_state:
     st.session_state.liberado_pago_master = False
 if "simulacoes_restantes" not in st.session_state:
-    st.session_state.simulacoes_restantes = 3
+    st.session_state.simulacoes_restantes = 4
 if "leads_salvos" not in st.session_state:
     st.session_state.leads_salvos = []
 if "acesso_bloqueado_definitivo" not in st.session_state:
@@ -29,17 +29,36 @@ MEU_WHATSAPP = "64993044147"
 CHAVE_PIX_OFICIAL = "64993044147"
 
 def registrar_uso_global():
-    """Função que consome estritamente 1 tentativa por vez."""
-    if not st.session_state.liberado_pago_master and not st.session_state.acesso_bloqueado_definitivo:
+    """Consome uma tentativa. Só bloqueia se tentar usar quando já estiver zerado (tentativa 5)."""
+    if not st.session_state.liberado_pago_master:
         if st.session_state.simulacoes_restantes > 0:
             st.session_state.simulacoes_restantes -= 1
         
+        # O bloqueio só ocorre se o usuário já esgotou os 4 e tentou o 5º
         if st.session_state.simulacoes_restantes <= 0:
-            st.session_state.acesso_bloqueado_definitivo = True
+            # Verificamos se foi um clique a mais após esgotar
+            # Para garantir que o 4º uso aconteça livre, o bloqueio entra se tentar usar com 0 restante
+            pass
+
+def verificar_bloqueio_antes_de_usar():
+    """Retorna True se puder usar, False se já tiver estourado os 4 e tentou o 5º."""
+    if st.session_state.liberado_pago_master:
+        return True
+    
+    if st.session_state.simulacoes_restantes <= 0:
+        st.session_state.acesso_bloqueado_definitivo = True
+        return False
+    return True
+
+def descontar_um_uso():
+    """Desconta 1 dos 4 acessos livres após o uso confirmado."""
+    if not st.session_state.liberado_pago_master:
+        if st.session_state.simulacoes_restantes > 0:
+            st.session_state.simulacoes_restantes -= 1
 
 def tela_bloqueio_comercial(motivo):
     st.error(f"🔒 {motivo}")
-    st.markdown("### 🚀 Seus 3 Acessos Gratuitos Esgotaram!")
+    st.markdown("### 🚀 Seus 4 Acessos Gratuitos Esgotaram!")
     st.markdown("Para continuar utilizando todas as ferramentas do sistema, escolha um dos planos abaixo ou faça o pagamento direto via PIX:")
     
     # Seção de Pagamento via PIX Direto
@@ -77,14 +96,14 @@ def tela_bloqueio_comercial(motivo):
 
 # Verificação global de bloqueio no início de tudo
 if st.session_state.acesso_bloqueado_definitivo and not st.session_state.liberado_pago_master:
-    tela_bloqueio_comercial("Acesso restrito. O limite de 3 acessos gratuitos foi esgotado.")
+    tela_bloqueio_comercial("Acesso restrito. Tentativa de acesso após esgotar as 4 consultas gratuitas.")
 
 # Menu Lateral (Navegação Estratégica)
 st.sidebar.title("⚖️ Consultor Master")
 st.sidebar.markdown("Navegação Estratégica")
 
 if not st.session_state.liberado_pago_master:
-    st.sidebar.info(f"🎁 Acessos gratuitos restantes: **{st.session_state.simulacoes_restantes} / 3**")
+    st.sidebar.info(f"🎁 Acessos gratuitos restantes: **{st.session_state.simulacoes_restantes} / 4**")
 
 modulo = st.sidebar.radio(
     "Selecione o Módulo:",
@@ -120,10 +139,11 @@ if modulo == "🚀 Simulador Tributário & Planos":
     with c2:
         st.subheader("Resultado da Simulação")
         if st.button("⚡ Executar Simulação Completa", type="primary", use_container_width=True, key="btn_exec_sim"):
-            if not st.session_state.liberado_pago_master:
-                registrar_uso_global()
-                if st.session_state.acesso_bloqueado_definitivo:
-                    st.rerun()
+            if not verificar_bloqueio_antes_de_usar():
+                st.rerun()
+
+            # Executa e desconta 1 uso dos 4 disponíveis
+            descontar_um_uso()
 
             simples = fat_anual * 0.09
             presumido = fat_anual * 0.113
@@ -193,10 +213,10 @@ elif modulo == "💬 Chat IA Master Sênior":
 
     pergunta_usuario = st.chat_input("Digite a sua dúvida tributária ou fiscal aqui...")
     if pergunta_usuario:
-        if not st.session_state.liberado_pago_master:
-            registrar_uso_global()
-            if st.session_state.acesso_bloqueado_definitivo:
-                st.rerun()
+        if not verificar_bloqueio_antes_de_usar():
+            st.rerun()
+
+        descontar_um_uso()
 
         st.session_state.mensagens_chat.append({"role": "user", "content": pergunta_usuario})
         with st.chat_message("user"):
@@ -219,10 +239,10 @@ elif modulo == "📑 Parecer Executivo & Disparos":
     tema_parecer = st.selectbox("Tema do Parecer Técnico:", ["Revisão de ICMS-ST", "Planejamento Tributário Anual", "Impactos da Reforma Tributária", "Malha Fiscal Federal"])
 
     if st.button("📝 Gerar Parecer Executivo com IA", type="primary"):
-        if not st.session_state.liberado_pago_master:
-            registrar_uso_global()
-            if st.session_state.acesso_bloqueado_definitivo:
-                st.rerun()
+        if not verificar_bloqueio_antes_de_usar():
+            st.rerun()
+
+        descontar_um_uso()
 
         parecer_texto = f"PARECER TÉCNICO EXECUTIVO\nTema: {tema_parecer}\nCliente: {client_nome}\nData: {datetime.now().strftime('%d/%m/%Y')}\n\nConclusão: Recomendada a implementação imediata dos ajustes fiscais."
         st.success("Parecer gerado com sucesso!")
@@ -246,10 +266,10 @@ elif modulo == "🛡️ Auditoria Preventiva (XML/SPED)":
 
     empresa_aud = st.text_input("Empresa Alvo da Auditoria:", value="Empresa Exemplo Ltda")
     if st.button("🛡️ Executar Auditoria Padronizada", type="primary"):
-        if not st.session_state.liberado_pago_master:
-            registrar_uso_global()
-            if st.session_state.acesso_bloqueado_definitivo:
-                st.rerun()
+        if not verificar_bloqueio_antes_de_usar():
+            st.rerun()
+
+        descontar_um_uso()
 
         laudo_auditoria = f"RELATÓRIO DE AUDITORIA\nEmpresa: {empresa_aud}\nStatus: Conformidade verificada com sucesso."
         st.success("Auditoria executada com sucesso!")
@@ -291,7 +311,7 @@ elif modulo == "⚙️ Configurações / Painel Master":
     if st.session_state.liberado_pago_master:
         st.success("🟢 Sistema com Licença Master Ativa (Acesso Ilimitado Liberado).")
     else:
-        st.warning(f"🔒 Sistema em Modo Demonstração. Tentativas restantes: {st.session_state.simulacoes_restantes} / 3")
+        st.warning(f"🔒 Sistema em Modo Demonstração. Tentativas restantes: {st.session_state.simulacoes_restantes} / 4")
         
     st.markdown("### 🔑 Resgate de Senha / Liberação Manual")
     senha_input = st.text_input("Senha de Ativação:", type="password", key="input_painel_senha")
@@ -314,4 +334,4 @@ elif modulo == "⚙️ Configurações / Painel Master":
     with col_c2:
         st.markdown(f'<a href="{LINK_PLANO_PRO}" target="_blank" style="background-color: #28a745; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Plano Pro</a>', unsafe_allow_html=True)
     with col_c3:
-        st.markdown(f'<a href="{LINK_PLANO_ENTERPRISE}" target="_blank" style="background-color: #6f42c1; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Enterprise</a>', unsafe_allow_html=True)
+        st.markdown(f'<a href="{LINK_PLano_ENTERPRISE if 'LINK_PLano_ENTERPRISE' in globals() else LINK_PLANO_ENTERPRISE}" target="_blank" style="background-color: #6f42c1; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Enterprise</a>', unsafe_allow_html=True)
