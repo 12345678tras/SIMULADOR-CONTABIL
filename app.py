@@ -4,10 +4,15 @@ import google.generativeai as genai
 import streamlit as st
 
 # ==========================================
-# CONFIGURAÇÃO DA CHAVE DE API DO GEMINI
+# CONFIGURAÇÃO DA CHAVE DE API (SEGURA)
 # ==========================================
-# Cole aqui a chave que você gerou no Google AI Studio:
-GEMINI_API_KEY = "SUA_CHAVE_AQUI"
+# Pega a chave dos segredos do Streamlit ou usa um padrão se não configurado
+try:
+  GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
+except Exception:
+  GEMINI_API_KEY = (
+      "SUA_CHAVE_AQUI"  # Cole sua chave aqui caso não use secrets
+  )
 
 if GEMINI_API_KEY and GEMINI_API_KEY != "SUA_CHAVE_AQUI":
   genai.configure(api_key=GEMINI_API_KEY)
@@ -19,7 +24,7 @@ else:
   ai_model = None
 
 # ==========================================
-# CONFIGURAÇÕES DO SISTEMA E SENHAS OFICIAIS
+# CONFIGURAÇÕES DO SISTEMA E SENHAS
 # ==========================================
 SENHA_CLIENTE = "cliente123x"
 SENHA_MESTRE = "contadora2x"
@@ -31,7 +36,7 @@ st.set_page_config(
     layout="wide",
 )
 
-# Inicializar o controle de sessão e tentativas de senha
+# Inicializar o controle de sessão e tentativas ocultas
 if "autenticado" not in st.session_state:
   st.session_state.autenticado = False
 if "tipo_usuario" not in st.session_state:
@@ -49,7 +54,7 @@ def registrar_log(usuario, tipo, mensagem):
 
 
 # ==========================================
-# TELA DE LOGIN / MONETIZAÇÃO COM LIMITE DE 3 TENTATIVAS
+# TELA DE LOGIN LIMPA E PROFISSIONAL
 # ==========================================
 if not st.session_state.autenticado:
   st.markdown("<br><br>", unsafe_allow_html=True)
@@ -58,24 +63,15 @@ if not st.session_state.autenticado:
   with col_centro:
     st.markdown("## 🔐 Acesso à Plataforma Contábil")
 
-    # Verifica se o usuário já estourou o limite de tentativas
     if st.session_state.bloqueado:
       st.error(
-          "⚠️ **ACESSO BLOQUEADO POR SEGURANÇA**\n\nVocê excedeu o limite"
-          " máximo de 3 tentativas incorretas de acesso. Por motivos de"
-          " segurança e conformidade do nosso programa, esta sessão foi"
-          " bloqueada. Entre em contato com o suporte do escritório para"
-          " reaver suas credenciais."
+          "⚠️ **ACESSO BLOQUEADO**\n\nLimite de tentativas excedido por"
+          " segurança. Entre em contato com o escritório."
       )
       st.stop()
 
     st.write("Digite sua senha de acesso para entrar no assistente profissional.")
     senha_digitada = st.text_input("Senha de Acesso:", type="password")
-
-    tentativas_restantes = 3 - st.session_state.tentativas
-    st.caption(
-        f"Tentativas restantes antes do bloqueio: {tentativas_restantes}"
-    )
 
     if st.button("Entrar na Plataforma", use_container_width=True):
       if senha_digitada == SENHA_MESTRE:
@@ -94,15 +90,13 @@ if not st.session_state.autenticado:
           st.session_state.bloqueado = True
           st.rerun()
         else:
-          st.error(
-              f"Senha incorreta. Você tem mais {3 - st.session_state.tentativas}"
-              " tentativa(s) antes do bloqueio de segurança."
-          )
+          # Mensagem limpa sem poluir a interface principal
+          st.error("Senha incorreta. Verifique suas credenciais.")
 
     st.markdown("---")
     st.info(
-        "💡 **Não tem acesso ou plano ativo?** Entre em contato com o"
-        " escritório para adquirir sua assinatura mensal ou anual."
+        "💡 **Não tem acesso?** Entre em contato com o escritório para"
+        " adquirir sua assinatura."
     )
 
   st.stop()
@@ -158,18 +152,15 @@ if pergunta:
     with st.spinner("Analisando legislação e elaborando resposta..."):
       if not ai_model or GEMINI_API_KEY == "SUA_CHAVE_AQUI":
         resposta_final = (
-            "⚠️ **Aviso de Configuração:** A chave de API do Gemini não foi"
-            " inserida corretamente no código."
+            "⚠️ **Aviso:** A chave de API do Gemini precisa ser configurada no"
+            " ambiente."
         )
       else:
         try:
           prompt_sistema = (
               "Você é um consultor contábil, tributário e financeiro sênior,"
-              " altamente especializado na legislação brasileira (Simples"
-              " Nacional, Lucro Presumido, Lucro Real, MEI, obrigações"
-              " acessórias, etc.). Forneça respostas profissionais, precisas,"
-              " estruturadas em tópicos quando necessário, orientando o"
-              " cliente de forma clara, prática e segura dentro da lei."
+              " altamente especializado na legislação brasileira. Forneça"
+              " respostas profissionais, precisas e estruturadas."
           )
           chat_contexto = [
               {
@@ -183,10 +174,7 @@ if pergunta:
           response = chat.send_message(full_prompt)
           resposta_final = response.text
         except Exception as e:
-          resposta_final = (
-              f"Desculpe, ocorreu um erro técnico ao processar sua"
-              f" solicitação com a IA: {str(e)}"
-          )
+          resposta_final = f"Erro técnico ao processar com a IA: {str(e)}"
 
       st.markdown(resposta_final)
       st.session_state.mensagens.append(
