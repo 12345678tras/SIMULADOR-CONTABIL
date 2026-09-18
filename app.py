@@ -9,7 +9,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Inicialização de Estado Robusta
+# Inicialização de Estado Robusta (Garantindo 3 acessos iniciais)
 if "liberado_pago_master" not in st.session_state:
     st.session_state.liberado_pago_master = False
 if "simulacoes_restantes" not in st.session_state:
@@ -29,18 +29,19 @@ MEU_WHATSAPP = "64993044147"
 CHAVE_PIX_OFICIAL = "64993044147"
 
 def registrar_uso_global():
-    """Função que consome 1 tentativa global e bloqueia definitivamente se chegar a zero."""
+    """Função que consome 1 tentativa e só bloqueia após usar as 3 completas."""
     if not st.session_state.liberado_pago_master:
         if st.session_state.simulacoes_restantes > 0:
             st.session_state.simulacoes_restantes -= 1
+        
         if st.session_state.simulacoes_restantes <= 0:
             st.session_state.acesso_bloqueado_definitivo = True
 
 def tela_bloqueio_comercial(motivo):
     st.session_state.acesso_bloqueado_definitivo = True
     st.error(f"🔒 {motivo}")
-    st.markdown("### 🚀 Seus Acessos Gratuitos Esgotaram!")
-    st.markdown("O sistema possui um limite restrito de 3 acessos. Para continuar utilizando qualquer ferramenta, escolha um plano abaixo ou faça o pagamento via PIX:")
+    st.markdown("### 🚀 Seus 3 Acessos Gratuitos Esgotaram!")
+    st.markdown("Para continuar utilizando todas as ferramentas do sistema, escolha um dos planos abaixo ou faça o pagamento direto via PIX:")
     
     # Seção de Pagamento via PIX Direto
     st.info(f"💎 **Pague via PIX Direto:** Utilize a nossa Chave PIX (Telefone): **{CHAVE_PIX_OFICIAL}**")
@@ -77,14 +78,14 @@ def tela_bloqueio_comercial(motivo):
 
 # Verificação global de bloqueio no início de tudo
 if st.session_state.acesso_bloqueado_definitivo and not st.session_state.liberado_pago_master:
-    tela_bloqueio_comercial("Acesso restrito. O limite global de demonstração foi esgotado.")
+    tela_bloqueio_comercial("Acesso restrito. O limite de 3 acessos gratuitos foi esgotado.")
 
 # Menu Lateral (Navegação Estratégica)
 st.sidebar.title("⚖️ Consultor Master")
 st.sidebar.markdown("Navegação Estratégica")
 
 if not st.session_state.liberado_pago_master:
-    st.sidebar.info(f"🎁 Acessos restantes: **{st.session_state.simulacoes_restantes}**")
+    st.sidebar.info(f"🎁 Acessos gratuitos restantes: **{st.session_state.simulacoes_restantes} / 3**")
 
 modulo = st.sidebar.radio(
     "Selecione o Módulo:",
@@ -305,7 +306,7 @@ elif modulo == "⚙️ Configurações / Painel Master":
     if st.session_state.liberado_pago_master:
         st.success("🟢 Sistema com Licença Master Ativa (Acesso Ilimitado Liberado).")
     else:
-        st.warning(f"🔒 Sistema em Modo Demonstração. Tentativas restantes: {st.session_state.simulacoes_restantes}")
+        st.warning(f"🔒 Sistema em Modo Demonstração. Tentativas restantes: {st.session_state.simulacoes_restantes} / 3")
         
     st.markdown("### 🔑 Resgate de Senha / Liberação Manual")
     senha_input = st.text_input("Senha de Ativação:", type="password", key="input_painel_senha")
