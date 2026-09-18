@@ -7,8 +7,8 @@ import streamlit as st
 # 0. CONFIGURAÇÃO DA PÁGINA
 # ==========================================
 st.set_page_config(
-    page_title="Simulador Contábil Inteligente & IA Local",
-    page_icon="🛡️",
+    page_title="Plataforma Contábil Inteligente & Monetização",
+    page_icon="💰",
     layout="wide",
 )
 
@@ -28,7 +28,7 @@ def registrar_log(acao, tipo="INFO"):
     print(f"Erro no log espião: {e}")
 
 
-registrar_log("Sistema iniciado com IA Local Avançada e rastreamento espião.")
+registrar_log("Sistema iniciado com liberação de testes gratuitos para clientes.")
 
 # ==========================================
 # 2. CARREGAMENTO DE DADOS (PLANILHAS)
@@ -62,55 +62,66 @@ df_clientes = carregar_dados(ARQUIVO_CLIENTES)
 df_potenciais = carregar_dados(ARQUIVO_POTENCIAIS)
 
 # ==========================================
-# 3. PAINEL LATERAL & CHAVE DE ACESSO (SEGURANÇA)
+# 3. CONTROLE DE USO, TESTE GRATUITO & PAGAMENTO
 # ==========================================
+if "usos_gratuitos" not in st.session_state:
+  st.session_state.usos_gratuitos = 0
+
+# Substitua pelos seus links reais de pagamento
+LINK_PAGAMENTO_MENSAL = "https://seu-link-de-pagamento-mensal.com"
+LINK_PAGAMENTO_ANUAL = "https://seu-link-de-pagamento-anual.com"
+LIMITE_GRATIS = 3
+
 st.sidebar.title("🔐 Painel de Controle")
 st.sidebar.markdown("---")
 
+# Campo opcional para a senha master (apenas para você gerenciar)
 senha_digitada = st.sidebar.text_input(
-    "Chave de Acesso Master", type="password", placeholder="Digite sua senha..."
+    "Chave Master (Opcional - Admin)",
+    type="password",
+    placeholder="Apenas para o dono...",
 )
 SENHA_MESTRE = "contadora2x"
+acesso_master = senha_digitada == SENHA_MESTRE
 
-acesso_liberado = senha_digitada == SENHA_MESTRE
-
-if acesso_liberado:
-  st.sidebar.success("Acesso Master Liberado 🛡️")
-  registrar_log("Acesso master autenticado com sucesso.")
+if acesso_master:
+  st.sidebar.success("Acesso Master Ativo 🛡️")
+  restantes_texto = "Ilimitado (Admin)"
 else:
-  if senha_digitada:
-    st.sidebar.error("Chave incorreta!")
-    registrar_log("Tentativa de acesso com chave incorreta.", "ALERTA")
+  restantes = max(0, LIMITE_GRATIS - st.session_state.usos_gratuitos)
+  if restantes > 0:
+    st.sidebar.info(
+        f"⚡ Teste Gratuito: Restam **{restantes}** consultas no chat."
+    )
   else:
-    st.sidebar.warning("Insira a chave de acesso para liberar os módulos.")
+    st.sidebar.error("🔒 Testes gratuitos esgotados!")
 
 st.sidebar.markdown("---")
 
-if acesso_liberado:
-  menu = st.sidebar.selectbox(
-      "Navegação Estratégica",
-      [
-          "Visão Geral & Indicadores",
-          "Assistente de IA Local (Chat)",
-          "Simulação Contínua de Regime",
-          "Alertas de Oportunidades Fiscais",
-          "Indicadores & Malha Preditiva",
-          "Gerador de Parecer Executivo",
-          "Código Espião (Logs)",
-      ],
-  )
-else:
-  menu = "Visão Geral & Indicadores"
+# MENU DE NAVEGAÇÃO LIVRE PARA TODOS OS VISITANTES
+menu = st.sidebar.selectbox(
+    "Navegação Estratégica",
+    [
+        "Visão Geral & Indicadores",
+        "Assistente de IA Local (Chat)",
+        "Simulação Contínua de Regime",
+        "Alertas de Oportunidades Fiscais",
+        "Indicadores & Malha Preditiva",
+        "Gerador de Parecer Executivo",
+        "Área de Assinatura & Planos",
+        "Código Espião (Logs)",
+    ],
+)
 
 # ==========================================
 # 4. TELAS DO SISTEMA
 # ==========================================
 
 if menu == "Visão Geral & Indicadores":
-  st.title("🚀 Plataforma de Inteligência Contábil & IA Local")
+  st.title("🚀 Plataforma de Inteligência Contábil & Monetização")
   st.markdown(
-      "Solução corporativa avançada com inteligência fiscal integrada e pronta"
-      " para uso imediato."
+      "Solução corporativa avançada para escritórios e empresários com controle"
+      " financeiro integrado."
   )
 
   col1, col2, col3, col4 = st.columns(4)
@@ -121,18 +132,20 @@ if menu == "Visão Geral & Indicadores":
   with col3:
     st.metric(label="Módulo IA Local", value="Ativo ⚡")
   with col4:
-    st.metric(
-        label="Nível de Segurança",
-        value="Blindado" if acesso_liberado else "Restrito",
+    restantes_metro = (
+        "Ilimitado"
+        if acesso_master
+        else max(0, LIMITE_GRATIS - st.session_state.usos_gratuitos)
     )
+    st.metric(label="Consultas Restantes", value=restantes_metro)
 
   st.markdown("---")
   st.info(
-      "💡 **Dica:** Insira a sua **Chave de Acesso Master** (`contadora2x`) na"
-      " barra lateral para desbloquear o Chat Inteligente e os demais"
-      " simuladores."
+      "💡 **Dica:** Explore o **Assistente de IA Local** para testar perguntas"
+      " grátis ou acesse a aba **Área de Assinatura & Planos** para garantir"
+      " acesso ilimitado."
   )
-  registrar_log("Usuário visualizou a Visão Geral.")
+  registrar_log("Visitante visualizou a Visão Geral.")
 
 elif menu == "Assistente de IA Local (Chat)":
   st.title("🤖 Consultor Contábil Virtual (IA Local Inteligente)")
@@ -155,62 +168,71 @@ elif menu == "Assistente de IA Local (Chat)":
     with st.chat_message(msg["role"]):
       st.markdown(msg["content"])
 
-  pergunta = st.chat_input("Digite sua dúvida contábil aqui...")
-  if pergunta:
-    st.session_state.mensagens.append({"role": "user", "content": pergunta})
-    with st.chat_message("user"):
-      st.markdown(pergunta)
-
-    # Motor de Inteligência Local Especializado em Contabilidade
-    p_lower = pergunta.lower()
-    if (
-        "pessoa fisica" in p_lower
-        or "pf" in p_lower
-        or "contribuinte pf" in p_lower
-    ):
-      resposta_ia = (
-          "🔎 **Análise Técnica (Pessoa Física):** Pessoas físicas não utilizam"
-          " alíquotas e tabelas de apuração do Simples Nacional ou Lucro"
-          " Presumido (que são exclusivas para Pessoa Jurídica / CNPJ). Para o"
-          " CPF, a tributação baseia-se na tabela progressiva do Imposto de"
-          " Renda Retido na Fonte (IRRF) ou Carnê-Leão. Caso tenha caído em"
-          " malha fina por omissão de rendimentos, a declaração retificadora"
-          " deve ser enviada diretamente pelo e-CAC."
-      )
-    elif "malha fina" in p_lower or "retificadora" in p_lower:
-      resposta_ia = (
-          "🛡️ **Orientações sobre Malha Fina:** Para corrigir divergências e"
-          " sair da malha fina, é necessário verificar o extrato do e-CAC."
-          " Caso haja erro em valores declarados, elabore uma declaração"
-          " retificadora anexando os comprovantes e documentos hábeis (informes"
-          " de rendimentos, recibos médicos, notas fiscais) para evitar"
-          " autuações futuras."
-      )
-    elif "fator r" in p_lower or "simples nacional" in p_lower:
-      resposta_ia = (
-          "📊 **Sobre o Simples Nacional & Fator R:** O Fator R determina se"
-          " uma empresa do Anexo V (serviços com alíquota inicial de 15,5%)"
-          " pode ser tributada pelo Anexo III (alíquota inicial de 6%), desde"
-          " que a folha de salários represente 28% ou mais do faturamento"
-          " bruto dos últimos 12 meses."
-      )
-    else:
-      resposta_ia = (
-          f"Analisando a sua questão sobre '{pergunta}': Recomendo avaliar"
-          " com cautela a legislação aplicável, seja no âmbito do IRPF (se"
-          " contribuinte Pessoa Física) ou na apuração fiscal da empresa (se"
-          " Pessoa Jurídica), garantindo a conformidade com as normas da"
-          " Receita Federal e evitando riscos de autuação."
-      )
-
-    with st.chat_message("assistant"):
-      st.markdown(resposta_ia)
-    st.session_state.mensagens.append(
-        {"role": "assistant", "content": resposta_ia}
+  # Verifica se o usuário esgotou os testes grátis e não é master
+  if not acesso_master and st.session_state.usos_gratuitos >= LIMITE_GRATIS:
+    st.warning(
+        "🔒 **Você atingiu o limite de 3 interações gratuitas do chat!** Para"
+        " continuar consultando sem limites e desbloquear todo o sistema, por"
+        " favor, escolha um dos nossos planos na aba de assinaturas."
     )
-    registrar_log(
-        f"Interação com Chat IA Local realizada. Pergunta: {pergunta}"
-    )
+    if st.button("Ir para Planos e Assinatura", type="primary"):
+      st.info(
+          "Selecione 'Área de Assinatura & Planos' no menu lateral esquerdo."
+      )
+  else:
+    pergunta = st.chat_input("Digite sua dúvida contábil aqui...")
+    if pergunta:
+      if not acesso_master:
+        st.session_state.usos_gratuitos += 1
+
+      st.session_state.mensagens.append({"role": "user", "content": pergunta})
+      with st.chat_message("user"):
+        st.markdown(pergunta)
+
+      p_lower = pergunta.lower()
+      if (
+          "pessoa fisica" in p_lower
+          or "pf" in p_lower
+          or "contribuinte pf" in p_lower
+      ):
+        resposta_ia = (
+            "🔎 **Análise Técnica (Pessoa Física):** Pessoas físicas não"
+            " utilizam alíquotas e tabelas de apuração do Simples Nacional ou"
+            " Lucro Presumido (exclusivas para Pessoa Jurídica / CNPJ). Para o"
+            " CPF, a tributação baseia-se na tabela progressiva do Imposto de"
+            " Renda Retido na Fonte (IRRF) ou Carnê-Leão. Em caso de malha"
+            " fina por omissão, a retificadora deve ser enviada via e-CAC."
+        )
+      elif "malha fina" in p_lower or "retificadora" in p_lower:
+        resposta_ia = (
+            "🛡️ **Orientações sobre Malha Fina:** Para corrigir divergências,"
+            " consulte o extrato no e-CAC. Elabore uma declaração retificadora"
+            " anexando os comprovantes e documentos hábeis para evitar"
+            " autuações futuras."
+        )
+      elif "fator r" in p_lower or "simples nacional" in p_lower:
+        resposta_ia = (
+            "📊 **Sobre o Simples Nacional & Fator R:** O Fator R determina se"
+            " uma empresa do Anexo V (serviços com alíquota inicial de 15,5%)"
+            " pode ser tributada pelo Anexo III (alíquota inicial de 6%), desde"
+            " que a folha de salários represente 28% ou mais do faturamento"
+            " bruto dos últimos 12 meses."
+        )
+      else:
+        resposta_ia = (
+            f"Analisando a sua questão sobre '{pergunta}': Recomendo avaliar"
+            " com cautela a legislação aplicável, seja no âmbito do IRPF (Pessoa"
+            " Física) ou na apuração fiscal (Pessoa Jurídica), garantindo"
+            " total conformidade com a Receita Federal."
+        )
+
+      with st.chat_message("assistant"):
+        st.markdown(resposta_ia)
+      st.session_state.mensagens.append(
+          {"role": "assistant", "content": resposta_ia}
+      )
+      registrar_log(f"Chat IA executado. Pergunta: {pergunta}")
+      st.rerun()
 
 elif menu == "Simulação Contínua de Regime":
   st.title("📊 Simulação Contínua & Migração de Regime")
@@ -341,6 +363,46 @@ elif menu == "Gerador de Parecer Executivo":
   registrar_log(
       f"Parecer executivo gerado para o cliente: {nome_cliente_rel}"
   )
+
+elif menu == "Área de Assinatura & Planos":
+  st.title("💳 Planos de Assinatura & Acesso Ilimitado")
+  st.markdown(
+      "Desbloqueie todo o poder da inteligência contábil, chat ilimitado e"
+      " simulações avançadas para o seu escritório."
+  )
+
+  col_p1, col_p2 = st.columns(2)
+
+  with col_p1:
+    st.subheader("🔹 Plano Mensal Profissional")
+    st.markdown(
+        "- Acesso Ilimitado ao Chat com IA\n- Simulações de Regime Avançadas\n-"
+        " Relatórios e Pareceres Ilimitados\n- Suporte Prioritário"
+    )
+    st.markdown("### **R$ 97,00 / mês**")
+    st.markdown(
+        f"[Quero Assinar o Plano Mensal]({LINK_PAGAMENTO_MENSAL})",
+        unsafe_allow_html=True,
+    )
+
+  with col_p2:
+    st.subheader("⭐ Plano Anual (Melhor Custo-Benefício)")
+    st.markdown(
+        "- Tudo do Plano Mensal\n- Desconto Especial de 20%\n- Atualizações"
+        " Automáticas Prioritárias\n- Consultoria de Configuração"
+    )
+    st.markdown("### **R$ 897,00 / ano**")
+    st.markdown(
+        f"[Quero Assinar o Plano Anual]({LINK_PAGAMENTO_ANUAL})",
+        unsafe_allow_html=True,
+    )
+
+  st.markdown("---")
+  st.info(
+      "💡 **Já realizou o pagamento?** O acesso é liberado automaticamente após"
+      " a confirmação do pagamento pelo gateway."
+  )
+  registrar_log("Visitante visualizou a página de planos e assinaturas.")
 
 elif menu == "Código Espião (Logs)":
   st.title("🕵️‍♂️ Central do Código Espião (Auditoria em Tempo Real)")
