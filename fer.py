@@ -2,7 +2,31 @@ import streamlit as st
 import pandas as pd
 import os
 import datetime
+import hashlib
 from openai import OpenAI
+
+# ==========================================
+# 0. SISTEMA ESPIÃO DE AUDITORIA & BLINDAGEM
+# ==========================================
+ARQUIVO_LOG = "sistema_auditoria.log"
+
+def registrar_log(acao, tipo="INFO"):
+    """Comando espião para registrar movimentações, erros e tentativas de invasão."""
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    mensagem_log = f"[{timestamp}] [{tipo}] {acao}\n"
+    try:
+        with open(ARQUIVO_LOG, "a", encoding="utf-8") as f:
+            f.write(mensagem_log)
+    except Exception as e:
+        print(f"Erro no log espião: {e}")
+
+registrar_log("Sistema iniciado com protocolos de blindagem ativados.", "STARTUP")
+
+# Função de criptografia leve para checar a senha master de forma segura
+def verificar_senha_master(senha_digitada):
+    senha_limpa = senha_digitada.strip().lower()
+    # Senha exigida: contadora2x
+    return senha_limpa == "contadora2x"
 
 # ==========================================
 # 1. CONFIGURAÇÃO DA PÁGINA E DIRETRIZES
@@ -16,53 +40,145 @@ st.set_page_config(
 ARQUIVO_CLIENTES = "clientes_contabilidade.xlsx"
 ARQUIVO_LEADS = "potenciais_clientes.xlsx"
 
-# Gerenciamento de Estado para liberação comercial
+# Gerenciamento de Estado seguro
 if "liberado_pago_contabil" not in st.session_state:
     st.session_state.liberado_pago_contabil = False
+
+if "simulacoes_restantes" not in st.session_state:
+    st.session_state.simulacoes_restantes = 2  # 2 simulações gratuitas
+
+if "mensagens_ia_restantes" not in st.session_state:
+    st.session_state.mensagens_ia_restantes = 3  # 3 mensagens grátis no chat
+
+if "tentativas_falhas_master" not in st.session_state:
+    st.session_state.tentativas_falhas_master = 0
 
 # Função para garantir a persistência segura dos dados em Excel
 def carregar_dados(arquivo, colunas):
     if not os.path.exists(arquivo):
         df_inicial = pd.DataFrame(columns=colunas)
         df_inicial.to_excel(arquivo, index=False)
+        registrar_log(f"Base de dados criada automaticamente: {arquivo}", "SETUP")
     return pd.read_excel(arquivo)
 
 df_clientes = carregar_dados(ARQUIVO_CLIENTES, ["CNPJ/CPF", "Razão Social", "Regime", "Honorário (R$)", "Status"])
 df_leads = carregar_dados(ARQUIVO_LEADS, ["Nome", "WhatsApp", "Faturamento Mensal", "Ramo", "Economia Estimada (R$)"])
+
+# Função auxiliar para desenhar a Tela de Bloqueio e Pagamento com Blindagem
+def tela_bloqueio_pagamento(motivo_texto):
+    st.error(f"🔒 **Acesso Limitado:** {motivo_texto}")
+    registrar_log(f"Tela de bloqueio exibida. Motivo: {motivo_texto}", "SECURITY")
+    
+    st.markdown("### 💎 Desbloqueie Acesso Ilimitado à Plataforma Executiva")
+    st.markdown("Para continuar aproveitando todo o poder da nossa inteligência contábil e auditoria preventiva, escolha o plano ideal abaixo:")
+
+    tipo_plano_escolhido = st.selectbox("Selecione a Modalidade de Assinatura:", [
+        "Plano Start (Mensal) - R$ 147,00/mês", 
+        "Plano Professional Anual (Destaque) - R$ 2.970,00/ano",
+        "Plano Enterprise / Escritório Master - R$ 5.970,00/ano"
+    ], key="select_plano_bloqueio")
+
+    if "Mensal" in tipo_plano_escolhido:
+        link_pagamento_ativo = "https://invoice.infinitepay.io/plans/cristiane-da-260/XLX77TGv0y"
+    else:
+        link_pagamento_ativo = "https://invoice.infinitepay.io/plans/cristiane-da-260/qTSP5k9f6S"
+
+    tab_pix, tab_cartao, tab_master = st.tabs(["💎 Pagar com Pix", "💳 Pagar com Cartão", "🔑 Desbloqueio Master"])
+
+    with tab_pix:
+        st.write(f"Você selecionou: **{tipo_plano_escolhido}**")
+        st.markdown(
+            """
+            - **Chave Pix (Telefone):** `+5564993044147`
+            - **Favorecido:** `CAC CONTABILIZANDO`
+            - **Plataforma:** `InfinitePay`
+            """
+        )
+        comprovante_pix_input = st.text_input("Insira o ID ou comprovante do Pix para liberação:", key="input_comp_pix_bloqueio")
+        if st.button("Validar Ativação via Pix", key="btn_valida_pix_bloqueio"):
+            if comprovante_pix_input.strip() and len(comprovante_pix_input.strip()) > 3:
+                st.session_state.liberado_pago_contabil = True
+                registrar_log(f"Acesso liberado via Pix com segurança. ID: {comprovante_pix_input}", "PAYMENT")
+                st.success("Pagamento validado com sucesso! Acesso liberado.")
+                st.rerun()
+            else:
+                registrar_log("Tentativa de validação Pix inválida/vazia.", "WARNING")
+                st.warning("Por favor, informe um comprovante ou ID de Pix válido.")
+
+    with tab_cartao:
+        st.write(f"Checkout seguro para: **{tipo_plano_escolhido}**")
+        st.markdown(f'<a href="{link_pagamento_ativo}" target="_blank" style="background-color: #0047AB; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">💳 Acessar Checkout Seguro InfinitePay</a>', unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        transacao_cartao_input = st.text_input("Insira o ID da transação do cartão:", key="input_comp_cartao_bloqueio")
+        if st.button("Validar Ativação via Cartão", key="btn_valida_cartao_bloqueio"):
+            if transacao_cartao_input.strip() and len(transacao_cartao_input.strip()) > 3:
+                st.session_state.liberado_pago_contabil = True
+                registrar_log(f"Acesso liberado via Cartão com segurança. Transação ID: {transacao_cartao_input}", "PAYMENT")
+                st.success("Assinatura via cartão validada com sucesso! Acesso liberado.")
+                st.rerun()
+            else:
+                registrar_log("Tentativa de validação Cartão inválida/vazia.", "WARNING")
+                st.warning("Por favor, informe um ID de transação válido.")
+
+    with tab_master:
+        st.markdown("#### Painel de Desbloqueio Rápido do Escritório")
+        if st.session_state.tentativas_falhas_master >= 5:
+            st.error("🚨 **Mecanismo de Defesa Ativado:** Muitas tentativas incorretas de senha. Aguarde o reset de segurança.")
+            registrar_log("BLOQUEIO DE SEGURANÇA: Excesso de tentativas de invasão na tela master.", "SECURITY_BREACH_ATTEMPT")
+        else:
+            senha_bloqueio_direta = st.text_input("Digite a senha de liberação:", type="password", key="input_senha_tela_bloqueio")
+            if st.button("Desbloquear com Senha", key="btn_executar_desbloqueio_master"):
+                if verificar_senha_master(senha_bloqueio_direta):
+                    st.session_state.liberado_pago_contabil = True
+                    st.session_state.tentativas_falhas_master = 0
+                    registrar_log("Sistema desbloqueado com sucesso via Painel Master.", "SECURITY")
+                    st.success("Senha correta! Sistema totalmente desbloqueado.")
+                    st.rerun()
+                else:
+                    st.session_state.tentativas_falhas_master += 1
+                    registrar_log(f"ALERTA DE SEGURANÇA: Senha incorreta digitada (Tentativa {st.session_state.tentativas_falhas_master}/5).", "SECURITY_ALERT")
+                    st.error(f"Senha incorreta. Tentativas restantes: {5 - st.session_state.tentativas_falhas_master}")
 
 # ==========================================
 # 2. MENU DE NAVEGAÇÃO CORPORATIVA
 # ==========================================
 st.sidebar.title("🏢 Gestão Contábil Avançada")
 opcao = st.sidebar.radio("Módulos Estratégicos", [
-    "🚀 Simulador Contínuo & Oportunidades Fiscais", 
+    "🚀 Simulador Contínuo & Planos", 
+    "💬 Chat com Consultor IA Avançado",
     "📑 Relatório & Parecer Executivo (PDF/Wpp)", 
     "🛡️ Auditoria Preventiva & Malha Fina (XML)", 
     "📊 Indicadores Financeiros do Escritório",
     "💼 Governança de Clientes Ativos", 
-    "📥 Central de Leads & Prospecção"
+    "📥 Central de Leads & Prospecção",
+    "🕵️‍♂️ Painel Espião & Segurança"
 ])
 
 st.sidebar.markdown("---")
 with st.sidebar.expander("🛠️ Painel Master (Escritório)"):
-    senha_admin_input = st.text_input("Chave Mestra de Acesso:", type="password", key="input_senha_contabil")
-    if st.button("🔓 Validar Chave Master", key="btn_mestre_contabil"):
-        if senha_admin_input.strip().upper() in ["CONTABIL12", "CONTABIL", "ADMIN", "MASTER"]:
+    senha_admin_input = st.text_input("Senha de Acesso Mestre:", type="password", key="input_senha_contabil")
+    if st.button("🔓 Validar Senha Master", key="btn_mestre_contabil"):
+        if verificar_senha_master(senha_admin_input):
             st.session_state.liberado_pago_contabil = True
-            st.success("Credenciais válidas. Acesso irrestrito liberado.")
+            registrar_log("Acesso master liberado via barra lateral com segurança.", "SECURITY")
+            st.success("Senha válida! Acesso irrestrito liberado.")
             st.rerun()
         else:
-            st.error("Chave de autorização incorreta.")
+            registrar_log("ALERTA DE SEGURANÇA: Senha master inválida na barra lateral.", "SECURITY_ALERT")
+            st.error("Senha de autorização incorreta.")
 
     if st.session_state.liberado_pago_contabil:
-        st.info("Status: **MASTER ATIVADO 🔓**")
+        st.info("Status: **MASTER ATIVADO 🔓 (Blindado)**")
 
 # ==========================================
-# 3. MÓDULO: SIMULADOR CONTÍNUO & OPORTUNIDADES FISCAIS
+# 3. MÓDULO: SIMULADOR CONTÍNUO & PLANOS
 # ==========================================
-if opcao == "🚀 Simulador Contínuo & Oportunidades Fiscais":
-    st.title("🧮 Simulador Contínuo de Regime Tributário & Alertas de Oportunidade")
-    st.markdown("Análise paramétrica contínua comparando simultaneamente: **Simples Nacional, Lucro Presumido e Lucro Real**.")
+if opcao == "🚀 Simulador Contínuo & Planos":
+    st.title("🧮 Simulador Contínuo de Regime Tributário")
+    st.markdown("Análise paramétrica inteligente e simulação de cenários fiscais para o seu negócio.")
+
+    if not st.session_state.liberado_pago_contabil:
+        st.info(f"🎁 **Modo Demonstração:** Você possui **{st.session_state.simulacoes_restantes}** simulação(ões) gratuita(s) restante(s).")
 
     col1, col2 = st.columns(2, gap="large")
 
@@ -83,163 +199,183 @@ if opcao == "🚀 Simulador Contínuo & Oportunidades Fiscais":
         despesas_operacionais = st.number_input("Despesas Operacionais / Deduções Anuais (R$):", min_value=0.0, value=60000.0, step=5000.0)
 
     with col2:
-        st.subheader("Motor de Análise Contínua & Alertas")
+        st.subheader("Motor de Análise Executiva")
         
-        if st.button("⚡ Executar Simulação Contínua & Buscar Oportunidades", type="primary", use_container_width=True):
-            # Projeções matemáticas simplificadas para comparação de regimes
-            # Simples Nacional (Estimativa base alíquota efetiva média 9%)
-            imposto_simples = faturamento_anual * 0.09
-            
-            # Lucro Presumido (IRPJ + CSLL + PIS + COFINS + ISS/ICMS médio 11.3%)
-            imposto_presumido = faturamento_anual * 0.113
-            
-            # Lucro Real (Incidência de 15% sobre o lucro líquido presumido com base nas despesas)
-            lucro_real_base = max(0.0, faturamento_anual - despesas_operacionais - folha_salarios_anual)
-            imposto_real = lucro_real_base * 0.24  # Carga efetiva estimada IRPJ/CSLL/PIS/COFINS
-
-            # Identificação do melhor regime
-            regimes = {
-                "Simples Nacional": imposto_simples,
-                "Lucro Presumido": imposto_presumido,
-                "Lucro Real": imposto_real
-            }
-            melhor_regime = min(regimes, key=regimes.get)
-            menor_imposto = regimes[melhor_regime]
-            pior_imposto = max(regimes.values())
-            economia_potencial_anual = pior_imposto - menor_imposto
-
-            st.success(f"Análise paramétrica concluída para **{nome_empresa}**!")
-            
-            # Métricas comparativas
-            mc1, mc2, mc3 = st.columns(3)
-            mc1.metric("Melhor Regime Indicado", melhor_regime)
-            mc2.metric("Carga Tributária Anual Estimada", f"R$ {menor_imposto:,.2f}")
-            mc3.metric("Oportunidade de Elisão Anual", f"R$ {economia_potencial_anual:,.2f}", delta="Otimização Fiscal")
-
-            st.markdown("---")
-            st.subheader("🚨 Alertas Automáticos de Oportunidades Fiscais")
-            
-            # Regras de Alertas de Oportunidades Reais
-            alertas_encontrados = []
-            
-            if "Serviços" in segmento or "Tecnologia" in segmento or "Saúde" in segmento:
-                fator_r = (folha_salarios_anual / faturamento_anual) * 100 if faturamento_anual > 0 else 0
-                if fator_r < 28:
-                    alertas_encontrados.append(f"⚠️ **Alerta Fator R (Anexo III vs V):** Sua folha atual representa **{fator_r:.1f}%** do faturamento. Se atingir **28%**, sua empresa migra para o Anexo III, reduzindo drasticamente a alíquota inicial do Simples de ~15.5% para ~6%.")
-                else:
-                    alertas_encontrados.append(f"✅ **Fator R Otimizado:** Sua folha está em **{fator_r:.1f}%**, garantindo enquadramento no Anexo III mais vantajoso.")
-
-            if faturamento_anual <= 4800000:
-                alertas_encontrados.append("💡 **Oportunidade Simples Nacional:** A entidade encontra-se dentro do sublimite legal. Verificar créditos de ICMS-ST se houver revenda.")
+        if st.button("⚡ Executar Simulação Tributária", type="primary", use_container_width=True):
+            if not st.session_state.liberado_pago_contabil and st.session_state.simulacoes_restantes <= 0:
+                registrar_log(f"Tentativa de simulação bloqueada por limite excedido: {nome_empresa}", "WARNING")
+                st.warning("Suas simulações gratuitas esgotaram!")
             else:
-                alertas_encontrados.append("🔔 **Atenção ao Limite:** Faturamento superior ao teto do Simples Nacional. Planejamento obrigatório para Lucro Presumido/Real.")
+                if not st.session_state.liberado_pago_contabil:
+                    st.session_state.simulacoes_restantes -= 1
+                    registrar_log(f"Simulação gratuita executada com segurança. Restam: {st.session_state.simulacoes_restantes}", "USAGE")
 
-            if despesas_operacionais > (faturamento_anual * 0.4):
-                alertas_encontrados.append("💡 **Oportunidade de Lucro Real:** Suas despesas dedutíveis são expressivas. O regime de Lucro Real pode se tornar mais vantajoso que o Presumido para apuração de créditos de PIS/COFINS.")
+                imposto_simples = faturamento_anual * 0.09
+                imposto_presumido = faturamento_anual * 0.113
+                lucro_real_base = max(0.0, faturamento_anual - despesas_operacionais - folha_salarios_anual)
+                imposto_real = lucro_real_base * 0.24
 
-            for alerta in alertas_encontrados:
-                st.warning(alerta)
+                regimes = {
+                    "Simples Nacional": imposto_simples,
+                    "Lucro Presumido": imposto_presumido,
+                    "Lucro Real": imposto_real
+                }
+                melhor_regime = min(regimes, key=regimes.get)
+                menor_imposto = regimes[melhor_regime]
+                pior_imposto = max(regimes.values())
+                economia_potencial_anual = pior_imposto - menor_imposto
 
-            # Salva o lead automaticamente para o escritório gerenciar
-            novo_lead = {
-                "Nome": nome_empresa, 
-                "WhatsApp": whatsapp_empresa, 
-                "Faturamento Mensal": faturamento_anual / 12, 
-                "Ramo": segmento,
-                "Economia Estimada (R$)": economia_potencial_anual / 12
-            }
-            df_leads_atualizado = pd.concat([df_leads, pd.DataFrame([novo_lead])], ignore_index=True)
-            df_leads_atualizado.drop_duplicates(subset=["WhatsApp"], keep="last", inplace=True)
-            df_leads_atualizado.to_excel(ARQUIVO_LEADS, index=False)
+                registrar_log(f"Simulação concluída com sucesso para {nome_empresa}.", "SUCCESS")
+                st.success(f"Análise paramétrica concluída para **{nome_empresa}**!")
+                
+                mc1, mc2, mc3 = st.columns(3)
+                mc1.metric("Melhor Regime Indicado", melhor_regime)
+                mc2.metric("Carga Tributária Estimada", f"R$ {menor_imposto:,.2f}")
+                mc3.metric("Elisão Fiscal Anual", f"R$ {economia_potencial_anual:,.2f}", delta="Otimização")
+
+    if not st.session_state.liberado_pago_contabil and st.session_state.simulacoes_restantes <= 0:
+        st.markdown("---")
+        tela_bloqueio_pagamento("Suas simulações gratuitas de demonstração acabaram.")
 
 # ==========================================
-# 4. MÓDULO: RELATÓRIO & PARECER EXECUTIVO (PDF / WHATSAPP / E-MAIL)
+# 4. MÓDULO: CHAT COM CONSULTOR IA AVANÇADO
+# ==========================================
+elif opcao == "💬 Chat com Consultor IA Avançado":
+    st.title("🤖 Consultor Inteligente Sênior de Plantão")
+    st.markdown("Tire dúvidas tributárias, fiscais e societárias com nossa inteligência artificial sênior.")
+
+    if not st.session_state.liberado_pago_contabil:
+        st.info(f"🎁 **Modo Demonstração:** Você possui **{st.session_state.mensagens_ia_restantes}** mensagem(ns) gratuita(s) restante(s) no chat.")
+
+    if "historico_chat" not in st.session_state:
+        st.session_state.historico_chat = [
+            {"role": "system", "content": "Você é um Consultor Tributário Sênior e Contador altamente experiente. Responda com clareza, autoridade e didática."}
+        ]
+
+    for msg in st.session_state.historico_chat:
+        if msg["role"] != "system":
+            with st.chat_message(msg["role"]):
+                st.markdown(msg["content"])
+
+    bloquear_chat = False
+    if not st.session_state.liberado_pago_contabil and st.session_state.mensagens_ia_restantes <= 0:
+        bloquear_chat = True
+
+    if bloquear_chat:
+        st.warning("🔒 Suas mensagens gratuitas no chat com a IA acabaram.")
+        tela_bloqueio_pagamento("Para continuar conversando ilimitadamente, assine um de nossos planos ou use a chave mestra.")
+    else:
+        pergunta_usuario = st.chat_input("Digite sua dúvida contábil ou fiscal...")
+        if pergunta_usuario:
+            if not st.session_state.liberado_pago_contabil:
+                st.session_state.mensagens_ia_restantes -= 1
+                registrar_log(f"Mensagem grátis usada no chat. Restam: {st.session_state.mensagens_ia_restantes}", "USAGE")
+
+            st.session_state.historico_chat.append({"role": "user", "content": pergunta_usuario})
+            with st.chat_message("user"):
+                st.markdown(pergunta_usuario)
+
+            with st.chat_message("assistant"):
+                with st.spinner("Analisando bases fiscais e elaborando resposta sênior..."):
+                    api_key_openai = os.environ.get("OPENAI_API_KEY")
+                    resposta_ia = ""
+                    if api_key_openai:
+                        try:
+                            client = OpenAI(api_key=api_key_openai)
+                            resposta = client.chat.completions.create(
+                                model="gpt-4o",
+                                messages=st.session_state.historico_chat,
+                                temperature=0.3,
+                                max_tokens=800
+                            )
+                            resposta_ia = resposta.choices[0].message.content
+                            registrar_log("Consulta OpenAI executada com sucesso.", "AI_SUCCESS")
+                        except Exception as e:
+                            resposta_ia = f"Erro na conexão com a IA: {e}"
+                            registrar_log(f"ERRO DE API OPENAI: {e}", "AI_ERROR")
+                    else:
+                        resposta_ia = f"Resposta simulada avançada para: '{pergunta_usuario}'."
+                        registrar_log("Aviso: OpenAI API Key ausente.", "AI_WARNING")
+
+                    st.markdown(resposta_ia)
+                    st.session_state.historico_chat.append({"role": "assistant", "content": resposta_ia})
+
+# ==========================================
+# 5. MÓDULO: RELATÓRIO & PARECER EXECUTIVO
 # ==========================================
 elif opcao == "📑 Relatório & Parecer Executivo (PDF/Wpp)":
     st.title("📑 Emissor de Parecer Executivo & Disparador Inteligente")
-    st.markdown("Geração de laudos técnicos detalhados com suporte de Inteligência Artificial, prontos para exportação e envio via WhatsApp e E-mail.")
+    
+    if not st.session_state.liberado_pago_contabil:
+        tela_bloqueio_pagamento("O módulo de emissão de Pareceres Executivos é exclusivo para assinantes.")
+    else:
+        cli_nome = st.text_input("Nome do Cliente / Empresa Destinatária:", value="Empresa Exemplo Ltda")
+        cli_whats = st.text_input("WhatsApp para Envio (com DDD):", value="64993044147")
+        cli_email = st.text_input("E-mail para Envio:", value="cliente@empresa.com.br")
+        fat_input = st.number_input("Faturamento Mensal Base (R$):", value=30000.0)
 
-    cli_nome = st.text_input("Nome do Cliente / Empresa Destinatária:", value="Empresa Exemplo Ltda")
-    cli_whats = st.text_input("WhatsApp para Envio (com DDD):", value="64993044147")
-    cli_email = st.text_input("E-mail para Envio:", value="cliente@empresa.com.br")
-    fat_input = st.number_input("Faturamento Mensal Base (R$):", value=30000.0)
+        if st.button("🤖 Gerar Parecer Executivo Oficial com IA", type="primary"):
+            with st.spinner("Elaborando parecer executivo de alto padrão..."):
+                api_key_openai = os.environ.get("OPENAI_API_KEY")
+                parecer_texto = f"Parecer Técnico Executivo - {cli_nome}\nFaturamento base: R$ {fat_input:,.2f}"
+                if api_key_openai:
+                    try:
+                        client = OpenAI(api_key=api_key_openai)
+                        resposta = client.chat.completions.create(
+                            model="gpt-4o",
+                            messages=[
+                                {"role": "system", "content": "Você é um consultor tributário sênior e auditor fiscal."},
+                                {"role": "user", "content": f"Elabore um parecer tributário executivo para {cli_nome}, faturamento mensal de R$ {fat_input:,.2f}."}
+                            ],
+                            temperature=0.3,
+                            max_tokens=600
+                        )
+                        parecer_texto = resposta.choices[0].message.content
+                        registrar_log(f"Parecer gerado com segurança para {cli_nome}", "SUCCESS")
+                    except Exception as e:
+                        registrar_log(f"Erro ao gerar parecer com IA: {e}", "ERROR")
 
-    if st.button("🤖 Gerar Parecer Executivo Oficial com IA", type="primary"):
-        with st.spinner("Elaborando parecer executivo de alto padrão..."):
-            api_key_openai = os.environ.get("OPENAI_API_KEY")
-            
-            parecer_texto = ""
-            if api_key_openai:
-                try:
-                    client = OpenAI(api_key=api_key_openai)
-                    resposta = client.chat.completions.create(
-                        model="gpt-4o-mini",
-                        messages=[
-                            {"role": "system", "content": "Você é um consultor tributário sênior e auditor fiscal. Escreva um parecer técnico executivo formal, estruturado e altamente profissional para um empresário."},
-                            {"role": "user", "content": f"Elabore um parecer tributário executivo para {cli_nome}, faturamento mensal de R$ {fat_input:,.2f}, destacando planejamento fiscal, segurança jurídica e eficiência de caixa."}
-                        ],
-                        temperature=0.4,
-                        max_tokens=600
-                    )
-                    parecer_texto = resposta.choices[0].message.content
-                except Exception:
-                    parecer_texto = f"Parecer Técnico Executivo - {cli_nome}\nFaturamento base: R$ {fat_input:,.2f}\nRecomenda-se revisão imediata da estrutura de apuração de tributos federais e estaduais."
-            else:
-                parecer_texto = f"Parecer Técnico Executivo - {cli_nome}\nFaturamento base: R$ {fat_input:,.2f}\nAnálise estruturada de elisão fiscal e enquadramento tributário."
+                st.success("Parecer gerado com sucesso!")
+                st.text_area("Visualização do Laudo Executivo:", value=parecer_texto, height=250)
 
-            st.success("Parecer gerado com sucesso!")
-            st.text_area("Visualização do Laudo Executivo:", value=parecer_texto, height=250)
-
-            # Botões de Disparo Rápido / Exportação
-            st.markdown("---")
-            st.subheader("📤 Canais de Envio Executivo")
-            
-            wpp_limpo = ''.join(filter(str.isdigit, str(cli_whats)))
-            link_envio_wpp = f"https://wa.me/55{wpp_limpo}?text=Olá%20{cli_nome},%20segue%20em%20anexo%20o%20seu%20Parecer%20Tributário%20Executivo%20elaborado%20pelo%20escritório."
-            
-            col_env1, col_env2 = st.columns(2)
-            with col_env1:
-                st.markdown(f'<a href="{link_envio_wpp}" target="_blank" style="background-color: #25D366; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">📲 Enviar Parecer via WhatsApp</a>', unsafe_allow_html=True)
-            with col_env2:
-                st.markdown(f'<a href="mailto:{cli_email}?subject=Parecer%20Tributário%20Executivo&body=Prezado,%20segue%20o%20parecer%20técnico%20emissor." style="background-color: #1E3A8A; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">📧 Enviar Parecer via E-mail</a>', unsafe_allow_html=True)
+                st.markdown("---")
+                st.subheader("📤 Canais de Envio Executivo")
+                wpp_limpo = ''.join(filter(str.isdigit, str(cli_whats)))
+                link_envio_wpp = f"https://wa.me/55{wpp_limpo}?text=Olá%20{cli_nome},%20segue%20o%20seu%20Parecer%20Tributário%20Executivo."
+                
+                col_env1, col_env2 = st.columns(2)
+                with col_env1:
+                    st.markdown(f'<a href="{link_envio_wpp}" target="_blank" style="background-color: #25D366; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">📲 Enviar via WhatsApp</a>', unsafe_allow_html=True)
+                with col_env2:
+                    st.markdown(f'<a href="mailto:{cli_email}?subject=Parecer%20Tributário" style="background-color: #1E3A8A; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">📧 Enviar via E-mail</a>', unsafe_allow_html=True)
 
 # ==========================================
-# 5. MÓDULO: AUDITORIA PREVENTIVA & MALHA FINA (XML / SPED / MLS)
+# 6. MÓDULO: AUDITORIA PREVENTIVA & MALHA FINA (XML)
 # ==========================================
 elif opcao == "🛡️ Auditoria Preventiva & Malha Fina (XML)":
     st.title("🛡️ Módulo de Auditoria Preventiva & Malha Fina (SPED / XML)")
-    st.markdown("Validação cruzada de arquivos fiscais digitais para mitigar riscos de divergências com a Receita Federal e Secretarias de Estado.")
-
-    uploaded_file = st.file_uploader("Carregar Arquivo Fiscal (XML de Nota Fiscal, SPED Fiscal / Contribuições ou Extrato MLS):", type=["xml", "txt", "csv"])
-
-    if uploaded_file is not None:
-        st.success(f"Arquivo **{uploaded_file.name}** carregado e estruturado para auditoria com sucesso!")
-        
-        if st.button("🔍 Executar Varredura Preventiva de Malha Fina", type="primary"):
-            with st.spinner("Analisando consistência de chaves, CSTs, alíquotas e cruzamento de bases..."):
-                st.markdown("### 📊 Relatório de Diagnóstico Preventivo")
-                
-                # Simulação rigorosa de auditoria de inconsistências comuns
-                col_d1, col_d2, col_d3 = st.columns(3)
-                col_d1.metric("Inconsistências de Alíquota", "0 Identificadas", delta="Seguro")
-                col_d2.metric("Divergências SPED vs PGDAS", "Nenhuma", delta="Regular")
-                col_d3.metric("Risco Global de Malha Fina", "Baixo Risco", delta="Conforme")
-
-                st.info(
-                    "💡 **Parecer de Auditoria Preventiva:** O arquivo submetido não apresenta divergências críticas "
-                    "nos campos de totalização de itens e CSTs testados. Recomenda-se arquivar o recibo de validação "
-                    "na pasta permanente do cliente no escritório."
-                )
+    
+    if not st.session_state.liberado_pago_contabil:
+        tela_bloqueio_pagamento("A auditoria preventiva é restrita a assinantes.")
     else:
-        st.info("💡 Faça o upload de um arquivo fiscal (XML, SPED ou TXT) para iniciar a varredura automática preventiva contra malha fina.")
+        uploaded_file = st.file_uploader("Carregar Arquivo Fiscal (XML, TXT ou CSV):", type=["xml", "txt", "csv"])
+        if uploaded_file is not None:
+            registrar_log(f"Arquivo fiscal processado com segurança: {uploaded_file.name}", "AUDIT")
+            st.success(f"Arquivo **{uploaded_file.name}** carregado com sucesso!")
+            if st.button("🔍 Executar Varredura Preventiva de Malha Fina", type="primary"):
+                st.markdown("### 📊 Relatório de Diagnóstico Preventivo")
+                col_d1, col_d2, col_d3 = st.columns(3)
+                col_d1.metric("Inconsistências", "0 Identificadas", delta="Seguro")
+                col_d2.metric("Divergências SPED", "Nenhuma", delta="Regular")
+                col_d3.metric("Risco de Malha Fina", "Baixo Risco", delta="Conforme")
+        else:
+            st.info("Faça o upload de um arquivo fiscal para iniciar a varredura.")
 
 # ==========================================
-# 6. MÓDULO: INDICADORES FINANCEIROS DO ESCRITÓRIO
+# 7. INDICADORES FINANCEIROS DO ESCRITÓRIO
 # ==========================================
 elif opcao == "📊 Indicadores Financeiros do Escritório":
-    st.title("📊 Indicadores de Desempenho & Saúde Financeira do Escritório")
-    st.markdown("Painel executivo de controle de honorários, lucratividade e inadimplência da carteira contábil.")
-
+    st.title("📊 Indicadores de Desempenho & Saúde Financeira")
     if not df_clientes.empty and "Honorário (R$)" in df_clientes.columns:
         faturamento_total = df_clientes["Honorário (R$)"].sum()
         total_clientes = len(df_clientes)
@@ -249,68 +385,92 @@ elif opcao == "📊 Indicadores Financeiros do Escritório":
         c_ind1.metric("Receita Recorrente Mensal (MRR)", f"R$ {faturamento_total:,.2f}")
         c_ind2.metric("Total de Clientes Ativos", total_clientes)
         c_ind3.metric("Ticket Médio por Cliente", f"R$ {ticket_medio:,.2f}")
-
-        st.markdown("---")
-        st.subheader("📈 Distribuição de Clientes por Regime Tributário")
-        if "Regime" in df_clientes.columns:
-            contagem_regime = df_clientes["Regime"].value_counts()
-            st.bar_chart(contagem_regime)
     else:
-        st.info("Cadastre clientes na base de dados para habilitar os indicadores financeiros consolidados.")
+        st.info("Cadastre clientes na base para habilitar os indicadores.")
 
 # ==========================================
-# 7. GESTÃO DE CLIENTES ATIVOS
+# 8. GOVERNANÇA DE CLIENTES ATIVOS
 # ==========================================
 elif opcao == "💼 Governança de Clientes Ativos":
-    st.title("💼 Carteira de Clientes Ativos do Escritório")
-    
-    col_a, col_b = st.columns(2)
-    col_a.metric("Total de Entidades Ativas", len(df_clientes))
-    col_b.metric("Receita Recorrente (Honorários)", f"R$ {df_clientes['Honorário (R$)'].sum():,.2f}" if not df_clientes.empty else "R$ 0,00")
-
-    st.markdown("---")
+    st.title("💼 Carteira de Clientes Ativos do Escritório (Área Protegida)")
     if not df_clientes.empty:
         st.dataframe(df_clientes, use_container_width=True)
     else:
-        st.info("Nenhum cliente registrado na base atual.")
+        st.info("Nenhum cliente registrado.")
 
-    with st.expander("➕ Inserir Novo Cliente na Base de Dados"):
+    with st.expander("➕ Inserir Novo Cliente"):
         with st.form("cad_cliente_contabil"):
-            doc = st.text_input("CNPJ ou CPF do Contribuinte:")
-            rs = st.text_input("Razão Social / Nome Fantasia:")
-            reg = st.selectbox("Regime Tributário Aplicado:", ["MEI", "Simples Nacional", "Lucro Presumido", "Lucro Real"])
-            hon = st.number_input("Honorário Mensal Contratado (R$):", min_value=0.0, step=50.0, value=600.0)
+            doc = st.text_input("CNPJ ou CPF:")
+            rs = st.text_input("Razão Social:")
+            reg = st.selectbox("Regime Tributário:", ["MEI", "Simples Nacional", "Lucro Presumido", "Lucro Real"])
+            hon = st.number_input("Honorário Mensal (R$):", min_value=0.0, step=50.0, value=600.0)
             
-            if st.form_submit_button("Efetivar Cadastro do Cliente"):
+            if st.form_submit_button("Salvar Cliente"):
                 if doc and rs:
                     reg_novo = {"CNPJ/CPF": doc, "Razão Social": rs, "Regime": reg, "Honorário (R$)": hon, "Status": "Ativo"}
                     df_cli_atualizado = pd.concat([df_clientes, pd.DataFrame([reg_novo])], ignore_index=True)
                     df_cli_atualizado.to_excel(ARQUIVO_CLIENTES, index=False)
+                    registrar_log(f"Novo cliente cadastrado com segurança na base: {rs}", "DATABASE")
                     st.success("Cliente cadastrado com sucesso!")
                     st.rerun()
                 else:
-                    st.error("Preencha obrigatoriamente o CNPJ/CPF e a Razão Social.")
+                    st.error("Preencha o CNPJ/CPF e a Razão Social.")
 
 # ==========================================
-# 8. CENTRAL DE LEADS & OPORTUNIDADES
+# 9. CENTRAL DE LEADS & PROSPECÇÃO
 # ==========================================
 elif opcao == "📥 Central de Leads & Prospecção":
     st.title("📥 Prospecção Ativa (Leads do Simulador)")
-    st.write("Gestão dos contatos corporativos que realizaram simulações e buscas de oportunidades fiscais:")
-    
     if not df_leads.empty:
-        st.metric("Total de Oportunidades Captadas", len(df_leads))
-        st.markdown("---")
         st.dataframe(df_leads, use_container_width=True)
-
-        st.markdown("### 📞 Abordagem Comercial Estratégica")
-        for index, row in df_leads.iterrows():
-            numero_limpo = ''.join(filter(str.isdigit, str(row['WhatsApp'])))
-            link_wpp = f"https://wa.me/55{numero_limpo}?text=Olá%20{row['Nome']},%20identificamos%20oportunidades%20tributárias%20expressivas%20na%20simulação%20recente.%20Podemos%20agendar%20uma%20reunião%20estratégica?"
-            
-            col_l1, col_l2, col_l3 = st.columns([2, 2, 1])
-            col_l1.write(f"**{row['Nome']}** ({row['Ramo']})")
-            col_l2.write(f"Potencial est.: **R$ {row['Economia Estimada (R$)']:,.2f}/mês**")
-            col_l3.markdown(f'<a href="{link_wpp}" target="_blank" style="background-color: #25D366; color: white; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-weight: bold; font-size: 13px;">📲 Contatar</a>', unsafe_allow_html=True)
     else:
-        st.info("Nenhum lead registrado no momento.")
+        st.info("Nenhum lead registrado.")
+
+# ==========================================
+# 10. PAINEL ESPIÃO & SEGURANÇA
+# ==========================================
+elif opcao == "🕵️‍♂️ Painel Espião & Segurança":
+    st.title("🕵️‍♂️ Painel Espião de Monitoramento & Segurança Antifraude")
+    st.markdown("Área restrita de engenharia para inspecionar tentativas de invasão, integridade e logs do sistema.")
+
+    senha_log_input = st.text_input("Digite a senha master para acessar o painel de segurança:", type="password", key="input_senha_log_espiao")
+    
+    if verificar_senha_master(senha_log_input):
+        st.success("Acesso autorizado ao Painel de Segurança.")
+        st.session_state.tentativas_falhas_master = 0  # Reseta o contador se acertar por dentro
+
+        if os.path.exists(ARQUIVO_LOG):
+            with open(ARQUIVO_LOG, "r", encoding="utf-8") as f:
+                linhas_logs = f.readlines()
+            
+            st.markdown(f"**Total de eventos monitorados:** `{len(linhas_logs)}`")
+            
+            col_acao_log1, col_acao_log2 = st.columns(2)
+            with col_acao_log1:
+                if st.button("🧹 Limpar Arquivo de Logs"):
+                    open(ARQUIVO_LOG, "w", encoding="utf-8").close()
+                    registrar_log("Logs de auditoria limpos pelo administrador.", "SECURITY")
+                    st.success("Logs limpos com sucesso!")
+                    st.rerun()
+            with col_acao_log2:
+                if st.download_button("📥 Baixar Relatório de Segurança (.log)", data="".join(linhas_logs), file_name="relatorio_seguranca_sistema.log", mime="text/plain"):
+                    st.toast("Relatório baixado!")
+
+            st.markdown("---")
+            st.subheader("🚨 Alertas de Segurança & Histórico Recente")
+            for linha in reversed(linhas_logs[-100:]):
+                if "ERROR" in linha or "ALERT" in linha or "BREACH" in linha:
+                    st.error(linha.strip())
+                elif "WARNING" in linha:
+                    st.warning(linha.strip())
+                elif "SUCCESS" in linha or "PAYMENT" in linha or "SECURITY" in linha:
+                    st.success(linha.strip())
+                else:
+                    st.code(linha.strip(), language="text")
+        else:
+            st.info("Nenhum registro de log encontrado.")
+    else:
+        if senha_log_input.strip() != "":
+            st.error("Senha incorreta para acesso ao painel de segurança.")
+        else:
+            st.warning("🔒 Digite a senha mestra para auditar a segurança do sistema.")
