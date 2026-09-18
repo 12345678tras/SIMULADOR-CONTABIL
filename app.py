@@ -28,7 +28,7 @@ def registrar_log(acao, tipo="INFO"):
     print(f"Erro no log espião: {e}")
 
 
-registrar_log("Sistema iniciado com ferramentas de PDF, WhatsApp e Pesquisa.")
+registrar_log("Sistema iniciado com painel espião blindado por senha.")
 
 # ==========================================
 # 2. CARREGAMENTO DE DADOS (PLANILHAS)
@@ -67,8 +67,11 @@ df_potenciais = carregar_dados(ARQUIVO_POTENCIAIS)
 if "usos_gratuitos" not in st.session_state:
   st.session_state.usos_gratuitos = 0
 
-LINK_PAGAMENTO_MENSAL = "https://invoice.infinitepay.io/plans/cristiane-da-260/XLX77TGv0y"
-LINK_PAGAMENTO_ANUAL = "https://invoice.infinitepay.io/plans/cristiane-da-260/qTSP5k9f6S"
+# Links atualizados com os novos valores e planos
+LINK_PAGAMENTO_MENSAL = "https://invoice.infinitepay.io/plans/cristiane-da-260/XLX77TGv0y"  # R$ 147/mês
+LINK_PAGAMENTO_ANUAL = (
+    "Https://invoice.infinitepay.io/plans/cristiane-da-260/on5Ha9URTH"  # R$ 1.350/ano
+)
 
 LIMITE_GRATIS = 3
 
@@ -96,19 +99,21 @@ else:
 
 st.sidebar.markdown("---")
 
-menu = st.sidebar.selectbox(
-    "Navegação Estratégica",
-    [
-        "Visão Geral & Indicadores",
-        "Assistente de IA Local (Chat)",
-        "Simulação Contínua de Regime",
-        "Alertas de Oportunidades Fiscais",
-        "Indicadores & Malha Preditiva",
-        "Gerador de Parecer & WhatsApp/PDF",
-        "Área de Assinatura & Planos",
-        "Código Espião (Logs)",
-    ],
-)
+# MENU DINÂMICO: A ABA DE LOGS SÓ APARECE SE O ACESSO MASTER ESTIVER ATIVO!
+lista_menu = [
+    "Visão Geral & Indicadores",
+    "Assistente de IA Local (Chat)",
+    "Simulação Contínua de Regime",
+    "Alertas de Oportunidades Fiscais",
+    "Indicadores & Malha Preditiva",
+    "Gerador de Parecer & WhatsApp/PDF",
+    "Área de Assinatura & Planos",
+]
+
+if acesso_master:
+  lista_menu.append("Código Espião (Logs)")
+
+menu = st.sidebar.selectbox("Navegação Estratégica", lista_menu)
 
 # ==========================================
 # 4. TELAS DO SISTEMA
@@ -247,7 +252,6 @@ elif menu == "Simulação Contínua de Regime":
       "Segmento da Empresa", ["Comércio", "Serviço (Fator R)", "Indústria"]
   )
 
-  # BOTÃO DE PESQUISA / ANÁLISE ADICIONADO
   if st.button("🔍 Executar Simulação Tributária", type="primary"):
     if faturamento_anual > 4800000:
       recomendacao = "Lucro Presumido ou Lucro Real (Estouro do sublimite do Simples Nacional)"
@@ -302,7 +306,6 @@ elif menu == "Alertas de Oportunidades Fiscais":
       " para o setor de atuação via incentivos regionais."
   )
 
-  # BOTÃO DE VARREDURA INTERATIVO ADICIONADO[span_1](start_span)[span_1](end_span)
   if st.button(
       "🔍 Executar Varredura de Oportunidades Fiscais", type="primary"
   ):
@@ -368,7 +371,6 @@ Atenciosamente, Sua Equipe Contábil."""
   col_b1, col_b2 = st.columns(2)
 
   with col_b1:
-    # Botão para Baixar Parecer em arquivo TXT (simulando relatório descarregável)
     st.download_button(
         label="📥 Baixar Parecer (Relatório)",
         data=parecer_texto,
@@ -378,8 +380,7 @@ Atenciosamente, Sua Equipe Contábil."""
     )
 
   with col_b2:
-    # Link direto para abrir o WhatsApp Web com a mensagem pronta
-    link_whatsapp = f"https://wa.me/{telefone_cliente}?text={urllib.parse.quote(parecer_texto) if 'urllib' in globals() else parecer_texto.replace(' ', '%20')}"
+    link_whatsapp = f"https://wa.me/{telefone_cliente}?text={parecer_texto.replace(' ', '%20').replace(chr(10), '%0A')}"
     st.markdown(
         f"""<a href="{link_whatsapp}" target="_blank">
             <button style="width:100%; background-color:#25D366; color:white; border:none; padding:10px 20px; border-radius:5px; font-weight:bold; cursor:pointer;">
@@ -408,7 +409,7 @@ elif menu == "Área de Assinatura & Planos":
         "- Acesso Ilimitado ao Chat com IA\n- Simulações de Regime Avançadas\n-"
         " Relatórios e Pareceres Ilimitados\n- Suporte Prioritário"
     )
-    st.markdown("### **Assinatura Mensal**")
+    st.markdown("### **R$ 147,00 / mês**")
     st.markdown(
         f"[Pagar com InfinitePay (Mensal)]({LINK_PAGAMENTO_MENSAL})",
         unsafe_allow_html=True,
@@ -420,7 +421,7 @@ elif menu == "Área de Assinatura & Planos":
         "- Tudo do Plano Mensal\n- Acesso Completo e Contínuo\n- Atualizações"
         " Automáticas Prioritárias\n- Consultoria de Configuração"
     )
-    st.markdown("### **Assinatura Anual**")
+    st.markdown("### **R$ 1.350,00 / ano**")
     st.markdown(
         f"[Pagar com InfinitePay (Anual)]({LINK_PAGAMENTO_ANUAL})",
         unsafe_allow_html=True,
@@ -433,7 +434,8 @@ elif menu == "Área de Assinatura & Planos":
   )
   registrar_log("Visitante visualizou a página de planos com InfinitePay.")
 
-elif menu == "Código Espião (Logs)":
+# O BLOCO ABAIXO SÓ EXISTE SE 'acesso_master' FOR TRUE (BLINDADO POR SENHA)
+elif menu == "Código Espião (Logs)" and acesso_master:
   st.title("🕵️‍♂️ Central do Código Espião (Auditoria em Tempo Real)")
   st.markdown(
       "Monitoramento completo de todas as ações executadas pelos usuários no"
@@ -456,4 +458,4 @@ elif menu == "Código Espião (Logs)":
       st.info("Nenhum evento registrado no momento.")
   else:
     st.warning("O arquivo de auditoria ainda não foi criado.")
-  registrar_log("Usuário acessou o painel do Código Espião.")
+  registrar_log("Administrador acessou o painel do Código Espião.")
