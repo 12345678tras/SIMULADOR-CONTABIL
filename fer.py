@@ -22,10 +22,8 @@ def registrar_log(acao, tipo="INFO"):
 
 registrar_log("Sistema iniciado com protocolos de blindagem ativados.", "STARTUP")
 
-# Função de criptografia leve para checar a senha master de forma segura
 def verificar_senha_master(senha_digitada):
     senha_limpa = senha_digitada.strip().lower()
-    # Senha exigida: contadora2x
     return senha_limpa == "contadora2x"
 
 # ==========================================
@@ -45,15 +43,14 @@ if "liberado_pago_contabil" not in st.session_state:
     st.session_state.liberado_pago_contabil = False
 
 if "simulacoes_restantes" not in st.session_state:
-    st.session_state.simulacoes_restantes = 2  # 2 simulações gratuitas
+    st.session_state.simulacoes_restantes = 2
 
 if "mensagens_ia_restantes" not in st.session_state:
-    st.session_state.mensagens_ia_restantes = 3  # 3 mensagens grátis no chat
+    st.session_state.mensagens_ia_restantes = 3
 
 if "tentativas_falhas_master" not in st.session_state:
     st.session_state.tentativas_falhas_master = 0
 
-# Função para garantir a persistência segura dos dados em Excel
 def carregar_dados(arquivo, colunas):
     if not os.path.exists(arquivo):
         df_inicial = pd.DataFrame(columns=colunas)
@@ -64,7 +61,6 @@ def carregar_dados(arquivo, colunas):
 df_clientes = carregar_dados(ARQUIVO_CLIENTES, ["CNPJ/CPF", "Razão Social", "Regime", "Honorário (R$)", "Status"])
 df_leads = carregar_dados(ARQUIVO_LEADS, ["Nome", "WhatsApp", "Faturamento Mensal", "Ramo", "Economia Estimada (R$)"])
 
-# Função auxiliar para desenhar a Tela de Bloqueio e Pagamento com Blindagem
 def tela_bloqueio_pagamento(motivo_texto):
     st.error(f"🔒 **Acesso Limitado:** {motivo_texto}")
     registrar_log(f"Tela de bloqueio exibida. Motivo: {motivo_texto}", "SECURITY")
@@ -279,6 +275,7 @@ elif opcao == "💬 Chat com Consultor IA Avançado":
                 with st.spinner("Analisando bases fiscais e elaborando resposta sênior..."):
                     api_key_openai = os.environ.get("OPENAI_API_KEY")
                     resposta_ia = ""
+                    
                     if api_key_openai:
                         try:
                             client = OpenAI(api_key=api_key_openai)
@@ -291,11 +288,15 @@ elif opcao == "💬 Chat com Consultor IA Avançado":
                             resposta_ia = resposta.choices[0].message.content
                             registrar_log("Consulta OpenAI executada com sucesso.", "AI_SUCCESS")
                         except Exception as e:
-                            resposta_ia = f"Erro na conexão com a IA: {e}"
+                            resposta_ia = f"Erro técnico na comunicação com a API da OpenAI: {e}"
                             registrar_log(f"ERRO DE API OPENAI: {e}", "AI_ERROR")
                     else:
-                        resposta_ia = f"Resposta simulada avançada para: '{pergunta_usuario}'."
-                        registrar_log("Aviso: OpenAI API Key ausente.", "AI_WARNING")
+                        resposta_ia = (
+                            f"Olá! Analisei a sua dúvida enviada.\n\n"
+                            "Como o ambiente atual não detectou uma chave de API configurada (`OPENAI_API_KEY`), "
+                            "o chat inteligente requer a inserção da chave nas variáveis de ambiente do seu servidor para gerar análises automáticas completas."
+                        )
+                        registrar_log("Aviso: Tentativa de uso do chat sem OpenAI API Key configurada.", "AI_WARNING")
 
                     st.markdown(resposta_ia)
                     st.session_state.historico_chat.append({"role": "assistant", "content": resposta_ia})
@@ -437,7 +438,7 @@ elif opcao == "🕵️‍♂️ Painel Espião & Segurança":
     
     if verificar_senha_master(senha_log_input):
         st.success("Acesso autorizado ao Painel de Segurança.")
-        st.session_state.tentativas_falhas_master = 0  # Reseta o contador se acertar por dentro
+        st.session_state.tentativas_falhas_master = 0
 
         if os.path.exists(ARQUIVO_LOG):
             with open(ARQUIVO_LOG, "r", encoding="utf-8") as f:
