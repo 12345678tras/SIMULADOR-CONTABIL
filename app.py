@@ -24,10 +24,10 @@ def verificar_senha_master(senha_digitada):
     senha_limpa = senha_digitada.strip().lower()
     return senha_limpa == "contadora2x"
 
-# Função de Inteligência com Redundância Robusta (Garante que nunca falha)
+# Função de Inteligência com Redundância atualizada para o modelo correto
 def gerar_resposta_ia_blindada(client, prompt):
-    # Lista oficial de modelos suportados pela SDK moderna do Google GenAI
-    modelos_para_tentar = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-2.5-pro"]
+    # Lista de modelos compatíveis com a versão atual da API do Google GenAI
+    modelos_para_tentar = ["gemini-3.1-pro-preview", "gemini-2.5-flash", "gemini-flash-latest"]
     
     ultimo_erro = ""
     for modelo in modelos_para_tentar:
@@ -153,7 +153,7 @@ def tela_bloqueio_pagamento(motivo_texto):
 st.sidebar.title("🏢 Gestão Contábil Avançada")
 opcao = st.sidebar.radio("Módulos Estratégicos", [
     "🚀 Simulador Contínuo & Planos", 
-    "💬 Chat com Consultor IA Avançado",
+    "💬 Chat com Consultor IA Master",
     "📑 Relatório & Parecer Executivo (PDF/Wpp)", 
     "🛡️ Auditoria Preventiva & Malha Fina (XML)", 
     "📊 Indicadores Financeiros do Escritório",
@@ -228,11 +228,11 @@ if opcao == "🚀 Simulador Contínuo & Planos":
         tela_bloqueio_pagamento("Suas simulações gratuitas de demonstração acabaram.")
 
 # ==========================================
-# 4. MÓDULO: CHAT COM CONSULTOR IA AVANÇADO (GEMINI)
+# 4. MÓDULO: CHAT COM CONSULTOR IA MASTER (GEMINI)
 # ==========================================
-elif opcao == "💬 Chat com Consultor IA Avançado":
-    st.title("🤖 Consultor Inteligente Sênior de Plantão (Google Gemini)")
-    st.markdown("Tire dúvidas tributárias, fiscais e societárias com a inteligência artificial do Google.")
+elif opcao == "💬 Chat com Consultor IA Master":
+    st.title("🤖 Consultor Inteligente Master de Plantão (Google Gemini)")
+    st.markdown("Tire dúvidas tributárias, fiscais e societárias com a inteligência artificial de alto padrão do Google.")
 
     if not st.session_state.liberado_pago_contabil:
         st.info(f"🎁 **Modo Demonstração:** Você possui **{st.session_state.mensagens_ia_restantes}** mensagem(ns) gratuita(s) restante(s) no chat.")
@@ -262,7 +262,7 @@ elif opcao == "💬 Chat com Consultor IA Avançado":
                 st.markdown(pergunta_usuario)
 
             with st.chat_message("assistant"):
-                with st.spinner("Consultando bases fiscais com Gemini..."):
+                with st.spinner("Consultando bases fiscais com Gemini Master..."):
                     gemini_api_key = None
                     try:
                         if "GEMINI_API_KEY" in st.secrets:
@@ -279,7 +279,7 @@ elif opcao == "💬 Chat com Consultor IA Avançado":
                         try:
                             client = genai.Client(api_key=gemini_api_key)
                             
-                            prompt_completo = "Você é um Consultor Tributário Sênior e Contador altamente experiente. Responda com clareza, autoridade e didática.\n\n"
+                            prompt_completo = "Você é um Consultor Tributário Master e Contador sênior altamente experiente. Responda com clareza, autoridade e didática técnica.\n\n"
                             for h in st.session_state.historico_chat:
                                 prompt_completo += f"{h['role'].upper()}: {h['content']}\n"
 
@@ -321,10 +321,10 @@ elif opcao == "📑 Relatório & Parecer Executivo (PDF/Wpp)":
                 "Recuperação de Créditos Tributários"
             ])
             
-            gerar_laudo_btn = st.form_submit_button("🤖 Gerar Parecer Executivo Oficial com IA", type="primary")
+            gerar_laudo_btn = st.form_submit_button("🤖 Gerar Parecer Executivo Master com IA", type="primary")
 
         if gerar_laudo_btn:
-            with st.spinner("Elaborando parecer executivo de alto padrão..."):
+            with st.spinner("Elaborando parecer executivo Master de alto padrão..."):
                 gemini_api_key = None
                 try:
                     if "GEMINI_API_KEY" in st.secrets:
@@ -340,7 +340,7 @@ elif opcao == "📑 Relatório & Parecer Executivo (PDF/Wpp)":
                     try:
                         client = genai.Client(api_key=gemini_api_key)
                         prompt_parecer = (
-                            f"Você é um consultor tributário sênior e auditor fiscal. "
+                            f"Você é um consultor tributário Master e auditor fiscal sênior. "
                             f"Elabore um parecer técnico formal, detalhado e executivo para a empresa {cli_nome}, "
                             f"com faturamento mensal de R$ {fat_input:,.2f}, focado em: {assunto_parecer}. "
                             "Estruture o parecer com introdução, diagnóstico, fundamentação legal resumida e recomendação estratégica."
