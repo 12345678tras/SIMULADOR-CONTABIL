@@ -76,10 +76,6 @@ if "usos_gratuitos" not in st.session_state:
 if "senha_salva" not in st.session_state:
   st.session_state.senha_salva = ""
 
-# Memória para reter a chave digitada pela dona para não precisar redigitar
-if "api_key_salva_dona" not in st.session_state:
-  st.session_state.api_key_salva_dona = ""
-
 LINK_PAGAMENTO_MENSAL = "https://invoice.infinitepay.io/plans/cristiane-da-260/XLX77TGv0y"
 LINK_PAGAMENTO_ANUAL = "https://invoice.infinitepay.io/plans/cristiane-da-260/on5Ha9URTH"
 
@@ -106,7 +102,6 @@ acesso_master = st.session_state.senha_salva == SENHA_MESTRE
 acesso_cliente_pago = st.session_state.senha_salva in SENHAS_CLIENTES_PAGANTES
 acesso_liberado_total = acesso_master or acesso_cliente_pago
 
-google_api_key_dinamica = ""
 mostrar_espiao = False
 
 if acesso_master:
@@ -114,26 +109,11 @@ if acesso_master:
   st.sidebar.markdown("---")
   st.sidebar.subheader("⚙️ Configurações da Dona")
 
-  # Campo exclusivo e seguro na lateral para você colar a chave uma vez só
-  input_chave_dona = st.sidebar.text_input(
-      "Chave API do Gemini (Master)",
-      value=st.session_state.api_key_salva_dona,
-      type="password",
-      placeholder="Cole sua chave aqui...",
-  )
-
-  if input_chave_dona != st.session_state.api_key_salva_dona:
-    st.session_state.api_key_salva_dona = input_chave_dona
-    st.rerun()
-
-  google_api_key_dinamica = st.session_state.api_key_salva_dona
-
-  # Checkbox para exibir o código espião com segurança
+  # Checkbox para exibir o código espião com segurança (sem o campo de chave)
   mostrar_espiao = st.sidebar.checkbox("👁️ Exibir Código Espião (Logs)")
 
   if st.sidebar.button("🔒 Bloquear Painel / Sair"):
     st.session_state.senha_salva = ""
-    st.session_state.api_key_salva_dona = ""
     st.rerun()
 
   st.sidebar.markdown("---")
@@ -162,13 +142,11 @@ st.sidebar.markdown("---")
 # ==========================================
 model = None
 
-if (
-    acesso_master
-    and google_api_key_dinamica
-    and len(google_api_key_dinamica) > 10
-):
-  try:
-    genai.configure(api_key=google_api_key_dinamica)
+# Puxa a chave diretamente e de forma automática do cofre de Secrets da nuvem
+try:
+  google_api_key_nuvem = st.secrets.get("GEMINI_API_KEY", "")
+  if google_api_key_nuvem:
+    genai.configure(api_key=google_api_key_nuvem)
     generation_config = {"temperature": 0.3, "max_output_tokens": 1000}
     model = genai.GenerativeModel(
         model_name="gemini-1.5-pro",
@@ -180,8 +158,8 @@ if (
             " Dê respostas técnicas, claras, objetivas e profissionais."
         ),
     )
-  except Exception as e:
-    registrar_log(f"Erro ao configurar chave do Gemini: {e}", "ERRO")
+except Exception as e:
+  registrar_log(f"Erro ao configurar chave do Gemini via secrets: {e}", "ERRO")
 
 # ==========================================
 # 5. MENU DE NAVEGAÇÃO
@@ -345,8 +323,8 @@ else:
                 resposta_ia = response.text
               else:
                 resposta_ia = (
-                    "⚠️ Cole a sua Chave API do Gemini na barra lateral de"
-                    " configurações da Dona para ativar a inteligência."
+                    "⚠️ A chave do Gemini não foi encontrada nos segredos da"
+                    " nuvem. Verifique a configuração."
                 )
             except Exception as e:
               resposta_ia = (
