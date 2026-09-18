@@ -201,7 +201,7 @@ elif modulo == "📑 Parecer Executivo & Disparos":
             )
 
 # ==========================================
-# 4. MÓDULO: AUDITORIA PREVENTIVA (Reorganizado com Entrada Controlada e Baixar PDF)
+# 4. MÓDULO: AUDITORIA PREVENTIVA
 # ==========================================
 elif modulo == "🛡️ Auditoria Preventiva (XML/SPED)":
     st.title("🛡️ Auditoria Preventiva & Malha Fiscal")
@@ -243,7 +243,7 @@ Data da Análise: {datetime.now().strftime('%d/%m/%Y %H:%M')}
         )
 
 # ==========================================
-# 5. MÓDULO: INDICADORES DO ESCRITÓRIO (Reorganizado com Seleção Padronizada e Baixar)
+# 5. MÓDULO: INDICADORES DO ESCRITÓRIO
 # ==========================================
 elif modulo == "📊 Indicadores do Escritório":
     st.title("📊 Indicadores de Desempenho do Escritório")
@@ -274,23 +274,43 @@ Média de Elisão Fiscal: R$ 42.500,00
     )
 
 # ==========================================
-# 6. MÓDULO: GOVERNANÇA DE CLIENTES (Reorganizado com Filtro e Exportação)
+# 6. MÓDULO: GOVERNANÇA DE CLIENTES (Com opção de cadastro manual)
 # ==========================================
 elif modulo == "🏛️ Governança de Clientes":
     st.title("🏛️ Governança e Carteira de Clientes")
     st.markdown("Gestão unificada e estruturada da base de empresas assessoradas.")
 
+    with st.expander("➕ Cadastrar Novo Cliente Manualmente na Carteira"):
+        with st.form("form_novo_cliente"):
+            nova_razao = st.text_input("Razão Social / Nome do Cliente")
+            novo_wpp = st.text_input("WhatsApp (com DDD)")
+            novo_email = st.text_input("E-mail")
+            novo_regime = st.selectbox("Regime Tributário", ["Simples Nacional", "Lucro Presumido", "Lucro Real"])
+            nova_economia = st.number_input("Economia Mapeada (R$)", min_value=0.0, value=15000.0)
+            
+            btn_salvar_cliente = st.form_submit_button("Salvar Cliente na Carteira")
+            if btn_salvar_cliente and nova_razao:
+                st.session_state.leads_salvos.append({
+                    "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                    "razao": nova_razao,
+                    "whatsapp": novo_wpp,
+                    "email": novo_email,
+                    "melhor_regime": novo_regime,
+                    "economia": nova_economia
+                })
+                st.success(f"Cliente '{nova_razao}' cadastrado com sucesso!")
+                st.rerun()
+
+    st.markdown("### 📋 Clientes Cadastrados")
     if len(st.session_state.leads_salvos) == 0:
-        st.info("Nenhum cliente cadastrado via simulação recente. Utilize o Simulador Tributário para povoar a base.")
+        st.info("Nenhum cliente cadastrado ainda. Utilize o formulário acima ou realize uma simulação para povoar a base.")
     else:
-        status_filtro = st.selectbox("Filtrar por Status de Atendimento:", ["Todos os Clientes", "Com Economia Mapeada"])
-        
         for idx, lead in enumerate(st.session_state.leads_salvos):
-            with st.expander(f"🏢 {lead['razao']} - Melhor Regime: {lead['melhor_regime']}"):
+            with st.expander(f"🏢 {lead['razao']} - Regime: {lead['melhor_regime']}"):
                 st.write(f"**WhatsApp:** {lead['whatsapp']}")
                 st.write(f"**E-mail:** {lead['email']}")
                 st.write(f"**Economia Mapeada:** R$ {lead['economia']:,.2f}")
-                st.write(f"**Data do Atendimento:** {lead['data']}")
+                st.write(f"**Data de Cadastro:** {lead['data']}")
 
         relatorio_gov = "RELATÓRIO DE GOVERNANÇA DA CARTEIRA DE CLIENTES\n\n"
         for lead in st.session_state.leads_salvos:
@@ -301,20 +321,41 @@ elif modulo == "🏛️ Governança de Clientes":
             label="📥 Baixar Carteira de Clientes (TXT)",
             data=relatorio_gov,
             file_name="governanca_clientes.txt",
-            mime="text/plain"
+            mime="text/plain",
+            use_container_width=True
         )
 
 # ==========================================
-# 7. MÓDULO: CENTRAL DE LEADS (Reorganizado e Padronizado)
+# 7. MÓDULO: CENTRAL DE LEADS (Com opção de cadastro manual)
 # ==========================================
 elif modulo == "🎯 Central de Leads":
     st.title("🎯 Central de Captação de Leads")
-    st.markdown("Oportunidades de negócios geradas de forma organizada pelo sistema.")
+    st.markdown("Oportunidades de negócios geradas ou cadastradas no sistema.")
 
+    with st.expander("➕ Adicionar Novo Lead Prospecto"):
+        with st.form("form_novo_lead"):
+            lead_razao = st.text_input("Nome da Empresa Prospecto")
+            lead_wpp = st.text_input("WhatsApp de Contato")
+            lead_regime = st.selectbox("Regime Indicado", ["Simples Nacional", "Lucro Presumido", "Lucro Real"])
+            lead_potencial = st.number_input("Potencial de Economia (R$)", min_value=0.0, value=20000.0)
+            
+            btn_salvar_lead = st.form_submit_button("Adicionar Lead à Central")
+            if btn_salvar_lead and lead_razao:
+                st.session_state.leads_salvos.append({
+                    "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                    "razao": lead_razao,
+                    "whatsapp": lead_wpp,
+                    "email": "contato@prospecto.com.br",
+                    "melhor_regime": lead_regime,
+                    "economia": lead_potencial
+                })
+                st.success(f"Lead '{lead_razao}' adicionado com sucesso!")
+                st.rerun()
+
+    st.markdown("### 🎯 Lista de Oportunidades Qualificadas")
     if len(st.session_state.leads_salvos) == 0:
-        st.warning("Ainda não há leads captados. Os potenciais clientes aparecerão aqui assim que realizarem simulações.")
+        st.warning("Ainda não há leads cadastrados. Utilize o formulário acima para registrar um novo potencial cliente.")
     else:
-        st.subheader("Lista de Oportunidades Qualificadas")
         for lead in st.session_state.leads_salvos:
             st.markdown(f"- **{lead['razao']}** | Contato: `{lead['whatsapp']}` | Regime Indicado: *{lead['melhor_regime']}* | Potencial de Economia: **R$ {lead['economia']:,.2f}**")
 
@@ -327,7 +368,8 @@ elif modulo == "🎯 Central de Leads":
             label="📥 Baixar Lista de Leads (TXT)",
             data=relatorio_leads,
             file_name="central_leads.txt",
-            mime="text/plain"
+            mime="text/plain",
+            use_container_width=True
         )
 
 # ==========================================
