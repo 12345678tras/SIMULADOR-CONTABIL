@@ -24,10 +24,10 @@ def verificar_senha_master(senha_digitada):
     senha_limpa = senha_digitada.strip().lower()
     return senha_limpa == "contadora2x"
 
-# Função de Inteligência com Redundância Automática (Fallback de Modelos)
+# Função de Inteligência com Redundância Corrigida para a Nova SDK do Google GenAI
 def gerar_resposta_ia_blindada(client, prompt):
-    # Lista de modelos para tentar em ordem de prioridade se houver instabilidade/sobrecarga
-    modelos_para_tentar = ["gemini-3.6-flash", "gemini-2.5-flash", "gemini-1.5-flash"]
+    # Lista de nomes de modelos suportados pela SDK moderna do Google GenAI
+    modelos_para_tentar = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-flash"]
     
     ultimo_erro = ""
     for modelo in modelos_para_tentar:
@@ -262,7 +262,7 @@ elif opcao == "💬 Chat com Consultor IA Avançado":
                 st.markdown(pergunta_usuario)
 
             with st.chat_message("assistant"):
-                with st.spinner("Consultando bases fiscais com Gemini (Com Redundância Ativa)..."):
+                with st.spinner("Consultando bases fiscais com Gemini..."):
                     gemini_api_key = None
                     try:
                         if "GEMINI_API_KEY" in st.secrets:
@@ -283,7 +283,6 @@ elif opcao == "💬 Chat com Consultor IA Avançado":
                             for h in st.session_state.historico_chat:
                                 prompt_completo += f"{h['role'].upper()}: {h['content']}\n"
 
-                            # CHAMA A FUNÇÃO BLINDADA COM REDUNDÂNCIA
                             resposta_ia = gerar_resposta_ia_blindada(client, prompt_completo)
                         except Exception as e:
                             resposta_ia = f"Erro técnico crítico na inicialização do cliente Gemini: {e}"
@@ -325,7 +324,7 @@ elif opcao == "📑 Relatório & Parecer Executivo (PDF/Wpp)":
             gerar_laudo_btn = st.form_submit_button("🤖 Gerar Parecer Executivo Oficial com IA", type="primary")
 
         if gerar_laudo_btn:
-            with st.spinner("Elaborando parecer executivo de alto padrão com redundância de IA..."):
+            with st.spinner("Elaborando parecer executivo de alto padrão..."):
                 gemini_api_key = None
                 try:
                     if "GEMINI_API_KEY" in st.secrets:
@@ -346,7 +345,6 @@ elif opcao == "📑 Relatório & Parecer Executivo (PDF/Wpp)":
                             f"com faturamento mensal de R$ {fat_input:,.2f}, focado em: {assunto_parecer}. "
                             "Estruture o parecer com introdução, diagnóstico, fundamentação legal resumida e recomendação estratégica."
                         )
-                        # CHAMA A FUNÇÃO BLINDADA COM REDUNDÂNCIA
                         parecer_texto = gerar_resposta_ia_blindada(client, prompt_parecer)
                     except Exception as e:
                         st.error(f"Erro ao conectar com a IA: {e}")
@@ -358,7 +356,6 @@ elif opcao == "📑 Relatório & Parecer Executivo (PDF/Wpp)":
                 st.subheader("📤 Canais de Envio Imediato ao Cliente")
                 
                 wpp_limpo = ''.join(filter(str.isdigit, str(cli_whats)))
-                # Link formatado para disparar diretamente via WhatsApp com texto codificado
                 texto_wpp_formatado = f"Olá {cli_nome}, segue o seu Parecer Técnico Executivo gerado pelo nosso sistema contábil."
                 link_envio_wpp = f"https://wa.me/55{wpp_limpo}?text={texto_wpp_formatado}"
                 
