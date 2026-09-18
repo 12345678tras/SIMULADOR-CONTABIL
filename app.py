@@ -2,7 +2,8 @@ import streamlit as st
 import pandas as pd
 import os
 import datetime
-from google import genai
+import requests
+import json
 
 # ==========================================
 # 0. CONFIGURAÇÃO DO SISTEMA E LOGS
@@ -18,12 +19,12 @@ def registrar_log(acao, tipo="INFO"):
     except Exception as e:
         print(f"Erro no log: {e}")
 
-registrar_log("Plataforma Consultor Inteligente Master iniciada com sucesso.", "STARTUP")
+registrar_log("Plataforma Consultor Inteligente Master iniciada com REST API pura.", "STARTUP")
 
 def verificar_senha_master(senha_digitada):
     return senha_digitada.strip().lower() == "contadora2x"
 
-# Função da IA Master blindada com a SDK oficial moderna e modelo padrão estável
+# Função da IA Master blindada via REST API (Zero dependência de pacotes do Google)
 def consultar_ia_master(prompt_usuario, historico_chat=None):
     try:
         gemini_api_key = None
@@ -37,33 +38,43 @@ def consultar_ia_master(prompt_usuario, historico_chat=None):
         if not gemini_api_key:
             return "⚠️ **Chave de API do Gemini não configurada.** Por favor, adicione sua `GEMINI_API_KEY` nos Secrets do Streamlit ou no Painel Master."
 
-        client = genai.Client(api_key=gemini_api_key)
+        # Endpoint oficial universal e estável da API REST do Google Gemini
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_api_key}"
 
-        # Prompt de Sistema Sênior para garantir respostas técnicas de alto valor
         contexto_sistema = (
             "Você é o 'Consultor Inteligente Master', um auditor fiscal, tributarista sênior e contador consultor de elite. "
-            "Suas respostas devem ser profundas, altamente técnicas, precisas, fundamentadas na legislação brasileira e estruturadas com didática executiva. "
-            "Evite respostas rasas. Entregue valor real de consultoria de alto padrão.\n\n"
+            "Suas respostas devem ser profundas, altamente técnicas, precisas, fundamentadas na legislação brasileira e estruturadas com didática executiva.\n\n"
         )
 
-        prompt_completo = contexto_sistema
+        texto_completo = contexto_sistema
         if historico_chat:
             for h in historico_chat:
-                prompt_completo += f"{h['role'].upper()}: {h['content']}\n"
+                texto_completo += f"{h['role'].upper()}: {h['content']}\n"
         
-        prompt_completo += f"USER: {prompt_usuario}\nASSISTANT:"
+        texto_completo += f"USER: {prompt_usuario}\nASSISTANT:"
 
-        # Chamada utilizando o modelo moderno e estável padrão da SDK
-        resposta = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt_completo
-        )
+        payload = {
+            "contents": [{
+                "parts": [{"text": texto_completo}]
+            }]
+        }
+        
+        headers = {'Content-Type': 'application/json'}
 
-        if resposta and hasattr(resposta, "text") and resposta.text:
-            return resposta.text
-        return "⚠️ A IA não retornou conteúdo válido."
+        response = requests.post(url, headers=headers, data=json.dumps(payload), timeout=30)
+        
+        if response.status_code == 200:
+            dados = response.json()
+            try:
+                resposta_texto = dados["candidates"][0]["content"]["parts"][0]["text"]
+                return resposta_texto
+            except (KeyError, IndexError):
+                return "⚠️ A resposta da API veio em formato inesperado."
+        else:
+            return f"⚠️ Erro de comunicação com a API (Status {response.status_code}): {response.text}"
+
     except Exception as e:
-        registrar_log(f"Erro na execução da IA Master: {e}", "AI_ERROR")
+        registrar_log(f"Erro crítico na REST API da IA Master: {e}", "AI_ERROR")
         return f"⚠️ Erro ao processar na IA Master. Detalhe técnico: {e}"
 
 # ==========================================
@@ -242,7 +253,7 @@ elif modulo == "🤖 Chat IA Master Sênior":
                 st.markdown(pergunta)
 
             with st.chat_message("assistant"):
-                with st.spinner("Consultando bases de dados legislativas com o Consultor Master..."):
+                with st.spinner("Consultando bases legislativas com o Consultor Master..."):
                     resposta_ia = consultar_ia_master(pergunta, st.session_state.historico_chat_master[:-1])
                     st.markdown(resposta_ia)
                     st.session_state.historico_chat_master.append({"role": "assistant", "content": resposta_ia})
@@ -304,7 +315,7 @@ elif modulo == "🛡️ Auditoria Preventiva (XML/SPED)":
             if st.button("🔍 Rodar Varredura de Inconsistências", type="primary"):
                 st.metric("Riscos de Malha Fina", "Baixo Risco", delta="Conforme")
         else:
-                    st.info("Faça upload de um arquivo fiscal para análise.")
+            st.info("Faça upload de um arquivo fiscal para análise.")
 
 # ==========================================
 # 7. INDICADORES DO ESCRITÓRIO
