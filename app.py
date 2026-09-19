@@ -1,3 +1,4 @@
+
 import streamlit as st
 from google import genai
 from google.genai import types
@@ -109,4 +110,4 @@ elif pagina == "Lançamentos e Supabase":
                 else:
                     st.info("Nenhum registro encontrado no banco de dados.")
             except Exception as e:
-                st.error(f5"Erro ao buscar dados: {e}")
+                st.error(f"Erro ao buscar dados: {e}")
