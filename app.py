@@ -72,7 +72,7 @@ def salvar_lead_arquivo(novo_lead):
         print(f"Erro ao salvar lead local: {e}")
 
 # ==========================================
-# FUNÇÕES DE CONTROLE DE USOS (SUPABASE)
+# FUNÇÕES DE CONTROLE DE USOS (SUPABASE SEGURO)
 # ==========================================
 LIMITE_MAXIMO_ACESSO = 3
 
@@ -84,7 +84,8 @@ def consultar_ou_criar_usuario_nuvem(email, whatsapp, razao):
         res = supabase.table("acessos_email").select("*").eq("email", email_limpo).execute()
         
         if res.data and len(res.data) > 0:
-            return res.data[0]["contador"]
+            val = res.data[0].get("contador", 0)
+            return val if val is not None else 0
         else:
             novo_registro = {
                 "email": email_limpo,
@@ -109,25 +110,25 @@ def consultar_ou_criar_usuario_nuvem(email, whatsapp, razao):
         return 0
 
 def obter_usos_email(email):
-    if not supabase:
+    if not supabase or not email:
         return 0
     try:
-        res = supabase.table("acessos_email").select("contador").eq("email", email.strip().lower()).execute()
+        email_limpo = email.strip().lower()
+        res = supabase.table("acessos_email").select("contador").eq("email", email_limpo).execute()
         if res.data and len(res.data) > 0:
-            val = res.data[0]["contador"]
+            val = res.data[0].get("contador", 0)
             return val if val is not None else 0
     except Exception as e:
         print(f"Erro ao buscar contador: {e}")
     return 0
 
 def incrementar_uso_email(email):
-    if st.session_state.liberado_pago_master:
+    if st.session_state.liberado_pago_master or not supabase or not email:
         return
     try:
         email_limpo = email.strip().lower()
         atual = obter_usos_email(email_limpo)
         novo_valor = atual + 1
-        # Atualiza diretamente no Supabase
         supabase.table("acessos_email").update({"contador": novo_valor}).eq("email", email_limpo).execute()
     except Exception as e:
         print(f"Erro ao incrementar uso: {e}")
@@ -189,8 +190,7 @@ def tela_identificacao_inicial():
                 else:
                     email_limpo = input_email.strip().lower()
                     st.session_state.email_atual = email_limpo
-                    
-                    usos = consultar_ou_criar_usuario_nuvem(email_limpo, input_wpp, input_nome)
+                    consultar_ou_criar_usuario_nuvem(email_limpo, input_wpp, input_nome)
                     
                     st.session_state.usuario_identificado = True
                     st.success("Acesso liberado com sucesso! Entrando...")
@@ -265,7 +265,6 @@ st.sidebar.markdown("Navegação Estratégica")
 if st.session_state.liberado_pago_master:
     st.sidebar.success("👑 **Modo Gestor Ativo**\n*(Acesso Ilimitado)*")
 else:
-    # Calcula dinamicamente os restantes com base no que veio do Supabase
     usos_feitos = obter_usos_email(st.session_state.email_atual)
     restantes = max(0, LIMITE_MAXIMO_ACESSO - usos_feitos)
     st.sidebar.info(f"👤 **Conta:** {st.session_state.email_atual}\n🎁 Restantes: **{restantes} / {LIMITE_MAXIMO_ACESSO}**")
@@ -284,12 +283,6 @@ modulo = st.sidebar.radio(
     ]
 )
 
-def registrar_consumo_acao():
-    if not st.session_state.liberado_pago_master:
-        incrementar_uso_email(st.session_state.email_atual)
-        # Força o Streamlit a recarregar a página para atualizar o contador na barra lateral na mesma hora
-        st.rerun()
-
 # ==========================================
 # 1. MÓDULO: SIMULADOR TRIBUTÁRIO & PLANOS
 # ==========================================
@@ -303,12 +296,14 @@ if modulo == "🚀 Simulador Tributário & Planos":
         razao = st.text_input("Razão Social / Nome do Cliente:", value="Empresa Exemplo Ltda", key="sim_razao")
         whatsapp = st.text_input("WhatsApp do Cliente (com DDD):", value=MEU_WHATSAPP, key="sim_wpp")
         email = st.text_input("E-mail do Cliente:", value=st.session_state.email_atual, key="sim_email")
-        fat_anual = st.number_input("Faturamento Bruto Anual (R$):", min_value=10000.0, value=360000.0, step=10000.0, key="sim_fat")
+        fat_anual = st.number_input("Faturamento Bruto Anual (R$):", min_value=10000.0, value=370000.0, step=10000.0, key="sim_fat")
         folha_anual = st.number_input("Folha de Pagamento Anual (R$):", min_value=0.0, value=90000.0, step=5000.0, key="sim_folha")
         desp_anual = st.number_input("Despesas Operacionais Anuais (R$):", min_value=0.0, value=60000.0, step=5000.0, key="sim_desp")
 
     with c2:
         st.subheader("Resultado da Simulação")
+        
+        # Botão de execução corrigido para processar e contabilizar sem travar a tela
         if st.button("⚡ Executar Simulação Completa", type="primary", use_container_width=True, key="btn_exec_sim"):
             simples = fat_anual * 0.09
             presumido = fat_anual * 0.113
@@ -319,13 +314,6 @@ if modulo == "🚀 Simulador Tributário & Planos":
             melhor = min(cenarios, key=cenarios.get)
             menor_val = cenarios[melhor]
             economia = max(cenarios.values()) - menor_val
-
-            st.success("Análise paramétrica realizada com sucesso!")
-            
-            m1, m2, m3 = st.columns(3)
-            m1.metric("Melhor Regime", melhor)
-            m2.metric("Imposto Anual Estimado", f"R$ {menor_val:,.2f}")
-            m3.metric("Elisão Fiscal Potencial", f"R$ {economia:,.2f}", delta="Otimizado")
 
             lead_data = {
                 "Data": datetime.now().strftime("%d/%m/%Y %H:%M"),
@@ -338,11 +326,19 @@ if modulo == "🚀 Simulador Tributário & Planos":
             salvar_lead_arquivo(lead_data)
             st.session_state.ultimo_resultado_sim = lead_data
             
-            # Registra o consumo e já atualiza a tela
-            registrar_consumo_acao()
+            # Incrementa o uso no Supabase de forma segura
+            incrementar_uso_email(st.session_state.email_atual)
+            st.success("Simulação executada com sucesso!")
+            st.rerun()
 
         if "ultimo_resultado_sim" in st.session_state:
             res = st.session_state.ultimo_resultado_sim
+            
+            m1, m2, m3 = st.columns(3)
+            m1.metric("Melhor Regime", res["Melhor Regime"])
+            m2.metric("Imposto Anual Estimado", f"R$ {res['Economia (R$)']:,.2f}")
+            m3.metric("Elisão Fiscal Potencial", f"R$ {res['Economia (R$)']:,.2f}", delta="Otimizado")
+
             st.markdown("---")
             st.markdown("### 📤 Ações Comerciais e Relatório")
             
@@ -390,7 +386,8 @@ elif modulo == "💬 Chat IA Master Sênior":
         with st.chat_message("assistant"):
             st.write(resposta_ia)
             
-        registrar_consumo_acao()
+        incrementar_uso_email(st.session_state.email_atual)
+        st.rerun()
 
 # ==========================================
 # 3. MÓDULO: PARECER EXECUTIVO & DISPAROS
@@ -417,7 +414,8 @@ elif modulo == "📑 Parecer Executivo & Disparos":
         with col_p2:
             st.download_button(label="📥 Baixar Parecer em TXT", data=parecer_texto, file_name="parecer.txt", mime="text/plain", use_container_width=True)
 
-        registrar_consumo_acao()
+        incrementar_uso_email(st.session_state.email_atual)
+        st.rerun()
 
 # ==========================================
 # 4. MÓDULO: AUDITORIA PREVENTIVA
@@ -433,7 +431,8 @@ elif modulo == "🛡️ Auditoria Preventiva (XML/SPED)":
         st.text_area("Laudo Analítico:", value=laudo_auditoria, height=220)
         st.download_button(label="📥 Baixar Relatório (TXT)", data=laudo_auditoria, file_name="auditoria.txt", mime="text/plain", use_container_width=True)
 
-        registrar_consumo_acao()
+        incrementar_uso_email(st.session_state.email_atual)
+        st.rerun()
 
 # ==========================================
 # 5. MÓDULO: INDICADORES DO ESCRITÓRIO
