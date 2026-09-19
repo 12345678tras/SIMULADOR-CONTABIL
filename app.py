@@ -34,7 +34,7 @@ except Exception as e:
 MEU_EMAIL_GESTOR = st.secrets["gestor"]["email"] if "gestor" in st.secrets and "email" in st.secrets["gestor"] else "Rede.rodrigues2017@gmail.com"
 SENHAS_MESTRE_CONFIG = st.secrets["gestor"]["senhas"] if "gestor" in st.secrets and "senhas" in st.secrets["gestor"] else ["cliente 1 2 3x", "contadora 2x", "gestorMaster2026!"]
 
-# Identificação única por sessão do navegador (garante que cada aba/usuário anônimo tenha sua contagem isolada)
+# Identificação única por sessão
 if "ip_usuario_id" not in st.session_state:
     st.session_state.ip_usuario_id = str(uuid.uuid4())
 
@@ -43,34 +43,44 @@ if "liberado_pago_master" not in st.session_state:
     st.session_state.liberado_pago_master = False
 if "acesso_bloqueado_definitivo" not in st.session_state:
     st.session_state.acesso_bloqueado_definitivo = False
+if "contador_local" not in st.session_state:
+    st.session_state.contador_local = 0
 
 # ==========================================
-# FUNÇÕES DE CONTROLE DE ACESSO (SUPABASE)
+# FUNÇÕES DE CONTROLE DE ACESSO HÍBRIDAS
 # ==========================================
 LIMITE_MAXIMO_ACESSO = 3
 
 def obter_acessos_nuvem():
     if not supabase:
-        return 0
+        return st.session_state.contador_local
     try:
         response = supabase.table("acessos").select("contador").eq("ip_usuario", st.session_state.ip_usuario_id).execute()
         if response.data and len(response.data) > 0:
-            return response.data[0]["contador"]
-        else:
-            supabase.table("acessos").insert({"ip_usuario": st.session_state.ip_usuario_id, "contador": 0}).execute()
-            return 0
+            val = response.data[0]["contador"]
+            if val is not None:
+                return val
+        return st.session_state.contador_local
     except Exception:
-        return 0
+        return st.session_state.contador_local
 
 def incrementar_acessos_nuvem():
-    if not supabase or st.session_state.liberado_pago_master:
+    if st.session_state.liberado_pago_master:
         return
-    try:
-        atual = obter_acessos_nuvem()
-        novo_valor = atual + 1
-        supabase.table("acessos").update({"contador": novo_valor}).eq("ip_usuario", st.session_state.ip_usuario_id).execute()
-    except Exception as e:
-        print(f"Erro ao atualizar contador: {e}")
+    
+    st.session_state.contador_local += 1
+    
+    if supabase:
+        try:
+            novo_valor = st.session_state.contador_local
+            # Tenta atualizar ou inserir na nuvem
+            res = supabase.table("acessos").select("contador").eq("ip_usuario", st.session_state.ip_usuario_id).execute()
+            if res.data and len(res.data) > 0:
+                supabase.table("acessos").update({"contador": novo_valor}).eq("ip_usuario", st.session_state.ip_usuario_id).execute()
+            else:
+                supabase.table("acessos").insert({"ip_usuario": st.session_state.ip_usuario_id, "contador": novo_valor}).execute()
+        except Exception as e:
+            print(f"Aviso de sincronização: {e}")
 
 def verificar_bloqueio_antes_de_usar():
     if st.session_state.liberado_pago_master:
@@ -166,7 +176,7 @@ def tela_bloqueio_comercial(motivo):
 # Verificação global de bloqueio
 usos_atuais_verif = obter_acessos_nuvem()
 if (st.session_state.acesso_bloqueado_definitivo or usos_atuais_verif >= LIMITE_MAXIMO_ACESSO) and not st.session_state.liberado_pago_master:
-    tela_bloqueio_comercial("Acesso restrito. O limite de 3 consultas gratuitas na nuvem foi atingido.")
+    tela_bloqueio_comercial("Acesso restrito. O limite de 3 consultas gratuitas foi atingido.")
 
 # ==========================================
 # MENU LATERAL (NAVEGAÇÃO ESTRATÉGICA)
