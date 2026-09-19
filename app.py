@@ -85,7 +85,6 @@ def verificar_bloqueio_antes_de_usar():
 def descontar_um_uso():
     if not st.session_state.liberado_pago_master:
         incrementar_acessos_nuvem()
-        st.rerun()
 
 # ==========================================
 # PERSISTÊNCIA LOCAL DE LEADS
