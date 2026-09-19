@@ -11,21 +11,20 @@ st.set_page_config(
 )
 
 # --- CREDENCIAIS E CONEXÕES ---
-# (Substitua pelos seus dados reais ou mantenha integrado com suas variáveis)
-GEMINI_API_KEY = "SUA_CHAVE_GEMINI_AQUI" # Ou puxe de st.secrets se preferir
+GEMINI_API_KEY = "SUA_CHAVE_GEMINI_AQUI" # Ou configure via st.secrets
 SUPABASE_URL = "https://seu-projeto-real.supabase.co"
 SUPABASE_KEY = "sua_chave_anon_ou_service_role_aqui"
 
-# Senhas e gestor definidos no seu projeto
+# Dados de acesso do gestor corrigidos
 GESTOR_EMAIL = "Rede.rodrigues2017@gmail.com"
-SENHAS_VALIDAS = ["cliente 1 2 3x", "contadora 2x", "doctorMactor20261""]
+SENHAS_VALIDAS = ["cliente 1 2 3x", "contadora 2x", "doctorMactor20261"]
 
 # Inicializar clientes de forma segura
 try:
     if GEMINI_API_KEY != "SUA_CHAVE_GEMINI_AQUI":
         client_ai = genai.Client(api_key=GEMINI_API_KEY)
     else:
-        client_ai = genai.Client() # Tenta pegar do ambiente
+        client_ai = genai.Client() 
 except Exception as e:
     st.error(f"Erro ao inicializar o Gemini: {e}")
 
@@ -72,23 +71,19 @@ if pagina == "Chat com Assistente IA":
     st.title("🤖 Chat com Assistente Contábil (Gemini)")
     st.write("Tire dúvidas sobre balanços, tributos, plano de contas e rotinas fiscais.")
 
-    # Inicializar histórico do chat no Streamlit
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
 
-    # Configuração do comportamento da IA
     system_instruction = (
         "Você é um assistente de contabilidade sênior, altamente especializado na legislação fiscal "
         "brasileira (Simples Nacional, Lucro Presumido, Lucro Real), plano de contas, lançamentos contábeis "
         "e balancetes. Seja direto, técnico, educado e preciso nas respostas."
     )
 
-    # Exibir histórico de mensagens na tela
     for message in st.session_state.chat_history:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
-    # Entrada do usuário pelo chat do Streamlit
     if prompt := st.chat_input("Digite sua dúvida contábil aqui..."):
         st.session_state.chat_history.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
@@ -97,7 +92,6 @@ if pagina == "Chat com Assistente IA":
         with st.chat_message("assistant"):
             with st.spinner("O assistente está consultando as normas contábeis..."):
                 try:
-                    # Cria a sessão de chat usando a API moderna do google-genai
                     chat_session = client_ai.chats.create(
                         model="gemini-2.5-flash",
                         config=types.GenerateContentConfig(
@@ -106,19 +100,13 @@ if pagina == "Chat com Assistente IA":
                         )
                     )
                     
-                    # Reconstruir o histórico recente para o modelo ter contexto
-                    for past_msg in st.session_state.chat_history[:-1]:
-                        # Apenas alimentando o fluxo se necessário, ou enviando direto a última
-                        pass
-
                     response = chat_session.send_message(prompt)
                     resposta_ia = response.text
                     
                     st.markdown(resposta_ia)
                     st.session_state.chat_history.append({"role": "assistant", "content": resposta_ia})
                 except Exception as e:
-                    erro_msg = f"Ocorreu um erro ao processar sua solicitação com a IA: {e}"
-                    st.error(erro_msg)
+                    st.error(f"Ocorreu um erro ao processar sua solicitação com a IA: {e}")
 
 # --- ABA 2: INTEGRAÇÃO SUPABASE ---
 elif pagina == "Lançamentos e Supabase":
@@ -130,14 +118,12 @@ elif pagina == "Lançamentos e Supabase":
     with tab1:
         with st.form("form_lancamento"):
             descricao = st.text_input("Descrição do Lançamento (Ex: Pagamento de Aluguel)")
-            valor = st.number_input("Valor (R$)", min_format_decimal=2, format="%.2f")
+            valor = st.number_input("Valor (R$)", format="%.2f")
             tipo = st.selectbox("Tipo", ["Receita", "Despesa"])
             enviar_db = st.form_submit_button("Salvar no Supabase")
 
             if enviar_db:
                 try:
-                    # Exemplo de inserção na tabela 'lancamentos' do Supabase
-                    # Certifique-se de criar a tabela 'lancamentos' no seu painel do Supabase com essas colunas
                     dados = {"descricao": descricao, "valor": valor, "tipo": tipo}
                     response = supabase.table("lancamentos").insert(dados).execute()
                     st.success("Lançamento salvo com sucesso no Supabase!")
