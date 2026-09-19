@@ -21,20 +21,6 @@ try:
 except Exception:
     client_ai = None
 
-# ==========================================
-# SEGURANÇA E CONFIGURAÇÕES DO GESTOR
-# ==========================================
-MEU_EMAIL_GESTOR = st.secrets["gestor"]["email"] if "gestor" in st.secrets and "email" in st.secrets["gestor"] else "Rede.rodrigues2017@gmail.com"
-SENHAS_MESTRE_CONFIG = st.secrets["gestor"]["senhas"] if "gestor" in st.secrets and "senhas" in st.secrets["gestor"] else ["cliente 1 2 3x", "contadora 2x", "gestorMaster2026!"]
-
-# Inicialização de Estado Robusta
-if "liberado_pago_master" not in st.session_state:
-    st.session_state.liberado_pago_master = False
-if "simulacoes_restantes" not in st.session_state:
-    st.session_state.simulacoes_restantes = 4
-if "acesso_bloqueado_definitivo" not in st.session_state:
-    st.session_state.acesso_bloqueado_definitivo = False
-
 # Ficheiro local para persistência de Leads
 ARQUIVO_LEADS = "leads_master.csv"
 
@@ -52,88 +38,21 @@ def salvar_lead_arquivo(novo_lead):
     df = pd.concat([df, novo_df], ignore_index=True)
     df.to_csv(ARQUIVO_LEADS, index=False)
 
-# Atalho inteligente via parâmetro na URL (?admin=true)
-params = st.query_params
-if "admin" in params and params["admin"] == "true":
-    st.session_state.liberado_pago_master = True
-    st.session_state.acesso_bloqueado_definitivo = False
-
 # Links de Pagamento InfinitePay oficiais
 LINK_PLANO_START = "https://invoice.infinitepay.io/plans/cristiane-da-260/KC9Geb9OrA"
 LINK_PLANO_PRO = "https://invoice.infinitepay.io/plans/cristiane-da-260/k7jgpmWCJL"
 LINK_PLANO_ENTERPRISE = "https://invoice.infinitepay.io/plans/cristiane-da-260/DnCh4NY1nH"
 
-# Dados Oficiais (WhatsApp e Chave PIX)
 MEU_WHATSAPP = "64993044147"
 CHAVE_PIX_OFICIAL = "64993044147"
 
 def limpar_telefone(fone):
     return ''.join(filter(str.isdigit, str(fone)))
 
-def verificar_bloqueio_antes_de_usar():
-    if st.session_state.liberado_pago_master:
-        return True
-    
-    if st.session_state.simulacoes_restantes <= 0:
-        st.session_state.acesso_bloqueado_definitivo = True
-        return False
-    return True
-
-def descontar_um_uso():
-    if not st.session_state.liberado_pago_master:
-        if st.session_state.simulacoes_restantes > 0:
-            st.session_state.simulacoes_restantes -= 1
-
-def tela_bloqueio_comercial(motivo):
-    st.error(f"🔒 {motivo}")
-    st.markdown("### 🚀 Os seus 4 Acessos Gratuitos Esgotaram!")
-    st.markdown("Para continuar a utilizar todas as ferramentas do sistema, escolha um dos planos abaixo ou faça o pagamento direto via PIX:")
-    
-    st.info(f"💎 **Pague via PIX Direto:** Utilize a nossa Chave PIX (Telefone): **{CHAVE_PIX_OFICIAL}**")
-    
-    col_p1, col_p2, col_p3 = st.columns(3)
-    with col_p1:
-        st.markdown("#### Plano Start (Mensal)")
-        st.markdown("**R$ 147,00 / mês**")
-        st.markdown(f'<a href="{LINK_PLANO_START}" target="_blank" style="background-color: #007bff; color: white; padding: 10px 15px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Cartão/Link</a>', unsafe_allow_html=True)
-    with col_p2:
-        st.markdown("#### Plano Professional")
-        st.markdown("**R$ 2.470,00 / ano**")
-        st.markdown(f'<a href="{LINK_PLANO_PRO}" target="_blank" style="background-color: #28a745; color: white; padding: 10px 15px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Professional</a>', unsafe_allow_html=True)
-    with col_p3:
-        st.markdown("#### Plano Enterprise")
-        st.markdown("**R$ 5.970,00 / ano**")
-        st.markdown(f'<a href="{LINK_PLANO_ENTERPRISE}" target="_blank" style="background-color: #6f42c1; color: white; padding: 10px 15px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Enterprise</a>', unsafe_allow_html=True)
-    
-    st.markdown("---")
-    st.warning(f"📲 **Já fez o PIX ou o pagamento?** Envie o comprovativo para o WhatsApp **(64) 99304-4147** para receber a sua palavra-passe de liberação instantânea!")
-    
-    st.markdown("#### Identificação do Gestor / Liberação por Senha")
-    email_gestor_input = st.text_input("Digite o seu e-mail de gestor:", key="input_email_gestor_login")
-    senha_cliente_input = st.text_input("Ou digite a senha de liberação:", type="password", key="input_senha_bloqueio")
-    
-    if st.button("🔓 Desbloquear Acesso"):
-        if email_gestor_input.strip().lower() == MEU_EMAIL_GESTOR.lower() or senha_cliente_input in SENHAS_MESTRE_CONFIG:
-            st.session_state.liberado_pago_master = True
-            st.session_state.acesso_bloqueado_definitivo = False
-            st.success("Acesso de gestor liberado com sucesso! Atualize a página.")
-            st.rerun()
-        else:
-            st.error("E-mail ou senha incorretos.")
-    st.stop()
-
-# Verificação global de bloqueio
-if st.session_state.acesso_bloqueado_definitivo and not st.session_state.liberado_pago_master:
-    tela_bloqueio_comercial("Acesso restrito. Tentativa de acesso após esgotar as 4 consultas gratuitas.")
-
-# Menu Lateral (Navegação Estratégica)
+# Menu Lateral (Navegação Estratégica - Totalmente Livre)
 st.sidebar.title("⚖️ Consultor Master")
 st.sidebar.markdown("Navegação Estratégica")
-
-if st.session_state.liberado_pago_master:
-    st.sidebar.success("👑 **Modo Gestor Ativo**\n*(Engenharia & Contabilidade)*")
-else:
-    st.sidebar.info(f"🎁 Acessos gratuitos restantes: **{st.session_state.simulacoes_restantes} / 4**")
+st.sidebar.success("🟢 **Acesso Totalmente Livre**\n*(Sem travas ou limites)*")
 
 modulo = st.sidebar.radio(
     "Selecione o Módulo:",
@@ -169,11 +88,6 @@ if modulo == "🚀 Simulador Tributário & Planos":
     with c2:
         st.subheader("Resultado da Simulação")
         if st.button("⚡ Executar Simulação Completa", type="primary", use_container_width=True, key="btn_exec_sim"):
-            if not verificar_bloqueio_antes_de_usar():
-                st.rerun()
-
-            descontar_um_uso()
-
             simples = fat_anual * 0.09
             presumido = fat_anual * 0.113
             lucro_base = max(0.0, fat_anual - desp_anual - folha_anual)
@@ -225,7 +139,7 @@ if modulo == "🚀 Simulador Tributário & Planos":
                 )
 
 # ==========================================
-# 2. MÓDULO: CHAT IA MASTER SÊNIOR (Modo Natural & Fluido)
+# 2. MÓDULO: CHAT IA MASTER SÊNIOR
 # ==========================================
 elif modulo == "💬 Chat IA Master Sênior":
     st.title("💬 Chat IA Master Sênior - Inteligência Natural & Contábil")
@@ -238,7 +152,7 @@ elif modulo == "💬 Chat IA Master Sênior":
 
     if "chat_sessao_gemini" not in st.session_state and client_ai:
         st.session_state.chat_sessao_gemini = client_ai.chats.create(
-            model="gemini-3.6-flash",
+            model="gemini-2.5-flash",
             config={
                 "system_instruction": (
                     "Você é um parceiro consultivo, inteligente, caloroso e altamente empático. "
@@ -254,11 +168,6 @@ elif modulo == "💬 Chat IA Master Sênior":
 
     pergunta_usuario = st.chat_input("Digite sua mensagem para conversarmos...")
     if pergunta_usuario:
-        if not verificar_bloqueio_antes_de_usar():
-            st.rerun()
-
-        descontar_um_uso()
-
         st.session_state.mensagens_chat.append({"role": "user", "content": pergunta_usuario})
         with st.chat_message("user"):
             st.write(pergunta_usuario)
@@ -272,7 +181,7 @@ elif modulo == "💬 Chat IA Master Sênior":
                     else:
                         resposta_ia = "⚠️ Chave do Gemini não configurada ou sessão indisponível."
                 except Exception as e:
-                    resposta_ia = f"Ops, tive um pequeno problema ao processar: {e}"
+                    resposta_ia = f"⚠️ O servidor do Google está com alta procura no momento (Erro 503). Por favor, tente enviar a mensagem novamente em instantes."
                 
                 st.write(resposta_ia)
                 st.session_state.mensagens_chat.append({"role": "assistant", "content": resposta_ia})
@@ -289,24 +198,19 @@ elif modulo == "📑 Parecer Executivo & Disparos":
     tema_parecer = st.selectbox("Tema do Parecer Técnico:", ["Revisão de ICMS-ST", "Planejamento Tributário Anual", "Impactos da Reforma Tributária", "Malha Fiscal Federal"])
 
     if st.button("📝 Gerar Parecer Executivo com IA", type="primary"):
-        if not verificar_bloqueio_antes_de_usar():
-            st.rerun()
-
-        descontar_um_uso()
-
         with st.spinner("Elaborando parecer executivo detalhado..."):
             try:
                 if client_ai:
                     prompt_parecer = f"Elabore um Parecer Técnico Executivo formal sobre o tema '{tema_parecer}' para a empresa '{client_nome}', considerando a legislação tributária brasileira."
                     response = client_ai.models.generate_content(
-                        model="gemini-3.6-flash",
+                        model="gemini-2.5-flash",
                         contents=prompt_parecer
                     )
                     parecer_texto = response.text
                 else:
                     parecer_texto = f"PARECER TÉCNICO EXECUTIVO\nTema: {tema_parecer}\nCliente: {client_nome}\n(Erro: IA não configurada)"
             except Exception as e:
-                parecer_texto = f"Erro ao gerar parecer: {e}"
+                parecer_texto = f"Erro ao gerar parecer devido à alta demanda da API. Tente novamente em alguns segundos."
 
         st.success("Parecer gerado com sucesso!")
         st.text_area("Laudo Técnico:", value=parecer_texto, height=250)
@@ -329,11 +233,6 @@ elif modulo == "🛡️ Auditoria Preventiva (XML/SPED)":
 
     empresa_aud = st.text_input("Empresa Alvo da Auditoria:", value="Empresa Exemplo Ltda")
     if st.button("🛡️ Executar Auditoria Padronizada", type="primary"):
-        if not verificar_bloqueio_antes_de_usar():
-            st.rerun()
-
-        descontar_um_uso()
-
         laudo_auditoria = f"RELATÓRIO DE AUDITORIA\nEmpresa: {empresa_aud}\nStatus: Conformidade verificada com sucesso."
         st.success("Auditoria executada com sucesso!")
         st.text_area("Laudo Analítico:", value=laudo_auditoria, height=220)
@@ -394,24 +293,7 @@ elif modulo == "🎯 Central de Leads":
 elif modulo == "⚙️ Configurações / Painel Master":
     st.title("⚙️ Painel de Controle Master & Licenciamento")
     st.markdown("Gestão de licenças de acesso, chave PIX e ativação comercial.")
-
-    if st.session_state.liberado_pago_master:
-        st.success("🟢 Sistema com Licença Master Ativa (Acesso Ilimitado Liberado).")
-    else:
-        st.warning(f"🔒 Sistema em Modo Demonstração. Tentativas restantes: {st.session_state.simulacoes_restantes} / 4")
-        
-    st.markdown("### 🔑 Identificação do Gestor ou Resgate de Senha")
-    email_painel = st.text_input("Seu E-mail de Gestor:", key="input_email_painel")
-    senha_input = st.text_input("Ou Senha de Ativação:", type="password", key="input_painel_senha")
-    
-    if st.button("Ativar Acesso Master"):
-        if email_painel.strip().lower() == MEU_EMAIL_GESTOR.lower() or senha_input in SENHAS_MESTRE_CONFIG:
-            st.session_state.liberado_pago_master = True
-            st.session_state.acesso_bloqueado_definitivo = False
-            st.success("Licença de gestor ativada com sucesso neste dispositivo!")
-            st.rerun()
-        else:
-            st.error("E-mail ou senha incorretos.")
+    st.success("🟢 Sistema com Acesso Totalmente Liberado (Sem restrições).")
 
     st.markdown("---")
     st.markdown("### 💳 Informações Oficiais de Pagamento (PIX e Cartão)")
