@@ -78,16 +78,14 @@ def salvar_lead_arquivo(novo_lead):
 # ==========================================
 def verificar_ou_registrar_usuario(email, whatsapp, razao):
     if not supabase:
-        return True # Se falhar banco, libera para não travar
+        return True 
     try:
         email_limpo = email.strip().lower()
         res = supabase.table("acessos_email").select("*").eq("email", email_limpo).execute()
         
         if res.data and len(res.data) > 0:
-            # E-mail já existe na base! Usuário já consumiu o teste antes.
             return False
         else:
-            # Primeiro acesso deste e-mail: cria o registro com contador 1 (já testou)
             novo_registro = {
                 "email": email_limpo,
                 "whatsapp": whatsapp,
@@ -166,7 +164,6 @@ def tela_identificacao_inicial():
                     email_limpo = input_email.strip().lower()
                     st.session_state.email_atual = email_limpo
                     
-                    # Verifica se o e-mail já usou o teste gratuito antes
                     pode_testar = verificar_ou_registrar_usuario(email_limpo, input_wpp, input_nome)
                     
                     if not pode_testar:
@@ -185,7 +182,7 @@ def tela_identificacao_inicial():
     st.stop()
 
 # ==========================================
-# TELA DE BLOQUEIO COMERCIAL (E-MAIL JÁ USADO)
+# TELA DE BLOQUEIO COMERCIAL
 # ==========================================
 def tela_bloqueio_comercial():
     st.error("🔒 Este e-mail já utilizou o teste gratuito anterior do sistema!")
@@ -381,7 +378,6 @@ elif modulo == "📑 Parecer Executivo & Disparos":
         }
         st.success("Parecer executivo gerado com sucesso!")
 
-    # Exibe os botões de ação se o parecer já foi gerado na sessão
     if "ultimo_parecer" in st.session_state:
         p = st.session_state.ultimo_parecer
         st.markdown("---")
@@ -389,13 +385,16 @@ elif modulo == "📑 Parecer Executivo & Disparos":
         st.text_area("Resultado:", value=p["texto"], height=200)
 
         wpp_num = limpar_telefone(p["telefone"])
-        link_wpp_parecer = f"https://wa.me/55{wpp_num}?text={requests.utils.quote(f'Olá {p[\"cliente\"]}, segue o seu Parecer Técnico sobre {p[\"tema\"]}.')}"
+        cliente_nome_val = p["cliente"]
+        tema_val = p["tema"]
+        texto_msg_parecer = f"Olá {cliente_nome_val}, segue o seu Parecer Técnico sobre {tema_val}."
+        link_wpp_parecer = f"https://wa.me/55{wpp_num}?text={requests.utils.quote(texto_msg_parecer)}"
 
         col_p1, col_p2 = st.columns(2)
         with col_p1:
             st.markdown(f'<a href="{link_wpp_parecer}" target="_blank" style="background-color: #25D366; color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; display: block; text-align: center;">📲 Enviar Parecer no WhatsApp</a>', unsafe_allow_html=True)
         with col_p2:
-            st.download_button(label="📥 Baixar Parecer em TXT", data=p["texto"], file_name=f"parecer_{p['tema'].replace(' ', '_')}.txt", mime="text/plain", use_container_width=True)
+            st.download_button(label="📥 Baixar Parecer em TXT", data=p["texto"], file_name=f"parecer_{tema_val.replace(' ', '_')}.txt", mime="text/plain", use_container_width=True)
 
 # ==========================================
 # 4. MÓDULO: AUDITORIA PREVENTIVA
