@@ -73,7 +73,7 @@ pagina = st.sidebar.radio(
         "🚨 Alertas de Oportunidades Fiscais",
         "📅 Planejamento Tributário Anual", 
         "💰 Análise de Lucros Isentos",
-        "🤖 Chat IA Master Sênior", 
+        "💬 Consulta Online - Consultor Master", 
         "📑 Histórico de Relatórios",
         "⚙️ Configurações / Alíquotas",
         "🧮 Calculadora de Retenções"
@@ -103,7 +103,7 @@ if pagina == "📊 Dashboard / Visão Geral":
 # --- MÓDULO 2: SIMULADOR BÁSICO (ISCA) ---
 elif pagina == "🆓 Simulador Básico (Isca Gratuita)":
     st.title("🆓 Simulador Básico de Carga Tributária")
-    st.markdown("Ferramenta de entrada rápida e gratuita para estimativa preliminar de impostos[span_2](start_span)[span_2](end_span).")
+    st.markdown("Ferramenta de entrada rápida e gratuita para estimativa preliminar de impostos[span_0](start_span)[span_0](end_span).")
 
     with st.form("form_simulador_basico"):
         razao_social = st.text_input("Razão Social do Cliente", value="Empresa Exemplo Ltda")
@@ -118,7 +118,7 @@ elif pagina == "🆓 Simulador Básico (Isca Gratuita)":
         col1, col2 = st.columns(2)
         col1.metric("Simples Nacional (Estimado)", f"R$ {imposto_simples:,.2f} / ano")
         col2.metric("Lucro Presumido (Estimado)", f"R$ {imposto_presumido:,.2f} / ano")
-        st.info("💡 **Dica Comercial:** Cadastre-se na versão completa para desbloquear relatórios em PDF e assessoria via IA.")
+        st.info("💡 **Dica Comercial:** Cadastre-se na versão completa para desbloquear relatórios em PDF e assessoria via Consulta Online.")
 
 # --- MÓDULO 3: GESTÃO DE CLIENTES (CRM) ---
 elif pagina == "📇 Gestão de Clientes (CRM)":
@@ -202,7 +202,7 @@ elif pagina == "⚖️ Comparativo de Regimes (Lado a Lado)":
 # --- MÓDULO 5: SIMULADOR AVANÇADO & MIGRAÇÃO (UNIFICADO) ---
 elif pagina == "📈 Simulador Avançado & Migração":
     st.title("📈 Simulador Avançado, Fator R & Migração Contínua")
-    st.markdown("Cruzamento detalhado de despesas, cálculo de Fator R e monitoramento contínuo para migração de regime[span_3](start_span)[span_3](end_span)[span_4](start_span)[span_4](end_span).")
+    st.markdown("Cruzamento detalhado de despesas, cálculo de Fator R e monitoramento contínuo para migração de regime[span_1](start_span)[span_1](end_span)[span_2](start_span)[span_2](end_span).")
     
     emp_adv = st.text_input("Empresa", value="Empresa Beta Ltda")
     wapp_adv = st.text_input("WhatsApp para Envio", value="64993044147")
@@ -228,7 +228,7 @@ elif pagina == "📈 Simulador Avançado & Migração":
         if fat_acumulado > 4200000:
             st.warning("⚠️ **Alerta Crítico de Migração:** Faturamento acumulado próximo ao teto do Simples Nacional (R$ 4,8M). Recomenda-se migração preventiva.")
         else:
-            st.success("✅ **Status de Enquadramento:** Faturamento acumulado dentro da margem segura do regime atual[span_5](start_span)[span_5](end_span).")
+            st.success("✅ **Status de Enquadramento:** Faturamento acumulado dentro da margem segura do regime atual[span_3](start_span)[span_3](end_span).")
             
         detalhes_avancado = f"Faturamento Base: R$ {faturamento_adv:,.2f}\nFolha: R$ {folha_adv:,.2f}\nFator R: {fator_r:.2f}% ({status_fator})\nFaturamento Acumulado: R$ {fat_acumulado:,.2f}"
         pdf_adv = gerar_conteudo_pdf("Simulação Avançada & Migração", emp_adv, detalhes_avancado)
@@ -243,7 +243,7 @@ elif pagina == "📈 Simulador Avançado & Migração":
 # --- MÓDULO 6: ALERTAS DE OPORTUNIDADES FISCAIS ---
 elif pagina == "🚨 Alertas de Oportunidades Fiscais":
     st.title("🚨 Alertas de Oportunidades Fiscais")
-    st.markdown("Identificação automática de créditos tributários não aproveitados e benefícios setoriais[span_6](start_span)[span_6](end_span)[span_7](start_span)[span_7](end_span).")
+    st.markdown("Identificação automática de créditos tributários não aproveitados e benefícios setoriais[span_4](start_span)[span_4](end_span)[span_5](start_span)[span_5](end_span).")
     
     setor_alerta = st.selectbox("Segmento da Empresa", ["Comércio Varejista", "Indústria", "Serviços Médicos", "Tecnologia / Software"])
     if st.button("Verificar Oportunidades para o Setor"):
@@ -297,9 +297,9 @@ elif pagina == "💰 Análise de Lucros Isentos":
             link_w_lucro = f"https://wa.me/55{wapp_lucro}?text=Olá,%20segue%20a%20análise%20de%20lucros."
             st.markdown(f"<a href='{link_w_lucro}' target='_blank'><button style='background-color:#25D366; color:white; padding:8px 16px; border:none; border-radius:5px; font-weight:bold; cursor:pointer;'>📲 Enviar via WhatsApp</button></a>", unsafe_allow_html=True)
 
-# --- MÓDULO 9: CHAT IA (GOOGLE-GENAI ESTÁVEL) ---
-elif pagina == "🤖 Chat IA Master Sênior":
-    st.title("🤖 Chat com Assistente Contábil Sênior")
+# --- MÓDULO 9: CONSULTA ONLINE - CONSULTOR MASTER (ATUALIZADO) ---
+elif pagina == "💬 Consulta Online - Consultor Master":
+    st.title("💬 Consulta Online - Consultor Master")
     st.markdown("Tire dúvidas sobre legislação fiscal, normas contábeis e análises estratégicas em tempo real.")
 
     if "chat_history" not in st.session_state:
@@ -315,12 +315,13 @@ elif pagina == "🤖 Chat IA Master Sênior":
             st.markdown(prompt)
 
         with st.chat_message("assistant"):
-            with st.spinner("O assistente está consultando as normas contábeis..."):
+            with st.spinner("Consultando base de conhecimento técnico..."):
                 resposta_ia = None
                 
+                # Tratamento robusto para a SDK google-genai evitando erro 404 de modelo
                 try:
                     response = client_ai.models.generate_content(
-                        model='gemini-2.5-flash',
+                        model='gemini-2.0-flash',
                         contents=prompt
                     )
                     if response and response.text:
@@ -334,7 +335,7 @@ elif pagina == "🤖 Chat IA Master Sênior":
                         if response and response.text:
                             resposta_ia = response.text
                     except Exception as err:
-                        st.error(f"Erro de conexão com a API do Gemini. Verifique se a chave configurada nos Secrets está correta. Detalhe: {err}")
+                        st.error(f"Erro de conexão com a API do Gemini. Verifique a chave configurada nos Secrets. Detalhe: {err}")
 
                 if resposta_ia:
                     st.markdown(resposta_ia)
