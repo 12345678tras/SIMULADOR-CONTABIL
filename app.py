@@ -35,7 +35,7 @@ if "simulacoes_restantes" not in st.session_state:
 if "acesso_bloqueado_definitivo" not in st.session_state:
     st.session_state.acesso_bloqueado_definitivo = False
 
-# Arquivo local para persistência de Leads
+# Ficheiro local para persistência de Leads
 ARQUIVO_LEADS = "leads_master.csv"
 
 def carregar_leads_arquivo():
@@ -233,7 +233,7 @@ elif modulo == "💬 Chat IA Master Sênior":
 
     if "mensagens_chat" not in st.session_state:
         st.session_state.mensagens_chat = [
-            {"role": "assistant", "content": "Olá! Que bom conversar com você. Estou com o meu modo de conversa natural ativado, pronto para te ajudar com ideias, dúvidas ou estratégias tributárias. O que vamos conversar agora?"}
+            {"role": "assistant", "content": "Olá! Que bom conversar contigo. Estou com o meu modo de conversa natural ativado, pronto para te ajudar com ideias, dúvidas ou estratégias tributárias. O que vamos conversar agora?"}
         ]
 
     if "chat_sessao_gemini" not in st.session_state and client_ai:
