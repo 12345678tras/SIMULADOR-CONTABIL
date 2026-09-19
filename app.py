@@ -181,7 +181,7 @@ elif modulo == "💬 Chat IA Master Sênior":
                     else:
                         resposta_ia = "⚠️ Chave do Gemini não configurada ou sessão indisponível."
                 except Exception as e:
-                    resposta_ia = f"⚠️ O servidor do Google está com alta procura no momento (Erro 503). Por favor, tente enviar a mensagem novamente em instantes."
+                    resposta_ia = f"⚠️ Ocorreu uma oscilação momentânea no servidor. Por favor, tente enviar novamente em instantes."
                 
                 st.write(resposta_ia)
                 st.session_state.mensagens_chat.append({"role": "assistant", "content": resposta_ia})
@@ -210,7 +210,7 @@ elif modulo == "📑 Parecer Executivo & Disparos":
                 else:
                     parecer_texto = f"PARECER TÉCNICO EXECUTIVO\nTema: {tema_parecer}\nCliente: {client_nome}\n(Erro: IA não configurada)"
             except Exception as e:
-                parecer_texto = f"Erro ao gerar parecer devido à alta demanda da API. Tente novamente em alguns segundos."
+                parecer_texto = f"Erro ao gerar parecer devido à alta demanda. Tente novamente em alguns segundos."
 
         st.success("Parecer gerado com sucesso!")
         st.text_area("Laudo Técnico:", value=parecer_texto, height=250)
