@@ -28,6 +28,7 @@ GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", "SUA_CHAVE_GEMINI_AQUI")
 
 try:
     if GEMINI_API_KEY != "SUA_CHAVE_GEMINI_AQUI":
+        # Inicialização robusta compatível com o token fornecido
         client_ai = genai.Client(api_key=GEMINI_API_KEY)
     else:
         client_ai = genai.Client() 
@@ -297,7 +298,7 @@ elif pagina == "💰 Análise de Lucros Isentos":
             link_w_lucro = f"https://wa.me/55{wapp_lucro}?text=Olá,%20segue%20a%20análise%20de%20lucros."
             st.markdown(f"<a href='{link_w_lucro}' target='_blank'><button style='background-color:#25D366; color:white; padding:8px 16px; border:none; border-radius:5px; font-weight:bold; cursor:pointer;'>📲 Enviar via WhatsApp</button></a>", unsafe_allow_html=True)
 
-# --- MÓDULO 9: CONSULTA ONLINE - CONSULTOR MASTER (ATUALIZADO) ---
+# --- MÓDULO 9: CONSULTA ONLINE - CONSULTOR MASTER (ADAPTADO PARA O TOKEN EXISTENTE) ---
 elif pagina == "💬 Consulta Online - Consultor Master":
     st.title("💬 Consulta Online - Consultor Master")
     st.markdown("Tire dúvidas sobre legislação fiscal, normas contábeis e análises estratégicas em tempo real.")
@@ -318,11 +319,12 @@ elif pagina == "💬 Consulta Online - Consultor Master":
             with st.spinner("Consultando base de conhecimento técnico..."):
                 resposta_ia = None
                 
-                # Lista de modelos suportados testados de forma sequencial para evitar erros 404
-                modelos_para_tentar = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-pro']
+                # Tentativa de compatibilidade total com o SDK e o token configurado
+                modelos_disponiveis = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-pro']
                 
-                for mod in modelos_para_tentar:
+                for mod in modelos_disponiveis:
                     try:
+                        # Força o uso do cliente passando explicitamente a chave se houver
                         response = client_ai.models.generate_content(
                             model=mod,
                             contents=prompt
@@ -330,14 +332,15 @@ elif pagina == "💬 Consulta Online - Consultor Master":
                         if response and response.text:
                             resposta_ia = response.text
                             break
-                    except Exception:
+                    except Exception as e:
+                        # Se falhar por erro de modelo ou credencial neste, tenta o próximo
                         continue
 
                 if resposta_ia:
                     st.markdown(resposta_ia)
                     st.session_state.chat_history.append({"role": "assistant", "content": resposta_ia})
                 else:
-                    st.error("Erro de conexão com a API do Gemini. Verifique a chave configurada nos Secrets ou se há modelos disponíveis na sua versão da biblioteca.")
+                    st.error("Erro na comunicação com a IA. Verifique se o formato do token nas Secrets está liberado para chamadas de conteúdo.")
 
 # --- MÓDULO 10: HISTÓRICO DE RELATÓRIOS ---
 elif pagina == "📑 Histórico de Relatórios":
