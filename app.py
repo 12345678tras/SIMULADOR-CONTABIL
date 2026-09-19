@@ -4,9 +4,6 @@ from google.genai import types
 import pandas as pd
 import datetime
 import base64
-from weasyprint import HTML
-import tempfile
-import os
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(
@@ -68,49 +65,6 @@ menu_5 = [
 pagina = st.sidebar.radio("Navegação Principal", menu_1 + menu_2 + menu_3 + menu_4 + menu_5)
 st.sidebar.markdown("---")
 
-# --- FUNÇÃO AUXILIAR PARA GERAR PDF E WHATSAPP ---
-def gerar_relatorio_pdf_html(titulo, dados_cliente, resultado_texto):
-    html_content = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="utf-8">
-        <style>
-            @page {{ size: A4; margin: 20mm; background-color: #ffffff; }}
-            body {{ font-family: 'Helvetica', Arial, sans-serif; color: #333333; line-height: 1.6; margin: 0; padding: 0; }}
-            .header {{ background-color: #1E3A8A; color: #ffffff; padding: 20px; text-align: center; border-radius: 6px; }}
-            .header h1 {{ margin: 0; font-size: 22px; }}
-            .section {{ margin-top: 25px; background: #F8FAFC; padding: 15px; border-radius: 6px; border-left: 4px solid #1E3A8A; }}
-            .footer {{ margin-top: 40px; text-align: center; font-size: 12px; color: #666666; border-top: 1px solid #E2E8F0; padding-top: 10px; }}
-        </style>
-    </head>
-    <body>
-        <div class="header">
-            <h1>Parecer Técnico Contábil - Consultor Master</h1>
-        </div>
-        <div class="section">
-            <h3>Dados do Cliente</h3>
-            <p><strong>Razão Social:</strong> {dados_cliente.get('razao', 'N/A')}</p>
-            <p><strong>CNPJ/CPF:</strong> {dados_cliente.get('documento', 'N/A')}</p>
-            <p><strong>Faturamento Anual:</strong> R$ {dados_cliente.get('faturamento', 0):,.2f}</p>
-        </div>
-        <div class="section">
-            <h3>{titulo}</h3>
-            <p>{resultado_texto}</p>
-        </div>
-        <div class="footer">
-            <p>Gerado automaticamente pelo Sistema Consultor Master - Uso Exclusivo Profissional.</p>
-        </div>
-    </body>
-    </html>
-    """
-    
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-        output_path = tmp.name
-    
-    HTML(string=html_content).write_pdf(output_path)
-    return output_path
-
 # --- MÓDULO: SIMULADOR BÁSICO ---
 if pagina == "📊 Simulador Básico":
     st.title("📊 Simulador Básico de Regime Tributário")
@@ -169,19 +123,20 @@ elif pagina == "📈 Simulador Avançado":
             col_b.metric("Lucro Presumido", "R$ 40.788,00 /ano", "+15.2%")
             col_c.metric("Lucro Real", "R$ 38.500,00 /ano", "+11.0%")
             
-            res_texto = "Simulação detalhada indicou economia tributária expressiva optando pelo Simples Nacional face ao faturamento e proporção da folha de pagamento."
-            dados_cli = {'razao': razao_social, 'documento': documento, 'faturamento': faturamento}
+            relatorio_texto = f"""PARECER TÉCNICO - CONSULTOR MASTER
+--------------------------------------------------
+Empresa: {razao_social}
+CNPJ: {documento}
+Faturamento Anual: R$ {faturamento:,.2f}
+
+Conclusão: Simulação detalhada indicou economia tributária expressiva optando pelo enquadramento mais adequado ao perfil operacional.
+"""
             
-            pdf_path = gerar_relatorio_pdf_html("Parecer de Simulação Tributária Avançada", dados_cli, res_texto)
-            
-            with open(pdf_path, "rb") as f:
-                pdf_bytes = f.read()
-                
             st.download_button(
-                label="📥 Baixar Parecer em PDF",
-                data=pdf_bytes,
-                file_name=f"Parecer_Tributario_{razao_social.replace(' ', '_')}.pdf",
-                mime="application/pdf"
+                label="📥 Baixar Relatório em Texto/TXT",
+                data=relatorio_texto,
+                file_name=f"Parecer_{razao_social.replace(' ', '_')}.txt",
+                mime="text/plain"
             )
             
             link_wapp = f"https://wa.me/55{whatsapp}?text=Olá,%20segue%20o%20parecer%20tributário%20gerado%20pelo%20Consultor%20Master."
@@ -191,7 +146,6 @@ elif pagina == "📈 Simulador Avançado":
 elif pagina == "📅 Planejamento Tributário Anual":
     st.title("📅 Planejamento Tributário Anual")
     st.markdown("Projeção de 12 meses para antecipação de mudanças de faixa e enquadramento.")
-    st.info("Módulo liberado: Insira as expectativas de faturamento mensal para projetar o acumulado dos 12 meses.")
     
     meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
     df_proj = pd.DataFrame({"Mês": meses, "Faturamento Previsto (R$)": [30000.0] * 12})
@@ -276,26 +230,27 @@ elif pagina == "📑 Parecer Executivo & WhatsApp":
         assunto = st.selectbox("Tipo de Parecer", ["Análise de Viabilidade Tributária", "Revisão de Fator R", "Orientação de Distribuição de Lucros"])
         conteudo_parecer = st.text_area("Texto do Parecer Técnico", value="Após análise minuciosa das operações da empresa, identificamos oportunidades estratégicas de otimização na carga tributária vigente.")
         
-        gerar_btn = st.form_submit_button("Gerar PDF e Preparar Disparo")
+        gerar_btn = st.form_submit_button("Gerar Relatório e Preparar Disparo")
         if gerar_btn:
-            dados_cli = {'razao': cli_nome, 'documento': '12.345.678/0001-90', 'faturamento': 250000.0}
-            pdf_path = gerar_relatorio_pdf_html(assunto, dados_cli, conteudo_parecer)
-            
-            with open(pdf_path, "rb") as f:
-                pdf_bytes = f.read()
-                
-            st.success("Parecer executivo gerado com sucesso!")
+            relatorio_texto = f"""PARECER EXECUTIVO - CONSULTOR MASTER
+--------------------------------------------------
+Assunto: {assunto}
+Cliente: {cli_nome}
+
+{conteudo_parecer}
+"""
+            st.success("Relatório executivo gerado com sucesso!")
             st.download_button(
-                label="📥 Baixar Parecer Executivo em PDF",
-                data=pdf_bytes,
-                file_name=f"Parecer_{cli_nome.replace(' ', '_')}.pdf",
-                mime="application/pdf"
+                label="📥 Baixar Parecer em TXT",
+                data=relatorio_texto,
+                file_name=f"Parecer_{cli_nome.replace(' ', '_')}.txt",
+                mime="text/plain"
             )
             
             link_wapp = f"https://wa.me/55{cli_wapp}?text=Olá,%20segue%20o%20parecer%20executivo%20contábil%20referente%20ao%20seu%20atendimento."
             st.markdown(f"<a href='{link_wapp}' target='_blank'><button style='background-color:#25D366; color:white; padding:10px 20px; border:none; border-radius:5px; font-weight:bold; cursor:pointer;'>📲 Enviar Parecer via WhatsApp</button></a>", unsafe_allow_html=True)
 
-# --- DEMAIS MÓDULOS (COMPLIANCE E GESTÃO) ---
+# --- DEMAIS MÓDULOS ---
 else:
     st.title(f"🛠️ Módulo: {pagina}")
     st.success("Módulo liberado e operacional no ambiente de testes.")
