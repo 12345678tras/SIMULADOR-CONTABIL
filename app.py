@@ -5,7 +5,9 @@ import os
 from datetime import datetime
 from supabase import create_client, Client
 
-# Configuração da Página
+# ==========================================
+# CONFIGURAÇÃO DA PÁGINA
+# ==========================================
 st.set_page_config(
     page_title="Consultor Inteligente Master",
     page_icon="⚖️",
@@ -31,21 +33,26 @@ except Exception as e:
 MEU_EMAIL_GESTOR = st.secrets["gestor"]["email"] if "gestor" in st.secrets and "email" in st.secrets["gestor"] else "Rede.rodrigues2017@gmail.com"
 SENHAS_MESTRE_CONFIG = st.secrets["gestor"]["senhas"] if "gestor" in st.secrets and "senhas" in st.secrets["gestor"] else ["cliente 1 2 3x", "contadora 2x", "gestorMaster2026!"]
 
-# Identificação simples do usuário por IP ou Sessão Cloud
+# Identificação única do usuário via IP/Sessão
 if "ip_usuario_id" not in st.session_state:
     try:
         headers = st.context.headers
-        st.session_state.ip_usuario_id = headers.get("X-Forwarded-For", "usuario_web_padrao")
+        forwarded = headers.get("X-Forwarded-For", "")
+        st.session_state.ip_usuario_id = forwarded.split(",")[0].strip() if forwarded else "usuario_web_padrao"
     except Exception:
         st.session_state.ip_usuario_id = "usuario_web_padrao"
 
-# Inicialização de Estado
+# Inicialização de Estado da Sessão
 if "liberado_pago_master" not in st.session_state:
     st.session_state.liberado_pago_master = False
 if "acesso_bloqueado_definitivo" not in st.session_state:
     st.session_state.acesso_bloqueado_definitivo = False
 
-# Funções de Supabase para contagem e persistência
+# ==========================================
+# FUNÇÕES DE CONTROLE DE ACESSO (SUPABASE)
+# ==========================================
+LIMITE_MAXIMO_ACESSO = 3
+
 def obter_acessos_nuvem():
     if not supabase:
         return 0
@@ -54,6 +61,7 @@ def obter_acessos_nuvem():
         if response.data and len(response.data) > 0:
             return response.data[0]["contador"]
         else:
+            # Insere o registro inicial se não existir
             supabase.table("acessos").insert({"ip_usuario": st.session_state.ip_usuario_id, "contador": 0}).execute()
             return 0
     except Exception:
@@ -69,9 +77,6 @@ def incrementar_acessos_nuvem():
     except Exception as e:
         print(f"Erro ao atualizar contador: {e}")
 
-# Limite estrito de 3 acessos globais na nuvem
-LIMITE_MAXIMO_ACESSO = 3
-
 def verificar_bloqueio_antes_de_usar():
     if st.session_state.liberado_pago_master:
         return True
@@ -86,7 +91,9 @@ def descontar_um_uso():
     if not st.session_state.liberado_pago_master:
         incrementar_acessos_nuvem()
 
-# Arquivo local para persistência de Leads
+# ==========================================
+# PERSISTÊNCIA LOCAL DE LEADS
+# ==========================================
 ARQUIVO_LEADS = "leads_master.csv"
 
 def carregar_leads_arquivo():
@@ -109,7 +116,7 @@ if "admin" in params and params["admin"] == "true":
     st.session_state.liberado_pago_master = True
     st.session_state.acesso_bloqueado_definitivo = False
 
-# Links de Pagamento InfinitePay oficiais
+# Links Oficiais
 LINK_PLANO_START = "https://invoice.infinitepay.io/plans/cristiane-da-260/KC9Geb9OrA"
 LINK_PLANO_PRO = "https://invoice.infinitepay.io/plans/cristiane-da-260/k7jgpmWCJL"
 LINK_PLANO_ENTERPRISE = "https://invoice.infinitepay.io/plans/cristiane-da-260/DnCh4NY1nH"
@@ -120,6 +127,9 @@ CHAVE_PIX_OFICIAL = "64993044147"
 def limpar_telefone(fone):
     return ''.join(filter(str.isdigit, str(fone)))
 
+# ==========================================
+# TELA DE BLOQUEIO COMERCIAL
+# ==========================================
 def tela_bloqueio_comercial(motivo):
     st.error(f"🔒 {motivo}")
     st.markdown("### 🚀 Seus 3 Acessos Gratuitos Esgotaram!")
@@ -163,7 +173,9 @@ usos_atuais_verif = obter_acessos_nuvem()
 if (st.session_state.acesso_bloqueado_definitivo or usos_atuais_verif >= LIMITE_MAXIMO_ACESSO) and not st.session_state.liberado_pago_master:
     tela_bloqueio_comercial("Acesso restrito. O limite de 3 consultas gratuitas na nuvem foi atingido.")
 
-# Menu Lateral (Navegação Estratégica)
+# ==========================================
+# MENU LATERAL (NAVEGAÇÃO ESTRATÉGICA)
+# ==========================================
 st.sidebar.title("⚖️ Consultor Master")
 st.sidebar.markdown("Navegação Estratégica")
 
@@ -210,6 +222,7 @@ if modulo == "🚀 Simulador Tributário & Planos":
             if not verificar_bloqueio_antes_de_usar():
                 st.rerun()
 
+            # Desconta o uso no Supabase imediatamente ao executar
             descontar_um_uso()
 
             simples = fat_anual * 0.09
