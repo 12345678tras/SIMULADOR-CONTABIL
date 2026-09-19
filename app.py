@@ -103,7 +103,7 @@ if pagina == "📊 Dashboard / Visão Geral":
 # --- MÓDULO 2: SIMULADOR BÁSICO (ISCA) ---
 elif pagina == "🆓 Simulador Básico (Isca Gratuita)":
     st.title("🆓 Simulador Básico de Carga Tributária")
-    st.markdown("Ferramenta de entrada rápida e gratuita para estimativa preliminar de impostos[span_0](start_span)[span_0](end_span).")
+    st.markdown("Ferramenta de entrada rápida e gratuita para estimativa preliminar de impostos.")
 
     with st.form("form_simulador_basico"):
         razao_social = st.text_input("Razão Social do Cliente", value="Empresa Exemplo Ltda")
@@ -202,7 +202,7 @@ elif pagina == "⚖️ Comparativo de Regimes (Lado a Lado)":
 # --- MÓDULO 5: SIMULADOR AVANÇADO & MIGRAÇÃO (UNIFICADO) ---
 elif pagina == "📈 Simulador Avançado & Migração":
     st.title("📈 Simulador Avançado, Fator R & Migração Contínua")
-    st.markdown("Cruzamento detalhado de despesas, cálculo de Fator R e monitoramento contínuo para migração de regime[span_1](start_span)[span_1](end_span)[span_2](start_span)[span_2](end_span).")
+    st.markdown("Cruzamento detalhado de despesas, cálculo de Fator R e monitoramento contínuo para migração de regime.")
     
     emp_adv = st.text_input("Empresa", value="Empresa Beta Ltda")
     wapp_adv = st.text_input("WhatsApp para Envio", value="64993044147")
@@ -228,7 +228,7 @@ elif pagina == "📈 Simulador Avançado & Migração":
         if fat_acumulado > 4200000:
             st.warning("⚠️ **Alerta Crítico de Migração:** Faturamento acumulado próximo ao teto do Simples Nacional (R$ 4,8M). Recomenda-se migração preventiva.")
         else:
-            st.success("✅ **Status de Enquadramento:** Faturamento acumulado dentro da margem segura do regime atual[span_3](start_span)[span_3](end_span).")
+            st.success("✅ **Status de Enquadramento:** Faturamento acumulado dentro da margem segura do regime atual.")
             
         detalhes_avancado = f"Faturamento Base: R$ {faturamento_adv:,.2f}\nFolha: R$ {folha_adv:,.2f}\nFator R: {fator_r:.2f}% ({status_fator})\nFaturamento Acumulado: R$ {fat_acumulado:,.2f}"
         pdf_adv = gerar_conteudo_pdf("Simulação Avançada & Migração", emp_adv, detalhes_avancado)
@@ -243,7 +243,7 @@ elif pagina == "📈 Simulador Avançado & Migração":
 # --- MÓDULO 6: ALERTAS DE OPORTUNIDADES FISCAIS ---
 elif pagina == "🚨 Alertas de Oportunidades Fiscais":
     st.title("🚨 Alertas de Oportunidades Fiscais")
-    st.markdown("Identificação automática de créditos tributários não aproveitados e benefícios setoriais[span_4](start_span)[span_4](end_span)[span_5](start_span)[span_5](end_span).")
+    st.markdown("Identificação automática de créditos tributários não aproveitados e benefícios setoriais.")
     
     setor_alerta = st.selectbox("Segmento da Empresa", ["Comércio Varejista", "Indústria", "Serviços Médicos", "Tecnologia / Software"])
     if st.button("Verificar Oportunidades para o Setor"):
@@ -318,28 +318,26 @@ elif pagina == "💬 Consulta Online - Consultor Master":
             with st.spinner("Consultando base de conhecimento técnico..."):
                 resposta_ia = None
                 
-                # Tratamento robusto para a SDK google-genai evitando erro 404 de modelo
-                try:
-                    response = client_ai.models.generate_content(
-                        model='gemini-2.0-flash',
-                        contents=prompt
-                    )
-                    if response and response.text:
-                        resposta_ia = response.text
-                except Exception:
+                # Lista de modelos suportados testados de forma sequencial para evitar erros 404
+                modelos_para_tentar = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-pro']
+                
+                for mod in modelos_para_tentar:
                     try:
                         response = client_ai.models.generate_content(
-                            model='gemini-1.5-flash',
+                            model=mod,
                             contents=prompt
                         )
                         if response and response.text:
                             resposta_ia = response.text
-                    except Exception as err:
-                        st.error(f"Erro de conexão com a API do Gemini. Verifique a chave configurada nos Secrets. Detalhe: {err}")
+                            break
+                    except Exception:
+                        continue
 
                 if resposta_ia:
                     st.markdown(resposta_ia)
                     st.session_state.chat_history.append({"role": "assistant", "content": resposta_ia})
+                else:
+                    st.error("Erro de conexão com a API do Gemini. Verifique a chave configurada nos Secrets ou se há modelos disponíveis na sua versão da biblioteca.")
 
 # --- MÓDULO 10: HISTÓRICO DE RELATÓRIOS ---
 elif pagina == "📑 Histórico de Relatórios":
