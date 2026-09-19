@@ -34,7 +34,7 @@ except Exception as e:
 MEU_EMAIL_GESTOR = st.secrets["gestor"]["email"] if "gestor" in st.secrets and "email" in st.secrets["gestor"] else "Rede.rodrigues2017@gmail.com"
 SENHAS_MESTRE_CONFIG = st.secrets["gestor"]["senhas"] if "gestor" in st.secrets and "senhas" in st.secrets["gestor"] else ["cliente 1 2 3x", "contadora 2x", "gestorMaster2026!"]
 
-# Identificação única por sessão do navegador (garante que cada aba/usuário tenha sua contagem isolada)
+# Identificação única por sessão do navegador (garante que cada aba/usuário anônimo tenha sua contagem isolada)
 if "ip_usuario_id" not in st.session_state:
     st.session_state.ip_usuario_id = str(uuid.uuid4())
 
