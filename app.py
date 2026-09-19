@@ -3,14 +3,7 @@ import requests
 import pandas as pd
 import os
 from datetime import datetime
-
-# Importação da Biblioteca Oficial do Google GenAI
-try:
-    from google import genai
-    from google.genai import types
-    EXISTS_GENAI = True
-except ImportError:
-    EXISTS_GENAI = False
+from google import genai
 
 # Configuração da Página
 st.set_page_config(
@@ -20,21 +13,19 @@ st.set_page_config(
 )
 
 # ==========================================
+# CONFIGURAÇÃO DA IA (GEMINI)
+# ==========================================
+try:
+    gemini_key = st.secrets["GEMINI_API_KEY"]
+    client_ai = genai.Client(api_key=gemini_key)
+except Exception:
+    client_ai = None
+
+# ==========================================
 # SEGURANÇA E CONFIGURAÇÕES DO GESTOR
 # ==========================================
 MEU_EMAIL_GESTOR = st.secrets["gestor"]["email"] if "gestor" in st.secrets and "email" in st.secrets["gestor"] else "Rede.rodrigues2017@gmail.com"
 SENHAS_MESTRE_CONFIG = st.secrets["gestor"]["senhas"] if "gestor" in st.secrets and "senhas" in st.secrets["gestor"] else ["cliente 1 2 3x", "contadora 2x", "gestorMaster2026!"]
-
-# Configuração da Chave da API do Gemini via Secrets
-GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", "")
-
-# Inicialização do Cliente Gemini Real
-client_ai = None
-if EXISTS_GENAI and GEMINI_API_KEY:
-    try:
-        client_ai = genai.Client(api_key=GEMINI_API_KEY)
-    except Exception as e:
-        st.error(f"Erro ao inicializar o cliente Gemini: {e}")
 
 # Inicialização de Estado Robusta
 if "liberado_pago_master" not in st.session_state:
@@ -82,6 +73,7 @@ def limpar_telefone(fone):
 def verificar_bloqueio_antes_de_usar():
     if st.session_state.liberado_pago_master:
         return True
+    
     if st.session_state.simulacoes_restantes <= 0:
         st.session_state.acesso_bloqueado_definitivo = True
         return False
@@ -130,6 +122,7 @@ def tela_bloqueio_comercial(motivo):
             st.error("E-mail ou senha incorretos.")
     st.stop()
 
+# Verificação global de bloqueio
 if st.session_state.acesso_bloqueado_definitivo and not st.session_state.liberado_pago_master:
     tela_bloqueio_comercial("Acesso restrito. Tentativa de acesso após esgotar as 4 consultas gratuitas.")
 
@@ -232,15 +225,15 @@ if modulo == "🚀 Simulador Tributário & Planos":
                 )
 
 # ==========================================
-# 2. MÓDULO: CHAT IA MASTER SÊNIOR (COM GEMINI REAL)
+# 2. MÓDULO: CHAT IA MASTER SÊNIOR
 # ==========================================
 elif modulo == "💬 Chat IA Master Sênior":
     st.title("💬 Chat IA Master Sênior - Direito Tributário & Contabilidade")
-    st.markdown("Faça perguntas técnicas avançadas respondidas por Inteligência Artificial real (Gemini).")
+    st.markdown("Faça perguntas técnicas avançadas e receba respostas da Inteligência Artificial.")
 
     if "mensagens_chat" not in st.session_state:
         st.session_state.mensagens_chat = [
-            {"role": "assistant", "content": "Olá! Seja muito bem-vindo(a). Sou o seu Consultor Inteligente Master com IA real do Google Gemini. Estou pronto para fornecer suporte técnico de excelência."}
+            {"role": "assistant", "content": "Olá! Seja muito bem-vindo(a). Sou o seu Consultor Inteligente Master com IA integrada. Como posso te ajudar hoje?"}
         ]
 
     for msg in st.session_state.mensagens_chat:
@@ -259,23 +252,21 @@ elif modulo == "💬 Chat IA Master Sênior":
             st.write(pergunta_usuario)
 
         with st.chat_message("assistant"):
-            with st.spinner("Consultando bases legais e gerando resposta com IA..."):
-                if client_ai:
-                    try:
-                        system_prompt = "Você é um consultor tributário, fiscal e contábil sênior no Brasil. Responda com precisão técnica baseada na legislação brasileira."
+            with st.spinner("Consultando base legal e gerando resposta com IA..."):
+                try:
+                    if client_ai:
                         response = client_ai.models.generate_content(
-                            model='gemini-2.5-flash',
+                            model="gemini-2.5-flash",
                             contents=pergunta_usuario,
-                            config=types.GenerateContentConfig(
-                                system_instruction=system_prompt,
-                                temperature=0.3
-                            )
+                            config={
+                                "system_instruction": "Você é um Consultor Sênior em Direito Tributário, Fiscal e Contabilidade no Brasil. Dê respostas técnicas, profundas, precisas e profissionais."
+                            }
                         )
                         resposta_ia = response.text
-                    except Exception as e:
-                        resposta_ia = f"Erro ao comunicar com a API do Gemini: {e}"
-                else:
-                    resposta_ia = "⚠️ Chave `GEMINI_API_KEY` não configurada nos segredos (`st.secrets`). Configure a chave para ativar a IA real."
+                    else:
+                        resposta_ia = "⚠️ Chave do Gemini não configurada nos secrets. Verifique o painel."
+                except Exception as e:
+                    resposta_ia = f"Erro ao comunicar com a IA: {e}"
                 
                 st.write(resposta_ia)
                 st.session_state.mensagens_chat.append({"role": "assistant", "content": resposta_ia})
@@ -285,7 +276,7 @@ elif modulo == "💬 Chat IA Master Sênior":
 # ==========================================
 elif modulo == "📑 Parecer Executivo & Disparos":
     st.title("📑 Parecer Executivo & Disparos Automatizados")
-    st.markdown("Geração de laudos técnicos aprofundados com o apoio do Gemini.")
+    st.markdown("Geração de laudos técnicos aprofundados com suporte da IA.")
 
     client_nome = st.text_input("Nome do Cliente / Empresa:", value="Comércio Exemplo S.A.")
     client_fone = st.text_input("WhatsApp do Destinatário:", value=MEU_WHATSAPP)
@@ -298,19 +289,18 @@ elif modulo == "📑 Parecer Executivo & Disparos":
         descontar_um_uso()
 
         with st.spinner("Elaborando parecer executivo detalhado..."):
-            if client_ai:
-                try:
-                    prompt_parecer = f"Elabore um parecer técnico executivo formal sobre '{tema_parecer}' para a empresa '{client_nome}', com introdução, fundamentação legal resumida e conclusão recomendando a otimização tributária."
+            try:
+                if client_ai:
+                    prompt_parecer = f"Elabore um Parecer Técnico Executivo formal sobre o tema '{tema_parecer}' para a empresa '{client_nome}', considerando a legislação tributária brasileira."
                     response = client_ai.models.generate_content(
-                        model='gemini-2.5-flash',
-                        contents=prompt_parecer,
-                        config=types.GenerateContentConfig(temperature=0.2)
+                        model="gemini-2.5-flash",
+                        contents=prompt_parecer
                     )
                     parecer_texto = response.text
-                except Exception as e:
-                    parecer_texto = f"Erro ao gerar parecer via IA: {e}"
-            else:
-                parecer_texto = f"PARECER TÉCNICO EXECUTIVO (Modo Offline)\nTema: {tema_parecer}\nCliente: {client_nome}\nData: {datetime.now().strftime('%d/%m/%Y')}\n\n(Configure o GEMINI_API_KEY para gerar textos completos via IA)."
+                else:
+                    parecer_texto = f"PARECER TÉCNICO EXECUTIVO\nTema: {tema_parecer}\nCliente: {client_nome}\n(Erro: IA não configurada)"
+            except Exception as e:
+                parecer_texto = f"Erro ao gerar parecer: {e}"
 
         st.success("Parecer gerado com sucesso!")
         st.text_area("Laudo Técnico:", value=parecer_texto, height=250)
