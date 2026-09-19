@@ -7,7 +7,7 @@ from datetime import datetime
 from supabase import create_client, Client
 
 # ==========================================
-# CONFIGURAÇÃO DA PÁGINA
+# CONFIGURAÇÃO DA PÁGINA (DEVE SER A PRIMEIRA)
 # ==========================================
 st.set_page_config(
     page_title="Consultor Inteligente Master",
@@ -16,33 +16,53 @@ st.set_page_config(
 )
 
 # ==========================================
-# CONEXÃO COM O SUPABASE (NUVEM)
+# 1. ATALHO DE URL PRIMEIRO (CORREÇÃO DE ACESSO)
 # ==========================================
-@st.cache_resource
-def init_supabase():
-    return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
-
-try:
-    supabase: Client = init_supabase()
-except Exception as e:
-    st.error(f"Erro ao conectar com o Supabase: {e}")
-    supabase = None
-
-# ==========================================
-# SEGURANÇA E CONFIGURAÇÕES DO GESTOR
-# ==========================================
-MEU_EMAIL_GESTOR = st.secrets["gestor"]["email"] if "gestor" in st.secrets and "email" in st.secrets["gestor"] else "Rede.rodrigues2017@gmail.com"
-SENHAS_MESTRE_CONFIG = st.secrets["gestor"]["senhas"] if "gestor" in st.secrets and "senhas" in st.secrets["gestor"] else ["cliente 1 2 3x", "contadora 2x", "gestorMaster2026!"]
-
-# Identificação única por sessão do navegador (garante que cada aba/usuário tenha sua contagem isolada)
-if "ip_usuario_id" not in st.session_state:
-    st.session_state.ip_usuario_id = str(uuid.uuid4())
-
 # Inicialização de Estado da Sessão
 if "liberado_pago_master" not in st.session_state:
     st.session_state.liberado_pago_master = False
 if "acesso_bloqueado_definitivo" not in st.session_state:
     st.session_state.acesso_bloqueado_definitivo = False
+
+# Captura segura de parâmetros da URL (?admin=true)
+try:
+    params = st.query_params
+    if params.get("admin") == "true":
+        st.session_state.liberado_pago_master = True
+        st.session_state.acesso_bloqueado_definitivo = False
+except Exception:
+    pass
+
+# ==========================================
+# CONEXÃO COM O SUPABASE (NUVEM)
+# ==========================================
+@st.cache_resource
+def init_supabase():
+    try:
+        if "SUPABASE_URL" in st.secrets and "SUPABASE_KEY" in st.secrets:
+            return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
+    except Exception:
+        pass
+    return None
+
+supabase: Client = init_supabase()
+
+# ==========================================
+# SEGURANÇA E CONFIGURAÇÕES DO GESTOR
+# ==========================================
+try:
+    MEU_EMAIL_GESTOR = st.secrets["gestor"]["email"]
+except Exception:
+    MEU_EMAIL_GESTOR = "Rede.rodrigues2017@gmail.com"
+
+try:
+    SENHAS_MESTRE_CONFIG = st.secrets["gestor"]["senhas"]
+except Exception:
+    SENHAS_MESTRE_CONFIG = ["cliente 1 2 3x", "contadora 2x", "gestorMaster2026!"]
+
+# Identificação única por sessão do navegador
+if "ip_usuario_id" not in st.session_state:
+    st.session_state.ip_usuario_id = str(uuid.uuid4())
 
 # ==========================================
 # FUNÇÕES DE CONTROLE DE ACESSO (SUPABASE)
@@ -105,12 +125,6 @@ def salvar_lead_arquivo(novo_lead):
     novo_df = pd.DataFrame([novo_lead])
     df = pd.concat([df, novo_df], ignore_index=True)
     df.to_csv(ARQUIVO_LEADS, index=False)
-
-# Atalho inteligente via parâmetro na URL (?admin=true)
-params = st.query_params
-if "admin" in params and params["admin"] == "true":
-    st.session_state.liberado_pago_master = True
-    st.session_state.acesso_bloqueado_definitivo = False
 
 # Links Oficiais
 LINK_PLANO_START = "https://invoice.infinitepay.io/plans/cristiane-da-260/KC9Geb9OrA"
