@@ -3,7 +3,6 @@ import requests
 import pandas as pd
 import os
 from datetime import datetime
-from supabase import create_client, Client
 
 # Configuração da Página
 st.set_page_config(
@@ -13,80 +12,18 @@ st.set_page_config(
 )
 
 # ==========================================
-# CONEXÃO COM O SUPABASE (NUVEM)
-# ==========================================
-@st.cache_resource
-init_supabase = lambda: create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
-
-try:
-    supabase: Client = init_supabase()
-except Exception as e:
-    st.error(f"Erro ao conectar com o Supabase: {e}")
-    supabase = None
-
-# ==========================================
 # SEGURANÇA E CONFIGURAÇÕES DO GESTOR
 # ==========================================
 MEU_EMAIL_GESTOR = st.secrets["gestor"]["email"] if "gestor" in st.secrets and "email" in st.secrets["gestor"] else "Rede.rodrigues2017@gmail.com"
 SENHAS_MESTRE_CONFIG = st.secrets["gestor"]["senhas"] if "gestor" in st.secrets and "senhas" in st.secrets["gestor"] else ["cliente 1 2 3x", "contadora 2x", "gestorMaster2026!"]
 
-# Identificação simples do usuário por IP ou Sessão Cloud
-if "ip_usuario_id" not in st.session_state:
-    # Tenta resgatar o IP através dos headers do Streamlit se disponível, senão gera um identificador de sessão
-    try:
-        headers = st.context.headers
-        st.session_state.ip_usuario_id = headers.get("X-Forwarded-For", "usuario_web_padrao")
-    except Exception:
-        st.session_state.ip_usuario_id = "usuario_web_padrao"
-
-# Inicialização de Estado
+# Inicialização de Estado Robusta
 if "liberado_pago_master" not in st.session_state:
     st.session_state.liberado_pago_master = False
+if "simulacoes_restantes" not in st.session_state:
+    st.session_state.simulacoes_restantes = 4
 if "acesso_bloqueado_definitivo" not in st.session_state:
     st.session_state.acesso_bloqueado_definitivo = False
-
-# Função para buscar contagem de acessos no Supabase
-def obter_acessos_nuvem():
-    if not supabase:
-        return 0
-    try:
-        response = supabase.table("acessos").select("contador").eq("ip_usuario", st.session_state.ip_usuario_id).execute()
-        if response.data and len(response.data) > 0:
-            return response.data[0]["contador"]
-        else:
-            # Se não existe registro para este usuário, cria com 0
-            supabase.table("acessos").insert({"ip_usuario": st.session_state.ip_usuario_id, "contador": 0}).execute()
-            return 0
-    except Exception:
-        return 0
-
-def incrementar_acessos_nuvem():
-    if not supabase or st.session_state.liberado_pago_master:
-        return
-    try:
-        atual = obter_acessos_nuvem()
-        novo_valor = atual + 1
-        # Atualiza no banco
-        supabase.table("acessos").update({"contador": novo_valor}).eq("ip_usuario", st.session_state.ip_usuario_id).execute()
-    except Exception as e:
-        print(f"Erro ao atualizar contador: {e}")
-
-# Limite máximo fixado rigorosamente em 3 acessos
-LIMITE_MAXIMO_ACESSO = 3
-
-def verificar_bloqueio_antes_de_usar():
-    if st.session_state.liberado_pago_master:
-        return True
-    
-    usos_atuais = obter_acessos_nuvem()
-    if usos_atuais >= LIMITE_MAXIMO_ACESSO:
-        st.session_state.acesso_bloqueado_definitivo = True
-        return False
-    return True
-
-def descontar_um_uso():
-    if not st.session_state.liberado_pago_master:
-        incrementar_acessos_nuvem()
 
 # Arquivo local para persistência de Leads
 ARQUIVO_LEADS = "leads_master.csv"
@@ -116,15 +53,30 @@ LINK_PLANO_START = "https://invoice.infinitepay.io/plans/cristiane-da-260/KC9Geb
 LINK_PLANO_PRO = "https://invoice.infinitepay.io/plans/cristiane-da-260/k7jgpmWCJL"
 LINK_PLANO_ENTERPRISE = "https://invoice.infinitepay.io/plans/cristiane-da-260/DnCh4NY1nH"
 
+# Dados Oficiais (WhatsApp e Chave PIX)
 MEU_WHATSAPP = "64993044147"
 CHAVE_PIX_OFICIAL = "64993044147"
 
 def limpar_telefone(fone):
     return ''.join(filter(str.isdigit, str(fone)))
 
+def verificar_bloqueio_antes_de_usar():
+    if st.session_state.liberado_pago_master:
+        return True
+    
+    if st.session_state.simulacoes_restantes <= 0:
+        st.session_state.acesso_bloqueado_definitivo = True
+        return False
+    return True
+
+def descontar_um_uso():
+    if not st.session_state.liberado_pago_master:
+        if st.session_state.simulacoes_restantes > 0:
+            st.session_state.simulacoes_restantes -= 1
+
 def tela_bloqueio_comercial(motivo):
     st.error(f"🔒 {motivo}")
-    st.markdown("### 🚀 Seus 3 Acessos Gratuitos Esgotaram!")
+    st.markdown("### 🚀 Seus 4 Acessos Gratuitos Esgotaram!")
     st.markdown("Para continuar utilizando todas as ferramentas do sistema, escolha um dos planos abaixo ou faça o pagamento direto via PIX:")
     
     st.info(f"💎 **Pague via PIX Direto:** Utilize a nossa Chave PIX (Telefone): **{CHAVE_PIX_OFICIAL}**")
@@ -161,9 +113,8 @@ def tela_bloqueio_comercial(motivo):
     st.stop()
 
 # Verificação global de bloqueio
-usos_atuais_verif = obter_acessos_nuvem()
-if (st.session_state.acesso_bloqueado_definitivo or usos_atuais_verif >= LIMITE_MAXIMO_ACESSO) and not st.session_state.liberado_pago_master:
-    tela_bloqueio_comercial("Acesso restrito. O limite de 3 consultas gratuitas na nuvem foi atingido.")
+if st.session_state.acesso_bloqueado_definitivo and not st.session_state.liberado_pago_master:
+    tela_bloqueio_comercial("Acesso restrito. Tentativa de acesso após esgotar as 4 consultas gratuitas.")
 
 # Menu Lateral (Navegação Estratégica)
 st.sidebar.title("⚖️ Consultor Master")
@@ -172,8 +123,7 @@ st.sidebar.markdown("Navegação Estratégica")
 if st.session_state.liberado_pago_master:
     st.sidebar.success("👑 **Modo Gestor Ativo**\n*(Engenharia & Contabilidade)*")
 else:
-    restantes = max(0, LIMITE_MAXIMO_ACESSO - obter_acessos_nuvem())
-    st.sidebar.info(f"🎁 Acessos gratuitos restantes: **{restantes} / {LIMITE_MAXIMO_ACESSO}**")
+    st.sidebar.info(f"🎁 Acessos gratuitos restantes: **{st.session_state.simulacoes_restantes} / 4**")
 
 modulo = st.sidebar.radio(
     "Selecione o Módulo:",
@@ -404,8 +354,7 @@ elif modulo == "⚙️ Configurações / Painel Master":
     if st.session_state.liberado_pago_master:
         st.success("🟢 Sistema com Licença Master Ativa (Acesso Ilimitado Liberado).")
     else:
-        restantes = max(0, LIMITE_MAXIMO_ACESSO - obter_acessos_nuvem())
-        st.warning(f"🔒 Sistema em Modo Demonstração. Tentativas restantes: {restantes} / {LIMITE_MAXIMO_ACESSO}")
+        st.warning(f"🔒 Sistema em Modo Demonstração. Tentativas restantes: {st.session_state.simulacoes_restantes} / 4")
         
     st.markdown("### 🔑 Identificação do Gestor ou Resgate de Senha")
     email_painel = st.text_input("Seu E-mail de Gestor:", key="input_email_painel")
