@@ -7,8 +7,8 @@ import datetime
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(
-    page_title="Assistente Contábil IA - SaaS",
-    page_icon="📊",
+    page_title="Plataforma Contábil Profissional",
+    page_icon="💼",
     layout="wide"
 )
 
@@ -31,20 +31,21 @@ try:
 except Exception as e:
     st.warning("Supabase não conectado completamente. Verifique as credenciais.")
 
-# --- APLICAÇÃO PRINCIPAL (SEM LOGIN) ---
-st.sidebar.title("📌 Menu Contábil")
-st.sidebar.write("Plataforma SaaS Profissional")
-
-pagina = st.sidebar.radio("Navegação", [
-    "Chat com Assistente IA", 
-    "Leitura Inteligente (Notas/Recibos)", 
-    "Lançamentos e Dashboard"
+# --- MENU LATERAL MODERNO ---
+st.sidebar.markdown("## 🏢 Sistema Contábil SaaS")
+st.sidebar.markdown("---")
+pagina = st.sidebar.radio("Módulos do Sistema", [
+    "🤖 Assistente IA (Gemini)", 
+    "📄 Leitura Inteligente de Notas", 
+    "📊 Dashboard & Lançamentos"
 ])
+st.sidebar.markdown("---")
+st.sidebar.info("Modo de Operação: Comercial / Testes")
 
-# --- ABA 1: CHAT COM O GEMINI (TOTALMENTE INTOCADA E PERFEITA) ---
-if pagina == "Chat com Assistente IA":
-    st.title("🤖 Chat com Assistente Contábil (Gemini)")
-    st.write("Tire dúvidas sobre balanços, tributos, plano de contas e rotinas fiscais.")
+# --- ABA 1: CHAT COM O GEMINI (INTOCADA) ---
+if pagina == "🤖 Assistente IA (Gemini)":
+    st.title("🤖 Chat com Assistente Contábil")
+    st.markdown("Tire dúvidas sobre balanços, tributos, plano de contas e rotinas fiscais com inteligência artificial avançada.")
 
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
@@ -83,24 +84,27 @@ if pagina == "Chat com Assistente IA":
                 except Exception as e:
                     st.error(f"Ocorreu um erro ao processar sua solicitação com a IA: {e}")
 
-# --- ABA 2: LEITURA INTELIGENTE DE DOCUMENTOS (INTOCADA E FUNCIONAL) ---
-elif pagina == "Leitura Inteligente (Notas/Recibos)":
+# --- ABA 2: LEITURA INTELIGENTE DE DOCUMENTOS (INTOCADA) ---
+elif pagina == "📄 Leitura Inteligente de Notas":
     st.title("📄 Leitura de Documentos Fiscais com IA")
-    st.write("Envie uma foto de nota fiscal, recibo ou PDF para extrair os dados automaticamente.")
+    st.markdown("Envie uma foto de nota fiscal, recibo ou PDF para extração automática de dados.")
 
-    arquivo_enviado = st.file_uploader("Escolha um arquivo (PDF, PNG, JPG)", type=["pdf", "png", "jpg", "jpeg"])
+    arquivo_enviado = st.file_uploader("Selecione o arquivo (PDF, PNG, JPG)", type=["pdf", "png", "jpg", "jpeg"])
 
     if arquivo_enviado is not None:
-        st.image(arquivo_enviado, caption="Documento Enviado", use_container_width=True) if "image" in arquivo_enviado.type else st.info("Arquivo PDF carregado com sucesso.")
+        if "image" in arquivo_enviado.type:
+            st.image(arquivo_enviado, caption="Documento Enviado", use_container_width=True)
+        else:
+            st.info("Arquivo PDF carregado com sucesso.")
         
-        if st.button("Extrair Dados com IA"):
-            with st.spinner("Lendo documento e extraindo informações contábeis..."):
+        if st.button("Executar Extração com IA"):
+            with st.spinner("Analisando documento fiscal..."):
                 try:
                     bytes_arquivo = arquivo_enviado.getvalue()
                     
                     prompt_extracao = (
                         "Analise este documento fiscal/recibo e retorne estritamente em formato de texto estruturado "
-                        "os seguintes campos: Fornecedor, CNPJ, Valor Total, Data e uma sugestão de Classificação (Ex: Despesa com Material, Aluguel, etc)."
+                        "os seguintes campos: Fornecedor, CNPJ, Valor Total, Data e uma sugestão de Classificação contábil."
                     )
                     
                     response = client_ai.models.generate_content(
@@ -114,41 +118,41 @@ elif pagina == "Leitura Inteligente (Notas/Recibos)":
                         ]
                     )
                     
-                    st.success("Dados extraídos com sucesso!")
+                    st.success("Extração concluída!")
                     st.markdown(response.text)
                     
                 except Exception as e:
-                    st.error(f"Erro ao processar o documento com a IA: {e}")
+                    st.error(f"Erro ao processar o documento: {e}")
 
-# --- ABA 3: SUPABASE E DASHBOARD (MODERNO E PROFISSIONAL) ---
-elif pagina == "Lançamentos e Dashboard":
-    st.title("📁 Gestão de Lançamentos e Dashboard")
-    st.write("Painel executivo para controle de fluxo de caixa, vencimentos e centro de custos.")
+# --- ABA 3: DASHBOARD E LANÇAMENTOS (NOVA ESTRUTURA PROFISSIONAL) ---
+elif pagina == "📊 Dashboard & Lançamentos":
+    st.title("📊 Painel Executivo e Gestão Financeira")
+    st.markdown("Controle completo de fluxo de caixa, centros de custos e relatórios gerenciais.")
 
-    tab1, tab2 = st.tabs(["Cadastrar Lançamento", "Ver Dados e Dashboard"])
+    tab_dash, tab_cad = st.tabs(["📈 Visão Geral & Relatórios", "➕ Novo Lançamento"])
 
-    with tab1:
-        with st.form("form_lancamento_pro"):
-            st.subheader("Novo Registro Financeiro")
-            descricao = st.text_input("Descrição do Lançamento (Ex: Pagamento de Fornecedor)")
+    with tab_cad:
+        st.markdown("### Registrar Nova Movimentação")
+        with st.form("form_lancamento_moderno", clear_on_submit=True):
+            descricao = st.text_input("Descrição / Histórico do Lançamento")
             
-            col_v1, col_v2 = st.columns(2)
-            with col_v1:
+            c1, c2 = st.columns(2)
+            with c1:
                 valor = st.number_input("Valor (R$)", format="%.2f", min_value=0.0)
-            with col_v2:
-                tipo = st.selectbox("Tipo", ["Receita", "Despesa"])
+            with c2:
+                tipo = st.selectbox("Tipo de Movimento", ["Receita", "Despesa"])
             
-            col_c1, col_c2 = st.columns(2)
-            with col_c1:
-                status = st.selectbox("Status", ["Pago / Liquidado", "Pendente / Em Aberto"])
-            with col_c2:
-                centro_custos = st.selectbox("Centro de Custos / Departamento", ["Administrativo", "Operacional", "Comercial", "Financeiro"])
+            c3, c4 = st.columns(2)
+            with c3:
+                status = st.selectbox("Status Financeiro", ["Pago / Liquidado", "Pendente / Em Aberto"])
+            with c4:
+                centro_custos = st.selectbox("Centro de Custos", ["Administrativo", "Operacional", "Comercial", "Tributário"])
             
-            data_vencimento = st.date_input("Data de Vencimento", value=datetime.date.today())
+            data_vencimento = st.date_input("Data de Vencimento / Ocorrência", value=datetime.date.today())
             
-            enviar_db = st.form_submit_button("Salvar no Supabase")
+            salvar = st.form_submit_button("Salvar no Banco de Dados")
 
-            if enviar_db:
+            if salvar:
                 try:
                     dados = {
                         "descricao": descricao, 
@@ -158,46 +162,47 @@ elif pagina == "Lançamentos e Dashboard":
                         "centro_custos": centro_custos,
                         "vencimento": str(data_vencimento)
                     }
-                    response = supabase.table("lancamentos").insert(dados).execute()
-                    st.success("Lançamento salvo com sucesso no Supabase!")
+                    supabase.table("lancamentos").insert(dados).execute()
+                    st.success("Lançamento registrado com sucesso!")
                 except Exception as e:
-                    st.error(f"Erro ao salvar no banco (certifique-se de que a tabela 'lancamentos' no Supabase possui essas colunas): {e}")
+                    st.error(f"Erro ao salvar no Supabase: {e}")
 
-    with tab2:
-        if st.button("Carregar Registros e Indicadores"):
+    with tab_dash:
+        if st.button("Atualizar Dados e Métricas"):
             try:
                 response = supabase.table("lancamentos").select("*").execute()
                 dados = response.data
                 if dados:
                     df = pd.DataFrame(dados)
                     
-                    st.subheader("📊 Indicadores Chave (KPIs)")
+                    # Cartões de Métricas (KPIs modernos)
                     if "tipo" in df.columns and "valor" in df.columns:
-                        total_receitas = df[df["tipo"] == "Receita"]["valor"].sum()
-                        total_despesas = df[df["tipo"] == "Despesa"]["valor"].sum()
-                        saldo_liquido = total_receitas - total_despesas
+                        total_rec = df[df["tipo"] == "Receita"]["valor"].sum()
+                        total_desp = df[df["tipo"] == "Despesa"]["valor"].sum()
+                        lucro = total_rec - total_desp
                         
-                        kpi1, kpi2, kpi3 = st.columns(3)
-                        kpi1.metric("Total Receitas", f"R$ {total_receitas:,.2f}")
-                        kpi2.metric("Total Despesas", f"R$ {total_despesas:,.2f}")
-                        kpi3.metric("Saldo Líquido", f"R$ {saldo_liquido:,.2f}", delta=f"R$ {saldo_liquido:,.2f}")
+                        col1, col2, col3 = st.columns(3)
+                        col1.metric("Receitas Totais", f"R$ {total_rec:,.2f}")
+                        col2.metric("Despesas Totais", f"R$ {total_desp:,.2f}")
+                        col3.metric("Resultado Líquido", f"R$ {lucro:,.2f}")
                         
                         st.markdown("---")
-                        st.subheader("Gráfico por Tipo")
+                        st.markdown("### Distribuição Gráfica")
                         totais = df.groupby("tipo")["valor"].sum()
                         st.bar_chart(totais)
                     
-                    st.subheader("📋 Tabela Completa de Lançamentos")
+                    st.markdown("### Extrato de Lançamentos")
                     st.dataframe(df, use_container_width=True)
                     
-                    csv = df.to_csv(index=False).encode('utf-8')
+                    # Botão de Exportação profissional
+                    csv_data = df.to_csv(index=False).encode('utf-8')
                     st.download_button(
-                        label="Baixar Relatório em CSV",
-                        data=csv,
-                        file_name='relatorio_contabil.csv',
+                        label="📥 Exportar Dados (CSV)",
+                        data=csv_data,
+                        file_name='extrato_contabil.csv',
                         mime='text/csv',
                     )
                 else:
-                    st.info("Nenhum registro encontrado no banco de dados.")
+                    st.warning("Nenhum lançamento encontrado cadastrado no banco.")
             except Exception as e:
-                st.error(f"Erro ao buscar dados: {e}")
+                st.error(f"Erro ao carregar dados do Supabase: {e}")
