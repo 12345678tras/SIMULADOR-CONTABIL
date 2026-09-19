@@ -31,28 +31,28 @@ try:
 except Exception as e:
     st.warning("Supabase não conectado completamente. Verifique as credenciais.")
 
-# --- MENU LATERAL (ESTILO SaaS) ---
+# --- MENU LATERAL (TUDO LIBERADO PARA TESTES) ---
 st.sidebar.markdown("## 🏢 Consultor Master")
 st.sidebar.markdown("Navegação Estratégica")
-st.sidebar.info("🔥 Acessos gratuitos restantes: **4 / 4**")
+st.sidebar.success("🔓 Modo de Testes: 100% Liberado")
 st.sidebar.markdown("---")
 st.sidebar.markdown("**Selecione o Módulo:**")
 
 pagina = st.sidebar.radio("Módulos", [
-    "📊 Simulador Básico (Gratuito)", 
-    "📈 Simulador Avançado (Pro)", 
-    "🤖 Chat IA Master Sênior (Pago)", 
-    "📑 Parecer Executivo & Disparos (Pago)",
-    "🔍 Auditoria Preventiva XML/SPED (Pago)",
-    "📈 Indicadores do Escritório (Pago)",
-    "👥 Governança de Clientes (Pago)",
+    "📊 Simulador Básico", 
+    "📈 Simulador Avançado", 
+    "🤖 Chat IA Master Sênior", 
+    "📑 Parecer Executivo & Disparos",
+    "🔍 Auditoria Preventiva XML/SPED",
+    "📈 Indicadores do Escritório",
+    "👥 Governança de Clientes",
     "⚙️ Configurações / Painel Master"
 ])
 
 st.sidebar.markdown("---")
 
-# --- MÓDULO 1: SIMULADOR BÁSICO (GRATUITO) ---
-if pagina == "📊 Simulador Básico (Gratuito)":
+# --- MÓDULO 1: SIMULADOR BÁSICO ---
+if pagina == "📊 Simulador Básico":
     st.title("📊 Simulador Básico de Regime Tributário")
     st.markdown("Análise rápida e simplificada para estimar a carga tributária inicial do cliente.")
 
@@ -65,9 +65,8 @@ if pagina == "📊 Simulador Básico (Gratuito)":
         if executar_basico:
             st.success("Cálculo básico realizado com sucesso!")
             
-            # Estimativa simples para demonstração
-            imposto_simples = faturamento * 0.06 # Exemplo 6% Simples Nacional Comércio
-            imposto_presumido = faturamento * 11.33 # Exemplo médio Lucro Presumido
+            imposto_simples = faturamento * 0.06 
+            imposto_presumido = faturamento * 11.33 
             
             col1, col2 = st.columns(2)
             col1.metric("Estimativa Simples Nacional", f"R$ {imposto_simples:,.2f} / ano")
@@ -78,8 +77,8 @@ if pagina == "📊 Simulador Básico (Gratuito)":
             else:
                 st.info("💡 **Conclusão:** O **Lucro Presumido** pode ser uma alternativa competitiva a ser detalhada.")
 
-# --- MÓDULO 2: SIMULADOR AVANÇADO (PRO) ---
-elif pagina == "📈 Simulador Avançado (Pro)":
+# --- MÓDULO 2: SIMULADOR AVANÇADO ---
+elif pagina == "📈 Simulador Avançado":
     st.title("📈 Simulador Avançado de Regime Tributário")
     st.markdown("Análise paramétrica completa contemplando folha de pagamento, fator R, despesas e margens.")
 
@@ -106,7 +105,6 @@ elif pagina == "📈 Simulador Avançado (Pro)":
         if executar_avancado:
             st.success("Simulação avançada processada com parâmetros fiscais detalhados!")
             
-            # Exibição de resultados em tabela/métricas aprofundadas
             st.markdown("### 📊 Relatório Comparativo de Cenários")
             
             col_a, col_b, col_c = st.columns(3)
@@ -114,10 +112,10 @@ elif pagina == "📈 Simulador Avançado (Pro)":
             col_b.metric("Lucro Presumido", "R$ 40.788,00 /ano", "+15.2%")
             col_c.metric("Lucro Real", "R$ 38.500,00 /ano", "+11.0%")
             
-            st.warning("⚠️ *Nota técnica: Simulação baseada nas alíquotas informadas. Recomenda-se a emissão do Parecer Executivo completo para validação fiscal.*")
+            st.info("ℹ️ Simulação paramétrica concluída com sucesso no modo de testes livres.")
 
-# --- MÓDULO 3: CHAT IA (ESTÁVEL E SEM ERROS) ---
-elif pagina == "🤖 Chat IA Master Sênior (Pago)":
+# --- MÓDULO 3: CHAT IA (ESTÁVEL) ---
+elif pagina == "🤖 Chat IA Master Sênior":
     st.title("🤖 Chat com Assistente Contábil")
     st.markdown("Tire dúvidas sobre balanços, tributos, plano de contas e rotinas fiscais.")
 
@@ -141,6 +139,7 @@ elif pagina == "🤖 Chat IA Master Sênior (Pago)":
         with st.chat_message("assistant"):
             with st.spinner("O assistente está consultando as normas contábeis..."):
                 try:
+                    # Tentativa com o modelo padrão atual de mercado do SDK do Gemini
                     response = client_ai.models.generate_content(
                         model='gemini-2.5-flash',
                         contents=prompt,
@@ -153,10 +152,24 @@ elif pagina == "🤖 Chat IA Master Sênior (Pago)":
                     st.markdown(resposta_ia)
                     st.session_state.chat_history.append({"role": "assistant", "content": resposta_ia})
                 except Exception as e:
-                    st.error(f"Erro ao processar com a IA: {e}")
+                    # Fallback automático caso o ambiente prefira o modelo flash padrão genérico
+                    try:
+                        response = client_ai.models.generate_content(
+                            model='gemini-flash',
+                            contents=prompt,
+                            config=types.GenerateContentConfig(
+                                system_instruction=system_instruction,
+                                temperature=0.2
+                            )
+                        )
+                        resposta_ia = response.text
+                        st.markdown(resposta_ia)
+                        st.session_state.chat_history.append({"role": "assistant", "content": resposta_ia})
+                    except Exception as err:
+                        st.error(f"Erro ao processar com a IA: {err}")
 
-# --- OUTROS MÓDULOS (PAGOS) ---
+# --- OUTROS MÓDULOS (TAMBÉM LIBERADOS PARA TESTE) ---
 else:
-    st.title("🔒 Área Restrita - Conteúdo para Assinantes")
-    st.warning("Este módulo faz parte do plano profissional do sistema e requer uma assinatura ativa para liberação de acesso.")
-    st.markdown("Para liberar este e outros recursos corporativos, gerencie sua assinatura na aba de Configurações.")
+    st.title(f"🛠️ Módulo: {pagina}")
+    st.success("Este módulo está liberado no seu ambiente de testes para você configurar e estruturar livremente.")
+    st.markdown("Utilize esta área para construir as rotinas complementares do seu escritório contábil.")
