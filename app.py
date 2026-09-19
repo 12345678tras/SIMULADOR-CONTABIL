@@ -262,90 +262,48 @@ if modulo == "🚀 1. Simulador Tributário Gratuito":
             st.markdown(f'<a href="{link_wpp}" target="_blank" style="background-color: #25D366; color: white; padding: 10px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">📲 Enviar Resultado no WhatsApp</a>', unsafe_allow_html=True)
 
 # ==========================================
-# 2. MÓDULO: SIMULADOR TRIBUTÁRIO AVANÇADO (RECHEADO E PROFISSIONAL)
+# 2. MÓDULO: SIMULADOR TRIBUTÁRIO AVANÇADO
 # ==========================================
 elif modulo == "⚙️ 2. Simulador Tributário Avançado":
     if not st.session_state.liberado_pago_master:
         renderizar_paywall_modulo("Simulador Tributário Avançado")
     
     st.title("⚙️ Simulador Tributário Avançado & Institucional")
-    st.markdown("Painel analítico corporativo com árvore de decisão fiscal, alíquotas efetivas, gráficos de comparação e exportação de laudo em PDF.")
+    st.markdown("Módulo paramétrico profundo com árvore de decisão fiscal, Fator R, alíquotas efetivas e encargos.")
     
     col_av1, col_av2 = st.columns(2, gap="large")
     with col_av1:
-        st.subheader("🛠️ Parâmetros Fiscais e Estruturais")
+        st.subheader("Parâmetros Fiscais Detalhados")
         adv_razao = st.text_input("Razão Social do Cliente:", value="Indústria e Comércio S/A")
-        adv_cnpj = st.text_input("CNPJ:", value="00.000.000/0001-00")
         adv_cnae = st.text_input("CNAE Principal:", value="4711-3/02 - Comércio varejista")
-        
-        st.markdown("---")
         adv_faturamento = st.number_input("Faturamento Bruto Anual (R$):", min_value=0.0, value=1200000.0, step=50000.0)
         adv_folha = st.number_input("Folha de Salários / Pró-labore 12m (R$):", min_value=0.0, value=320000.0, step=10000.0)
         adv_compras = st.number_input("Aquisição de Mercadorias / Insumos (R$):", min_value=0.0, value=500000.0, step=20000.0)
         adv_despesas = st.number_input("Despesas Operacionais Dedutíveis (R$):", min_value=0.0, value=150000.0, step=10000.0)
-        
-        st.markdown("---")
-        anexo_pretendido = st.selectbox("Anexo Base Simples Nacional:", ["Anexo I (Comércio)", "Anexo II (Indústria)", "Anexo III (Serviços gerais)", "Anexo V (Serviços fator R)"])
-
+    
     with col_av2:
-        st.subheader("📊 Laudo Comparativo Executivo")
-        if st.button("🚀 Processar Análise Estratégica Avançada", type="primary", use_container_width=True):
+        st.subheader("Laudo Comparativo Avançado")
+        if st.button("🚀 Processar Simulação Avançada Completa", type="primary", use_container_width=True):
             fator_r = (adv_folha / adv_faturamento) * 100 if adv_faturamento > 0 else 0
-            
-            # Cálculo refinado por regime
-            aliquota_simples = 0.11 if "Comércio" in anexo_pretendido or "Indústria" in anexo_pretendido else (0.155 if fator_r < 28 else 0.12)
-            imposto_simples = adv_faturamento * aliquota_simples
-            
+            imposto_simples = adv_faturamento * 0.12 if fator_r >= 28 else adv_faturamento * 0.155
             imposto_presumido = (adv_faturamento * 0.08 * 0.34) + (adv_faturamento * 0.0365)
             lucro_real_base = max(0.0, adv_faturamento - adv_compras - adv_despesas - adv_folha)
             imposto_real = lucro_real_base * 0.34
             
             st.success("Análise paramétrica concluída com sucesso!")
+            st.metric("Fator R Apurado", f"{fator_r:.2f}%")
             
-            m_a1, m_a2 = st.columns(2)
-            m_a1.metric("Fator R Apurado", f"{fator_r:.2f}%")
-            
-            cenarios_adv = {
-                "Simples Nacional": round(imposto_simples, 2),
-                "Lucro Presumido": round(imposto_presumido, 2),
-                "Lucro Real": round(imposto_real, 2)
-            }
-            melhor_av = min(cenarios_adv, key=cenarios_adv.get)
-            m_a2.metric("Regime Mais Lucrativo", melhor_av)
-            
-            # Tabela de Comparação
             df_comparativo = pd.DataFrame({
-                "Regime Tributário": list(cenarios_adv.keys()),
-                "Carga Anual Estimada (R$)": list(cenarios_adv.values())
+                "Regime Tributário": ["Simples Nacional", "Lucro Presumido", "Lucro Real"],
+                "Carga Anual Estimada (R$)": [round(imposto_simples, 2), round(imposto_presumido, 2), round(imposto_real, 2)]
             })
             st.dataframe(df_comparativo, use_container_width=True)
             
-            # Gráfico de Barras Visual para Bater o Olho
-            st.markdown("#### 📈 Comparativo Visual de Carga Tributária")
-            st.bar_chart(df_comparativo.set_index("Regime Tributário"))
-            
-            economia_max = max(cenarios_adv.values()) - cenarios_adv[melhor_av]
-            st.info(dict(melhor_regime=melhor_av, economia=economia_max)) # placeholder interno
-            st.markdown(f"💡 **Parecer Técnico Master:** A adoção do **{melhor_av}** trará uma otimização expressiva no fluxo de caixa, gerando uma economia de até **R$ {economia_max:,.2f}** anuais para a empresa {adv_razao}.")
-            
-            # Botão de Exportação de Laudo (Simulado em Texto formatado / Download)
-            texto_laudo = f"""LAUDO TÉCNICO TRIBUTÁRIO - {adv_razao}
-CNPJ: {adv_cnpj}
-Faturamento Anual: R$ {adv_faturamento:,.2f}
-Fator R: {fator_r:.2f}%
-Melhor Regime Indicado: {melhor_av}
-Economia Estimada: R$ {economia_max:,.2f}
-"""
-            st.download_button(
-                label="📥 Baixar Laudo Executivo Completo (.TXT / PDF)",
-                data=texto_laudo,
-                file_name=f"Laudo_Tributario_{adv_razao.replace(' ', '_')}.txt",
-                mime="text/plain",
-                use_container_width=True
-            )
+            melhor_av = df_comparativo.loc[df_comparativo["Carga Anual Estimada (R$)"].idxmin()]["Regime Tributário"]
+            st.info(f"💡 **Recomendação Técnica:** O regime mais vantajoso para o planejamento fiscal de {adv_razao} é o **{melhor_av}**.")
 
 # ==========================================
-# 3. MÓDULO: PRÓ-LABORE X LUCROS (FATOR R)
+# 3. MÓDULO NOVO: PRÓ-LABORE X LUCROS (FATOR R)
 # ==========================================
 elif modulo == "💡 3. Pró-Labore x Lucros (Fator R)":
     if not st.session_state.liberado_pago_master:
@@ -370,7 +328,7 @@ elif modulo == "💡 3. Pró-Labore x Lucros (Fator R)":
             st.info(f"Com esse valor, sua folha atinge exatamente 28% do faturamento, garantindo sua empresa no **Anexo III** (evitando o Anexo V que é muito mais caro).")
 
 # ==========================================
-# 4. MÓDULO: RETENÇÕES NA FONTE
+# 4. MÓDULO NOVO: RETENÇÕES NA FONTE
 # ==========================================
 elif modulo == "🧾 4. Retenções na Fonte (Notas Fiscais)":
     if not st.session_state.liberado_pago_master:
@@ -399,7 +357,7 @@ elif modulo == "🧾 4. Retenções na Fonte (Notas Fiscais)":
             st.dataframe(df_ret, use_container_width=True)
 
 # ==========================================
-# 5. MÓDULO: RECUPERAÇÃO DE CRÉDITO MONOFÁSICO
+# 5. MÓDULO NOVO: RECUPERAÇÃO DE CRÉDITO MONOFÁSICO
 # ==========================================
 elif modulo == "⛽ 5. Recuperação Crédito Monofásico":
     if not st.session_state.liberado_pago_master:
@@ -420,7 +378,7 @@ elif modulo == "⛽ 5. Recuperação Crédito Monofásico":
             st.success("Oportunidade identificada! Estes valores podem ser compensados via PER/DCOMP na Receita Federal.")
 
 # ==========================================
-# 6. MÓDULO: CUSTO REAL DE FUNCIONÁRIO (CLT)
+# 6. MÓDULO NOVO: CUSTO REAL DE FUNCIONÁRIO (CLT)
 # ==========================================
 elif modulo == "👥 6. Custo Real de Funcionário (CLT)":
     if not st.session_state.liberado_pago_master:
@@ -446,7 +404,7 @@ elif modulo == "👥 6. Custo Real de Funcionário (CLT)":
             st.info(f"O colaborador custa aproximadamente **{(custo_total/salario_base):.2f}x** o valor do seu salário bruto nominal.")
 
 # ==========================================
-# 7. MÓDULO: CALENDÁRIO DE OBRIGAÇÕES
+# 7. MÓDULO NOVO: CALENDÁRIO DE OBRIGAÇÕES
 # ==========================================
 elif modulo == "📅 7. Calendário de Obrigações Fiscais":
     if not st.session_state.liberado_pago_master:
