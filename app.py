@@ -2,13 +2,17 @@ import streamlit as st
 import requests
 import pandas as pd
 import os
-import uuid
 from datetime import datetime
-from supabase import create_client, Client
 
-# ==========================================
-# CONFIGURAÇÃO DA PÁGINA (DEVE SER A PRIMEIRA)
-# ==========================================
+# Importação da Biblioteca Oficial do Google GenAI
+try:
+    from google import genai
+    from google.genai import types
+    EXISTS_GENAI = True
+except ImportError:
+    EXISTS_GENAI = False
+
+# Configuração da Página
 st.set_page_config(
     page_title="Consultor Inteligente Master",
     page_icon="⚖️",
@@ -16,100 +20,31 @@ st.set_page_config(
 )
 
 # ==========================================
-# 1. ATALHO DE URL PRIMEIRO (CORREÇÃO DE ACESSO)
+# SEGURANÇA E CONFIGURAÇÕES DO GESTOR
 # ==========================================
-# Inicialização de Estado da Sessão
+MEU_EMAIL_GESTOR = st.secrets["gestor"]["email"] if "gestor" in st.secrets and "email" in st.secrets["gestor"] else "Rede.rodrigues2017@gmail.com"
+SENHAS_MESTRE_CONFIG = st.secrets["gestor"]["senhas"] if "gestor" in st.secrets and "senhas" in st.secrets["gestor"] else ["cliente 1 2 3x", "contadora 2x", "gestorMaster2026!"]
+
+# Configuração da Chave da API do Gemini via Secrets
+GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", "")
+
+# Inicialização do Cliente Gemini Real
+client_ai = None
+if EXISTS_GENAI and GEMINI_API_KEY:
+    try:
+        client_ai = genai.Client(api_key=GEMINI_API_KEY)
+    except Exception as e:
+        st.error(f"Erro ao inicializar o cliente Gemini: {e}")
+
+# Inicialização de Estado Robusta
 if "liberado_pago_master" not in st.session_state:
     st.session_state.liberado_pago_master = False
+if "simulacoes_restantes" not in st.session_state:
+    st.session_state.simulacoes_restantes = 4
 if "acesso_bloqueado_definitivo" not in st.session_state:
     st.session_state.acesso_bloqueado_definitivo = False
 
-# Captura segura de parâmetros da URL (?admin=true)
-try:
-    params = st.query_params
-    if params.get("admin") == "true":
-        st.session_state.liberado_pago_master = True
-        st.session_state.acesso_bloqueado_definitivo = False
-except Exception:
-    pass
-
-# ==========================================
-# CONEXÃO COM O SUPABASE (NUVEM)
-# ==========================================
-@st.cache_resource
-def init_supabase():
-    try:
-        if "SUPABASE_URL" in st.secrets and "SUPABASE_KEY" in st.secrets:
-            return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
-    except Exception:
-        pass
-    return None
-
-supabase: Client = init_supabase()
-
-# ==========================================
-# SEGURANÇA E CONFIGURAÇÕES DO GESTOR
-# ==========================================
-try:
-    MEU_EMAIL_GESTOR = st.secrets["gestor"]["email"]
-except Exception:
-    MEU_EMAIL_GESTOR = "Rede.rodrigues2017@gmail.com"
-
-try:
-    SENHAS_MESTRE_CONFIG = st.secrets["gestor"]["senhas"]
-except Exception:
-    SENHAS_MESTRE_CONFIG = ["cliente 1 2 3x", "contadora 2x", "gestorMaster2026!"]
-
-# Identificação única por sessão do navegador
-if "ip_usuario_id" not in st.session_state:
-    st.session_state.ip_usuario_id = str(uuid.uuid4())
-
-# ==========================================
-# FUNÇÕES DE CONTROLE DE ACESSO (SUPABASE)
-# ==========================================
-LIMITE_MAXIMO_ACESSO = 3
-
-def obter_acessos_nuvem():
-    if not supabase:
-        return 0
-    try:
-        response = supabase.table("acessos").select("contador").eq("ip_usuario", st.session_state.ip_usuario_id).execute()
-        if response.data and len(response.data) > 0:
-            return response.data[0]["contador"]
-        else:
-            supabase.table("acessos").insert({"ip_usuario": st.session_state.ip_usuario_id, "contador": 0}).execute()
-            return 0
-    except Exception:
-        return 0
-
-def incrementar_acessos_nuvem():
-    if not supabase or st.session_state.liberado_pago_master:
-        return
-    try:
-        atual = obter_acessos_nuvem()
-        novo_valor = atual + 1
-        supabase.table("acessos").update({"contador": novo_valor}).eq("ip_usuario", st.session_state.ip_usuario_id).execute()
-    except Exception as e:
-        print(f"Erro ao atualizar contador: {e}")
-
-def verificar_bloqueio_antes_de_usar():
-    if st.session_state.liberado_pago_master:
-        return True
-    
-    usos_atuais = obter_acessos_nuvem()
-    if usos_atuais >= LIMITE_MAXIMO_ACESSO:
-        st.session_state.acesso_bloqueado_definitivo = True
-        return False
-    return True
-
-def descontar_um_uso():
-    if not st.session_state.liberado_pago_master:
-        incrementar_acessos_nuvem()
-        st.rerun()
-
-# ==========================================
-# PERSISTÊNCIA LOCAL DE LEADS
-# ==========================================
+# Arquivo local para persistência de Leads
 ARQUIVO_LEADS = "leads_master.csv"
 
 def carregar_leads_arquivo():
@@ -126,23 +61,40 @@ def salvar_lead_arquivo(novo_lead):
     df = pd.concat([df, novo_df], ignore_index=True)
     df.to_csv(ARQUIVO_LEADS, index=False)
 
-# Links Oficiais
+# Atalho inteligente via parâmetro na URL (?admin=true)
+params = st.query_params
+if "admin" in params and params["admin"] == "true":
+    st.session_state.liberado_pago_master = True
+    st.session_state.acesso_bloqueado_definitivo = False
+
+# Links de Pagamento InfinitePay oficiais
 LINK_PLANO_START = "https://invoice.infinitepay.io/plans/cristiane-da-260/KC9Geb9OrA"
 LINK_PLANO_PRO = "https://invoice.infinitepay.io/plans/cristiane-da-260/k7jgpmWCJL"
 LINK_PLANO_ENTERPRISE = "https://invoice.infinitepay.io/plans/cristiane-da-260/DnCh4NY1nH"
 
+# Dados Oficiais (WhatsApp e Chave PIX)
 MEU_WHATSAPP = "64993044147"
 CHAVE_PIX_OFICIAL = "64993044147"
 
 def limpar_telefone(fone):
     return ''.join(filter(str.isdigit, str(fone)))
 
-# ==========================================
-# TELA DE BLOQUEIO COMERCIAL
-# ==========================================
+def verificar_bloqueio_antes_de_usar():
+    if st.session_state.liberado_pago_master:
+        return True
+    if st.session_state.simulacoes_restantes <= 0:
+        st.session_state.acesso_bloqueado_definitivo = True
+        return False
+    return True
+
+def descontar_um_uso():
+    if not st.session_state.liberado_pago_master:
+        if st.session_state.simulacoes_restantes > 0:
+            st.session_state.simulacoes_restantes -= 1
+
 def tela_bloqueio_comercial(motivo):
     st.error(f"🔒 {motivo}")
-    st.markdown("### 🚀 Seus 3 Acessos Gratuitos Esgotaram!")
+    st.markdown("### 🚀 Seus 4 Acessos Gratuitos Esgotaram!")
     st.markdown("Para continuar utilizando todas as ferramentas do sistema, escolha um dos planos abaixo ou faça o pagamento direto via PIX:")
     
     st.info(f"💎 **Pague via PIX Direto:** Utilize a nossa Chave PIX (Telefone): **{CHAVE_PIX_OFICIAL}**")
@@ -178,22 +130,17 @@ def tela_bloqueio_comercial(motivo):
             st.error("E-mail ou senha incorretos.")
     st.stop()
 
-# Verificação global de bloqueio
-usos_atuais_verif = obter_acessos_nuvem()
-if (st.session_state.acesso_bloqueado_definitivo or usos_atuais_verif >= LIMITE_MAXIMO_ACESSO) and not st.session_state.liberado_pago_master:
-    tela_bloqueio_comercial("Acesso restrito. O limite de 3 consultas gratuitas na nuvem foi atingido.")
+if st.session_state.acesso_bloqueado_definitivo and not st.session_state.liberado_pago_master:
+    tela_bloqueio_comercial("Acesso restrito. Tentativa de acesso após esgotar as 4 consultas gratuitas.")
 
-# ==========================================
-# MENU LATERAL (NAVEGAÇÃO ESTRATÉGICA)
-# ==========================================
+# Menu Lateral (Navegação Estratégica)
 st.sidebar.title("⚖️ Consultor Master")
 st.sidebar.markdown("Navegação Estratégica")
 
 if st.session_state.liberado_pago_master:
     st.sidebar.success("👑 **Modo Gestor Ativo**\n*(Engenharia & Contabilidade)*")
 else:
-    restantes = max(0, LIMITE_MAXIMO_ACESSO - obter_acessos_nuvem())
-    st.sidebar.info(f"🎁 Acessos gratuitos restantes: **{restantes} / {LIMITE_MAXIMO_ACESSO}**")
+    st.sidebar.info(f"🎁 Acessos gratuitos restantes: **{st.session_state.simulacoes_restantes} / 4**")
 
 modulo = st.sidebar.radio(
     "Selecione o Módulo:",
@@ -285,15 +232,15 @@ if modulo == "🚀 Simulador Tributário & Planos":
                 )
 
 # ==========================================
-# 2. MÓDULO: CHAT IA MASTER SÊNIOR
+# 2. MÓDULO: CHAT IA MASTER SÊNIOR (COM GEMINI REAL)
 # ==========================================
 elif modulo == "💬 Chat IA Master Sênior":
     st.title("💬 Chat IA Master Sênior - Direito Tributário & Contabilidade")
-    st.markdown("Faça perguntas técnicas avançadas sobre legislação brasileira.")
+    st.markdown("Faça perguntas técnicas avançadas respondidas por Inteligência Artificial real (Gemini).")
 
     if "mensagens_chat" not in st.session_state:
         st.session_state.mensagens_chat = [
-            {"role": "assistant", "content": "Olá! Seja muito bem-vindo(a). Sou o seu Consultor Inteligente Master. Estou pronto para fornecer suporte técnico de excelência."}
+            {"role": "assistant", "content": "Olá! Seja muito bem-vindo(a). Sou o seu Consultor Inteligente Master com IA real do Google Gemini. Estou pronto para fornecer suporte técnico de excelência."}
         ]
 
     for msg in st.session_state.mensagens_chat:
@@ -311,17 +258,34 @@ elif modulo == "💬 Chat IA Master Sênior":
         with st.chat_message("user"):
             st.write(pergunta_usuario)
 
-        resposta_ia = f"Análise técnica executada com base na legislação brasileira atualizada para a consulta: '{pergunta_usuario}'."
-        st.session_state.mensagens_chat.append({"role": "assistant", "content": resposta_ia})
         with st.chat_message("assistant"):
-            st.write(resposta_ia)
+            with st.spinner("Consultando bases legais e gerando resposta com IA..."):
+                if client_ai:
+                    try:
+                        system_prompt = "Você é um consultor tributário, fiscal e contábil sênior no Brasil. Responda com precisão técnica baseada na legislação brasileira."
+                        response = client_ai.models.generate_content(
+                            model='gemini-2.5-flash',
+                            contents=pergunta_usuario,
+                            config=types.GenerateContentConfig(
+                                system_instruction=system_prompt,
+                                temperature=0.3
+                            )
+                        )
+                        resposta_ia = response.text
+                    except Exception as e:
+                        resposta_ia = f"Erro ao comunicar com a API do Gemini: {e}"
+                else:
+                    resposta_ia = "⚠️ Chave `GEMINI_API_KEY` não configurada nos segredos (`st.secrets`). Configure a chave para ativar a IA real."
+                
+                st.write(resposta_ia)
+                st.session_state.mensagens_chat.append({"role": "assistant", "content": resposta_ia})
 
 # ==========================================
 # 3. MÓDULO: PARECER EXECUTIVO & DISPAROS
 # ==========================================
 elif modulo == "📑 Parecer Executivo & Disparos":
     st.title("📑 Parecer Executivo & Disparos Automatizados")
-    st.markdown("Geração de laudos técnicos aprofundados.")
+    st.markdown("Geração de laudos técnicos aprofundados com o apoio do Gemini.")
 
     client_nome = st.text_input("Nome do Cliente / Empresa:", value="Comércio Exemplo S.A.")
     client_fone = st.text_input("WhatsApp do Destinatário:", value=MEU_WHATSAPP)
@@ -333,9 +297,23 @@ elif modulo == "📑 Parecer Executivo & Disparos":
 
         descontar_um_uso()
 
-        parecer_texto = f"PARECER TÉCNICO EXECUTIVO\nTema: {tema_parecer}\nCliente: {client_nome}\nData: {datetime.now().strftime('%d/%m/%Y')}\n\nConclusão: Recomendada a implementação imediata dos ajustes fiscais."
+        with st.spinner("Elaborando parecer executivo detalhado..."):
+            if client_ai:
+                try:
+                    prompt_parecer = f"Elabore um parecer técnico executivo formal sobre '{tema_parecer}' para a empresa '{client_nome}', com introdução, fundamentação legal resumida e conclusão recomendando a otimização tributária."
+                    response = client_ai.models.generate_content(
+                        model='gemini-2.5-flash',
+                        contents=prompt_parecer,
+                        config=types.GenerateContentConfig(temperature=0.2)
+                    )
+                    parecer_texto = response.text
+                except Exception as e:
+                    parecer_texto = f"Erro ao gerar parecer via IA: {e}"
+            else:
+                parecer_texto = f"PARECER TÉCNICO EXECUTIVO (Modo Offline)\nTema: {tema_parecer}\nCliente: {client_nome}\nData: {datetime.now().strftime('%d/%m/%Y')}\n\n(Configure o GEMINI_API_KEY para gerar textos completos via IA)."
+
         st.success("Parecer gerado com sucesso!")
-        st.text_area("Laudo Técnico:", value=parecer_texto, height=200)
+        st.text_area("Laudo Técnico:", value=parecer_texto, height=250)
 
         wpp_num = limpar_telefone(client_fone)
         link_wpp_parecer = f"https://wa.me/55{wpp_num}?text={requests.utils.quote(f'Olá {client_nome}, segue o seu Parecer Técnico sobre {tema_parecer}.')}"
@@ -424,8 +402,7 @@ elif modulo == "⚙️ Configurações / Painel Master":
     if st.session_state.liberado_pago_master:
         st.success("🟢 Sistema com Licença Master Ativa (Acesso Ilimitado Liberado).")
     else:
-        restantes = max(0, LIMITE_MAXIMO_ACESSO - obter_acessos_nuvem())
-        st.warning(f"🔒 Sistema em Modo Demonstração. Tentativas restantes: {restantes} / {LIMITE_MAXIMO_ACESSO}")
+        st.warning(f"🔒 Sistema em Modo Demonstração. Tentativas restantes: {st.session_state.simulacoes_restantes} / 4")
         
     st.markdown("### 🔑 Identificação do Gestor ou Resgate de Senha")
     email_painel = st.text_input("Seu E-mail de Gestor:", key="input_email_painel")
@@ -450,4 +427,4 @@ elif modulo == "⚙️ Configurações / Painel Master":
     with col_c2:
         st.markdown(f'<a href="{LINK_PLANO_PRO}" target="_blank" style="background-color: #28a745; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Plano Pro</a>', unsafe_allow_html=True)
     with col_c3:
-        st.markdown(f'<a href="{LINK_PLANO_ENTERPRISE}" target="_blank" style="background-color: #6f42c1; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Plano Enterprise</a>', unsafe_allow_html=True)
+        st.markdown(f'<a href="{LINK_PLANO_ENTERPRISE}" target="_blank" style="background-color: #6f42c1; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Enterprise</a>', unsafe_allow_html=True)
