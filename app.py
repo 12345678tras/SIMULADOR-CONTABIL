@@ -121,7 +121,7 @@ def renderizar_paywall_modulo(nome_modulo):
     with st.expander("🔑 Possui senha mestre de liberação?"):
         senha_input = st.text_input("Digite a senha:", type="password", key=f"senha_paywall_{nome_modulo}")
         if st.button("Ativar Acesso", key=f"btn_senha_{nome_modulo}"):
-            if senha_input in SENHAS_MESTRE_CONFIG:
+            if senha_input.strip().lower() in [s.lower() for s in SENHAS_MESTRE_CONFIG]:
                 st.session_state.liberado_pago_master = True
                 st.success("Licença Master ativada com sucesso!")
                 st.rerun()
@@ -150,7 +150,7 @@ def tela_identificacao_inicial():
             submitted = st.form_submit_button("⚡ ENTRAR NO SIMULADOR GRATUITO")
             
             if submitted:
-                if input_senha_mestre in SENHAS_MESTRE_CONFIG or (input_email.strip().lower() == MEU_EMAIL_GESTOR.lower() and input_senha_mestre):
+                if (input_senha_mestre.strip().lower() in [s.lower() for s in SENHAS_MESTRE_CONFIG]) or (input_email.strip().lower() == MEU_EMAIL_GESTOR.lower() and input_senha_mestre):
                     st.session_state.liberado_pago_master = True
                     st.session_state.usuario_identificado = True
                     st.session_state.email_atual = MEU_EMAIL_GESTOR
@@ -204,7 +204,7 @@ if not st.session_state.liberado_pago_master:
         st.rerun()
 
 # ==========================================
-# 1. MÓDULO: SIMULADOR TRIBUTÁRIO GRATUITO (MANTIDO INALTERADO)
+# 1. MÓDULO: SIMULADOR TRIBUTÁRIO GRATUITO
 # ==========================================
 if modulo == "🚀 1. Simulador Tributário Gratuito":
     st.title("🧮 Simulador Contínuo de Regime Tributário (Versão Gratuita)")
@@ -257,7 +257,7 @@ if modulo == "🚀 1. Simulador Tributário Gratuito":
             st.markdown(f'<a href="{link_wpp}" target="_blank" style="background-color: #25D366; color: white; padding: 10px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">📲 Enviar Resultado no WhatsApp</a>', unsafe_allow_html=True)
 
 # ==========================================
-# 2. MÓDULO: SIMULADOR TRIBUTÁRIO AVANÇADO (PAGO & ROBUSTO)
+# 2. MÓDULO: SIMULADOR TRIBUTÁRIO AVANÇADO
 # ==========================================
 elif modulo == "⚙️ 2. Simulador Tributário Avançado":
     if not st.session_state.liberado_pago_master:
@@ -281,7 +281,6 @@ elif modulo == "⚙️ 2. Simulador Tributário Avançado":
         if st.button("🚀 Processar Simulação Avançada Completa", type="primary", use_container_width=True):
             fator_r = (adv_folha / adv_faturamento) * 100 if adv_faturamento > 0 else 0
             
-            # Cálculo estimativo robusto
             imposto_simples = adv_faturamento * 0.12 if fator_r >= 28 else adv_faturamento * 0.155
             imposto_presumido = (adv_faturamento * 0.08 * 0.34) + (adv_faturamento * 0.0365)
             lucro_real_base = max(0.0, adv_faturamento - adv_compras - adv_despesas - adv_folha)
@@ -300,7 +299,7 @@ elif modulo == "⚙️ 2. Simulador Tributário Avançado":
             st.info(f"💡 **Recomendação Técnica:** O regime mais vantajoso para o planejamento fiscal de {adv_razao} é o **{melhor_av}**.")
 
 # ==========================================
-# 3. MÓDULO: CHAT IA MASTER SÊNIOR (PAGO)
+# 3. MÓDULO: CHAT IA MASTER SÊNIOR
 # ==========================================
 elif modulo == "💬 Chat IA Master Sênior":
     if not st.session_state.liberado_pago_master:
@@ -327,7 +326,7 @@ elif modulo == "💬 Chat IA Master Sênior":
             st.markdown(resposta_ia)
 
 # ==========================================
-# 4. MÓDULO: PARECER EXECUTIVO & LAUDOS (PAGO)
+# 4. MÓDULO: PARECER EXECUTIVO & LAUDOS
 # ==========================================
 elif modulo == "📑 Parecer Executivo & Laudos":
     if not st.session_state.liberado_pago_master:
@@ -353,7 +352,7 @@ elif modulo == "📑 Parecer Executivo & Laudos":
         """)
 
 # ==========================================
-# 5. MÓDULO: AUDITORIA PREVENTIVA (XML/SPED) (PAGO)
+# 5. MÓDULO: AUDITORIA PREVENTIVA (XML/SPED)
 # ==========================================
 elif modulo == "🛡️ Auditoria Preventiva (XML/SPED)":
     if not st.session_state.liberado_pago_master:
@@ -369,7 +368,7 @@ elif modulo == "🛡️ Auditoria Preventiva (XML/SPED)":
             st.warning("Nenhum passivo fiscal crítico detectado nos arquivos validados.")
 
 # ==========================================
-# 6. MÓDULO: INDICADORES & FATOR R (PAGO)
+# 6. MÓDULO: INDICADORES & FATOR R
 # ==========================================
 elif modulo == "📊 Indicadores & Fator R":
     if not st.session_state.liberado_pago_master:
@@ -390,18 +389,18 @@ elif modulo == "📊 Indicadores & Fator R":
             st.warning("Atenção: Fator R abaixo de 28%. A atividade está sujeita ao Anexo V.")
 
 # ==========================================
-# 7. MÓDULO: GOVERNANÇA DE CLIENTES (PAGO)
+# 7. MÓDULO: GOVERNANÇA DE CLIENTES
 # ==========================================
 elif modulo == "🏛️ Governança de Clientes":
     if not st.session_state.liberado_pago_master:
         renderizar_paywall_modulo("Governança de Clientes")
     
-    st.title("🏛️ Governança de Clientes e Conformidad Fiscal")
+    st.title("🏛️ Governança de Clientes e Conformidade Fiscal")
     st.markdown("Gestão de carteira de clientes, status de certidões negativas e prazos de entrega de obrigações.")
     st.info("Nenhum alerta de regularidade fiscal pendente na carteira ativa.")
 
 # ==========================================
-# 8. MÓDULO: CENTRAL DE LEADS (PAGO)
+# 8. MÓDULO: CENTRAL DE LEADS
 # ==========================================
 elif modulo == "🎯 Central de Leads":
     if not st.session_state.liberado_pago_master:
@@ -423,7 +422,7 @@ elif modulo == "🔐 Painel Master / Configurações":
     
     senha_input = st.text_input("Digite a Senha Mestre de Acesso:", type="password")
     if st.button("Ativar Acesso Total"):
-        if senha_input in SENHAS_MESTRE_CONFIG:
+        if senha_input.strip().lower() in [s.lower() for s in SENHAS_MESTRE_CONFIG]:
             st.session_state.liberado_pago_master = True
             st.success("Licença Master ativada com sucesso em todos os módulos!")
             st.rerun()
