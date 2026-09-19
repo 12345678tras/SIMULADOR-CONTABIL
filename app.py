@@ -74,9 +74,10 @@ def salvar_lead_arquivo(novo_lead):
         print(f"Erro ao salvar lead local: {e}")
 
 # ==========================================
-# CONTROLE DE USO ÚNICO (SUPABASE BLINDADO)
+# FUNÇÕES DE VALIDAÇÃO NA NUVEM (SUPABASE)
 # ==========================================
-def verificar_status_email(email):
+def verificar_status_nuvem(email):
+    """Consulta o Supabase para ver se o e-mail já realizou o teste gratuito."""
     if not supabase:
         return "liberado"
     try:
@@ -88,7 +89,8 @@ def verificar_status_email(email):
         print(f"Erro ao consultar Supabase: {e}")
     return "liberado"
 
-def registrar_novo_usuario(email, whatsapp, razao):
+def registrar_acesso_nuvem(email, whatsapp, razao):
+    """Registra o e-mail na nuvem para bloquear futuros acessos gratuitos."""
     if not supabase:
         return
     try:
@@ -114,82 +116,6 @@ def registrar_novo_usuario(email, whatsapp, razao):
             })
     except Exception as e:
         print(f"Erro ao registrar usuário: {e}")
-
-# ==========================================
-# TELA DE CAPTURA COMERCIAL
-# ==========================================
-def tela_identificacao_inicial():
-    st.markdown("""
-        <style>
-        .stButton button {
-            background-color: #25D366 !important;
-            color: white !important;
-            font-size: 18px !important;
-            font-weight: bold !important;
-            border-radius: 8px !important;
-            height: 50px !important;
-            width: 100% !important;
-            border: none !important;
-        }
-        .stButton button:hover {
-            background-color: #1ebe5d !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-    col_vazia1, col_centro, col_vazia2 = st.columns([1, 2.5, 1])
-
-    with col_centro:
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("<h1 style='text-align: center; color: #1e293b;'>⚖️ Consultor Master</h1>", unsafe_allow_html=True)
-        st.markdown("<h3 style='text-align: center; color: #0284c7; font-size: 20px;'>Inteligência Tributária & Elisão Fiscal Avançada</h3>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center; color: #64748b;'>Realize seu teste gratuito exclusivo e descubra como reduzir a carga tributária.</p>", unsafe_allow_html=True)
-        st.markdown("---")
-
-        with st.form("form_login_saas"):
-            st.markdown("#### 🚀 Acesso ao Teste Gratuito:")
-            
-            input_nome = st.text_input("Empresa / Razão Social:", value="Empresa Exemplo Ltda")
-            input_email = st.text_input("E-mail Profissional (Obrigatório):", value="")
-            input_wpp = st.text_input("WhatsApp com DDD:", value=MEU_WHATSAPP)
-            input_senha_mestre = st.text_input("Senha de Gestor / Assinante (Opcional):", type="password", value="")
-
-            st.markdown("<br>", unsafe_allow_html=True)
-            submitted = st.form_submit_button("⚡ ENTRAR NO SISTEMA")
-            
-            if submitted:
-                if input_senha_mestre in SENHAS_MESTRE_CONFIG or (input_email.strip().lower() == MEU_EMAIL_GESTOR.lower() and input_senha_mestre):
-                    st.session_state.liberado_pago_master = True
-                    st.session_state.usuario_identificado = True
-                    st.session_state.email_atual = MEU_EMAIL_GESTOR
-                    st.success("Acesso Master liberado!")
-                    st.rerun()
-                
-                elif not input_email or "@" not in input_email or "." not in input_email:
-                    st.error("Por favor, digite um e-mail válido.")
-                else:
-                    email_limpo = input_email.strip().lower()
-                    st.session_state.email_atual = email_limpo
-                    
-                    status_email = verificar_status_email(email_limpo)
-                    
-                    if status_email == "bloqueado":
-                        st.session_state.bloqueado_por_uso = True
-                        st.session_state.usuario_identificado = False
-                        st.rerun()
-                    else:
-                        registrar_novo_usuario(email_limpo, input_wpp, input_nome)
-                        st.session_state.usuario_identificado = True
-                        st.session_state.bloqueado_por_uso = False
-                        st.success("Teste gratuito liberado com sucesso!")
-                        st.rerun()
-
-        st.markdown("---")
-        with st.expander("💎 Já é assinante ou quer liberação imediata via PIX?"):
-            st.markdown(f"**Chave PIX (Telefone):** `{CHAVE_PIX_OFICIAL}`")
-            st.markdown(f"📲 Envie o comprovante no WhatsApp **(64) 99304-4147** para receber sua senha.")
-
-    st.stop()
 
 # ==========================================
 # TELA DE BLOQUEIO COMERCIAL
@@ -236,7 +162,87 @@ def tela_bloqueio_comercial():
     st.stop()
 
 # ==========================================
-# FLUXO DE VERIFICAÇÃO PRINCIPAL
+# TELA DE CAPTURA COMERCIAL (LOGIN)
+# ==========================================
+def tela_identificacao_inicial():
+    st.markdown("""
+        <style>
+        .stButton button {
+            background-color: #25D366 !important;
+            color: white !important;
+            font-size: 18px !important;
+            font-weight: bold !important;
+            border-radius: 8px !important;
+            height: 50px !important;
+            width: 100% !important;
+            border: none !important;
+        }
+        .stButton button:hover {
+            background-color: #1ebe5d !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+    col_vazia1, col_centro, col_vazia2 = st.columns([1, 2.5, 1])
+
+    with col_centro:
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<h1 style='text-align: center; color: #1e293b;'>⚖️ Consultor Master</h1>", unsafe_allow_html=True)
+        st.markdown("<h3 style='text-align: center; color: #0284c7; font-size: 20px;'>Inteligência Tributária & Elisão Fiscal Avançada</h3>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center; color: #64748b;'>Realize seu teste gratuito exclusivo e descubra como reduzir a carga tributária.</p>", unsafe_allow_html=True)
+        st.markdown("---")
+
+        with st.form("form_login_saas"):
+            st.markdown("#### 🚀 Acesso ao Teste Gratuito:")
+            
+            input_nome = st.text_input("Empresa / Razão Social:", value="Empresa Exemplo Ltda")
+            input_email = st.text_input("E-mail Profissional (Obrigatório):", value="")
+            input_wpp = st.text_input("WhatsApp com DDD:", value=MEU_WHATSAPP)
+            input_senha_mestre = st.text_input("Senha de Gestor / Assinante (Opcional):", type="password", value="")
+
+            st.markdown("<br>", unsafe_allow_html=True)
+            submitted = st.form_submit_button("⚡ ENTRAR NO SISTEMA")
+            
+            if submitted:
+                # 1. Validação de Gestor / Senha Mestre
+                if input_senha_mestre in SENHAS_MESTRE_CONFIG or (input_email.strip().lower() == MEU_EMAIL_GESTOR.lower() and input_senha_mestre):
+                    st.session_state.liberado_pago_master = True
+                    st.session_state.usuario_identificado = True
+                    st.session_state.email_atual = MEU_EMAIL_GESTOR
+                    st.success("Acesso Master liberado!")
+                    st.rerun()
+                
+                # 2. Validação de E-mail Válido
+                elif not input_email or "@" not in input_email or "." not in input_email:
+                    st.error("Por favor, digite um e-mail válido.")
+                
+                # 3. Validação de Uso na Nuvem (O Bloqueio Definitivo)
+                else:
+                    email_limpo = input_email.strip().lower()
+                    st.session_state.email_atual = email_limpo
+                    
+                    status_nuvem = verificar_status_nuvem(email_limpo)
+                    
+                    if status_nuvem == "bloqueado":
+                        st.session_state.bloqueado_por_uso = True
+                        st.session_state.usuario_identificado = False
+                        st.rerun()
+                    else:
+                        registrar_acesso_nuvem(email_limpo, input_wpp, input_nome)
+                        st.session_state.usuario_identificado = True
+                        st.session_state.bloqueado_por_uso = False
+                        st.success("Teste gratuito liberado com sucesso!")
+                        st.rerun()
+
+        st.markdown("---")
+        with st.expander("💎 Já é assinante ou quer liberação imediata via PIX?"):
+            st.markdown(f"**Chave PIX (Telefone):** `{CHAVE_PIX_OFICIAL}`")
+            st.markdown(f"📲 Envie o comprovante no WhatsApp **(64) 99304-4147** para receber sua senha.")
+
+    st.stop()
+
+# ==========================================
+# ORQUESTRADOR DE TELAS (ROTEAMENTO)
 # ==========================================
 if st.session_state.bloqueado_por_uso:
     tela_bloqueio_comercial()
@@ -245,7 +251,7 @@ if not st.session_state.usuario_identificado:
     tela_identificacao_inicial()
 
 # ==========================================
-# MENU LATERAL
+# MENU LATERAL (SISTEMA PRINCIPAL LIBERADO)
 # ==========================================
 st.sidebar.title("⚖️ Consultor Master")
 st.sidebar.markdown("Navegação Estratégica")
