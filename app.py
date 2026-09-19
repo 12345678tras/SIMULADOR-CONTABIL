@@ -187,11 +187,6 @@ modulo = st.sidebar.radio(
     [
         "🚀 1. Simulador Tributário Gratuito",
         "⚙️ 2. Simulador Tributário Avançado",
-        "💡 3. Pró-Labore x Lucros (Fator R)",
-        "🧾 4. Retenções na Fonte (Notas Fiscais)",
-        "⛽ 5. Recuperação Crédito Monofásico",
-        "👥 6. Custo Real de Funcionário (CLT)",
-        "📅 7. Calendário de Obrigações Fiscais",
         "💬 Chat IA Master Sênior",
         "📑 Parecer Executivo & Laudos",
         "🛡️ Auditoria Preventiva (XML/SPED)",
@@ -209,7 +204,7 @@ if not st.session_state.liberado_pago_master:
         st.rerun()
 
 # ==========================================
-# 1. MÓDULO: SIMULADOR TRIBUTÁRIO GRATUITO
+# 1. MÓDULO: SIMULADOR TRIBUTÁRIO GRATUITO (MANTIDO INALTERADO)
 # ==========================================
 if modulo == "🚀 1. Simulador Tributário Gratuito":
     st.title("🧮 Simulador Contínuo de Regime Tributário (Versão Gratuita)")
@@ -262,7 +257,7 @@ if modulo == "🚀 1. Simulador Tributário Gratuito":
             st.markdown(f'<a href="{link_wpp}" target="_blank" style="background-color: #25D366; color: white; padding: 10px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">📲 Enviar Resultado no WhatsApp</a>', unsafe_allow_html=True)
 
 # ==========================================
-# 2. MÓDULO: SIMULADOR TRIBUTÁRIO AVANÇADO
+# 2. MÓDULO: SIMULADOR TRIBUTÁRIO AVANÇADO (PAGO & ROBUSTO)
 # ==========================================
 elif modulo == "⚙️ 2. Simulador Tributário Avançado":
     if not st.session_state.liberado_pago_master:
@@ -285,6 +280,8 @@ elif modulo == "⚙️ 2. Simulador Tributário Avançado":
         st.subheader("Laudo Comparativo Avançado")
         if st.button("🚀 Processar Simulação Avançada Completa", type="primary", use_container_width=True):
             fator_r = (adv_folha / adv_faturamento) * 100 if adv_faturamento > 0 else 0
+            
+            # Cálculo estimativo robusto
             imposto_simples = adv_faturamento * 0.12 if fator_r >= 28 else adv_faturamento * 0.155
             imposto_presumido = (adv_faturamento * 0.08 * 0.34) + (adv_faturamento * 0.0365)
             lucro_real_base = max(0.0, adv_faturamento - adv_compras - adv_despesas - adv_folha)
@@ -303,126 +300,7 @@ elif modulo == "⚙️ 2. Simulador Tributário Avançado":
             st.info(f"💡 **Recomendação Técnica:** O regime mais vantajoso para o planejamento fiscal de {adv_razao} é o **{melhor_av}**.")
 
 # ==========================================
-# 3. MÓDULO NOVO: PRÓ-LABORE X LUCROS (FATOR R)
-# ==========================================
-elif modulo == "💡 3. Pró-Labore x Lucros (Fator R)":
-    if not st.session_state.liberado_pago_master:
-        renderizar_paywall_modulo("Pró-Labore x Lucros (Fator R)")
-    
-    st.title("💡 Otimizador de Pró-Labore e Fator R")
-    st.markdown("Calcule o ponto ótimo de retirada de pró-labore para atingir 28% de Fator R e economizar no Simples Nacional.")
-    
-    c_pl1, c_pl2 = st.columns(2)
-    with c_pl1:
-        faturamento_12m = st.number_input("Faturamento Bruto Acumulado 12 Meses (R$):", value=500000.0, step=10000.0)
-        folha_atual_12m = st.number_input("Folha Atual (sem pró-labore dos sócios) 12m (R$):", value=100000.0, step=5000.0)
-    with c_pl2:
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("⚖️ Calcular Pró-Labore Ideal", type="primary", use_container_width=True):
-            folha_necessaria = faturamento_12m * 0.28
-            pro_labore_anual_necessario = max(0.0, folha_necessaria - folha_atual_12m)
-            pro_labore_mensal = pro_labore_anual_necessario / 12
-            
-            st.success("Cálculo realizado!")
-            st.metric("Pró-Labore Mensal Ideal para o Sócio", f"R$ {pro_labore_mensal:,.2f}")
-            st.info(f"Com esse valor, sua folha atinge exatamente 28% do faturamento, garantindo sua empresa no **Anexo III** (evitando o Anexo V que é muito mais caro).")
-
-# ==========================================
-# 4. MÓDULO NOVO: RETENÇÕES NA FONTE
-# ==========================================
-elif modulo == "🧾 4. Retenções na Fonte (Notas Fiscais)":
-    if not st.session_state.liberado_pago_master:
-        renderizar_paywall_modulo("Retenções na Fonte (Notas Fiscais)")
-    
-    st.title("🧾 Simulador de Retenções Tributárias na Fonte")
-    st.markdown("Aureste os valores de retenção de INSS, ISS, IRRF, PIS, COFINS e CSLL em notas fiscais de serviços.")
-    
-    rf1, rf2 = st.columns(2)
-    with rf1:
-        valor_nf = st.number_input("Valor Bruto da Nota Fiscal de Serviço (R$):", value=10000.0, step=500.0)
-        tipo_servico = st.selectbox("Natureza do Serviço:", ["Serviços Gerais / Administrativos", "Serviços de Engenharia / Arquitetura", "Serviços Médicos / Saúde"])
-    with rf2:
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("🔍 Calcular Retenções", type="primary", use_container_width=True):
-            irrf = valor_nf * 0.015 if valor_nf > 666.66 else 0.0
-            pis_cofins_csll = valor_nf * 0.0465 if valor_nf > 5000 else 0.0
-            iss = valor_nf * 0.05
-            liquido = valor_nf - (irrf + pis_cofins_csll + iss)
-            
-            st.metric("Valor Líquido a Receber", f"R$ {liquido:,.2f}")
-            df_ret = pd.DataFrame({
-                "Tributo Retido": ["IRRF (1,5%)", "PIS/COFINS/CSLL (4,65%)", "ISS Municipal (5%)"],
-                "Valor (R$)": [round(irrf, 2), round(pis_cofins_csll, 2), round(iss, 2)]
-            })
-            st.dataframe(df_ret, use_container_width=True)
-
-# ==========================================
-# 5. MÓDULO NOVO: RECUPERAÇÃO DE CRÉDITO MONOFÁSICO
-# ==========================================
-elif modulo == "⛽ 5. Recuperação Crédito Monofásico":
-    if not st.session_state.liberado_pago_master:
-        renderizar_paywall_modulo("Recuperação Crédito Monofásico")
-    
-    st.title("⛽ Simulador de Recuperação de Crédito (PIS/COFINS Monofásico)")
-    st.markdown("Exclusivo para postos de combustíveis, distribuidoras, autopeças, farmácias e pet shops.")
-    
-    m1, m2 = st.columns(2)
-    with m1:
-        fat_monofasico = st.number_input("Faturamento Mensal com Produtos Monofásicos (R$):", value=150000.0, step=10000.0)
-        meses_retroativos = st.slider("Meses para Recuperação Retroativa (até 60m):", 1, 60, 36)
-    with m2:
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("💰 Estimar Crédito a Recuperar", type="primary", use_container_width=True):
-            credito_estimado = fat_monofasico * 0.03 * meses_retroativos
-            st.metric("Crédito Potencial Recuperável", f"R$ {credito_estimado:,.2f}")
-            st.success("Oportunidade identificada! Estes valores podem ser compensados via PER/DCOMP na Receita Federal.")
-
-# ==========================================
-# 6. MÓDULO NOVO: CUSTO REAL DE FUNCIONÁRIO (CLT)
-# ==========================================
-elif modulo == "👥 6. Custo Real de Funcionário (CLT)":
-    if not st.session_state.liberado_pago_master:
-        renderizar_paywall_modulo("Custo Real de Funcionário (CLT)")
-    
-    st.title("👥 Simulador de Custo Real de Funcionário (CLT)")
-    st.markdown("Descubra quanto custa realmente manter um colaborador na carteira (salário + encargos + provisões).")
-    
-    clt1, clt2 = st.columns(2)
-    with clt1:
-        salario_base = st.number_input("Salário Bruto Mensal (R$):", value=3500.0, step=200.0)
-        tem_insalubridade = st.checkbox("Adicional de Insalubridade / Periculosidade")
-    with clt2:
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("📊 Calcular Custo Total", type="primary", use_container_width=True):
-            inss_patronal = salario_base * 0.20
-            fgts = salario_base * 0.08
-            provisao_13 = salario_base / 12
-            provisao_ferias = (salario_base * 1.3333) / 12
-            custo_total = salario_base + inss_patronal + fgts + provisao_13 + provisao_ferias
-            
-            st.metric("Custo Total Mensal para a Empresa", f"R$ {custo_total:,.2f}")
-            st.info(f"O colaborador custa aproximadamente **{(custo_total/salario_base):.2f}x** o valor do seu salário bruto nominal.")
-
-# ==========================================
-# 7. MÓDULO NOVO: CALENDÁRIO DE OBRIGAÇÕES
-# ==========================================
-elif modulo == "📅 7. Calendário de Obrigações Fiscais":
-    if not st.session_state.liberado_pago_master:
-        renderizar_paywall_modulo("Calendário de Obrigações Fiscais")
-    
-    st.title("📅 Calendário Fiscal Inteligente & Vencimentos")
-    st.markdown("Acompanhe os prazos limite das principais obrigações acessórias federais, estaduais e municipais.")
-    
-    dados_calendario = [
-        {"Obrigação": "PGDAS-D (Simples Nacional)", "Vencimento": "Dia 20 de cada mês", "Status": "🟢 No Prazo"},
-        {"Obrigação": "DCTFWeb e eSocial", "Vencimento": "Dia 15 de cada mês", "Status": "🟢 No Prazo"},
-        {"Obrigação": "DEFIS (Anual)", "Vencimento": "Até 31 de Março", "Status": "⚠️ Atenção ao Prazo"},
-        {"Obrigação": "IRPJ / CSLL / PIS / COFINS (Lucro Presumido)", "Vencimento": "Último dia útil do mês subsequente", "Status": "🟢 No Prazo"}
-    ]
-    st.dataframe(pd.DataFrame(dados_calendario), use_container_width=True)
-
-# ==========================================
-# 8. MÓDULO: CHAT IA MASTER SÊNIOR
+# 3. MÓDULO: CHAT IA MASTER SÊNIOR (PAGO)
 # ==========================================
 elif modulo == "💬 Chat IA Master Sênior":
     if not st.session_state.liberado_pago_master:
@@ -449,7 +327,7 @@ elif modulo == "💬 Chat IA Master Sênior":
             st.markdown(resposta_ia)
 
 # ==========================================
-# 9. MÓDULO: PARECER EXECUTIVO & LAUDOS
+# 4. MÓDULO: PARECER EXECUTIVO & LAUDOS (PAGO)
 # ==========================================
 elif modulo == "📑 Parecer Executivo & Laudos":
     if not st.session_state.liberado_pago_master:
@@ -475,7 +353,7 @@ elif modulo == "📑 Parecer Executivo & Laudos":
         """)
 
 # ==========================================
-# 10. MÓDULO: AUDITORIA PREVENTIVA (XML/SPED)
+# 5. MÓDULO: AUDITORIA PREVENTIVA (XML/SPED) (PAGO)
 # ==========================================
 elif modulo == "🛡️ Auditoria Preventiva (XML/SPED)":
     if not st.session_state.liberado_pago_master:
@@ -491,7 +369,7 @@ elif modulo == "🛡️ Auditoria Preventiva (XML/SPED)":
             st.warning("Nenhum passivo fiscal crítico detectado nos arquivos validados.")
 
 # ==========================================
-# 11. MÓDULO: INDICADORES & FATOR R
+# 6. MÓDULO: INDICADORES & FATOR R (PAGO)
 # ==========================================
 elif modulo == "📊 Indicadores & Fator R":
     if not st.session_state.liberado_pago_master:
@@ -512,18 +390,18 @@ elif modulo == "📊 Indicadores & Fator R":
             st.warning("Atenção: Fator R abaixo de 28%. A atividade está sujeita ao Anexo V.")
 
 # ==========================================
-# 12. MÓDULO: GOVERNANÇA DE CLIENTES
+# 7. MÓDULO: GOVERNANÇA DE CLIENTES (PAGO)
 # ==========================================
 elif modulo == "🏛️ Governança de Clientes":
     if not st.session_state.liberado_pago_master:
         renderizar_paywall_modulo("Governança de Clientes")
     
-    st.title("🏛️ Governança de Clientes e Conformidade Fiscal")
+    st.title("🏛️ Governança de Clientes e Conformidad Fiscal")
     st.markdown("Gestão de carteira de clientes, status de certidões negativas e prazos de entrega de obrigações.")
     st.info("Nenhum alerta de regularidade fiscal pendente na carteira ativa.")
 
 # ==========================================
-# 13. MÓDULO: CENTRAL DE LEADS
+# 8. MÓDULO: CENTRAL DE LEADS (PAGO)
 # ==========================================
 elif modulo == "🎯 Central de Leads":
     if not st.session_state.liberado_pago_master:
@@ -537,7 +415,7 @@ elif modulo == "🎯 Central de Leads":
         st.info("Nenhum lead registrado localmente até o momento.")
 
 # ==========================================
-# 14. MÓDULO: CONFIGURAÇÕES / PAINEL MASTER
+# 9. MÓDULO: CONFIGURAÇÕES / PAINEL MASTER
 # ==========================================
 elif modulo == "🔐 Painel Master / Configurações":
     st.title("🔐 Painel de Controle Master")
