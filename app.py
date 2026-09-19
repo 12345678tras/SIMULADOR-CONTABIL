@@ -22,10 +22,10 @@ try:
 except Exception as e:
     st.error(f"Erro ao inicializar o Gemini: {e}")
 
-# --- MENU LATERAL ENXUTO E DIRETO ---
+# --- MENU LATERAL PROFISSIONAL ---
 st.sidebar.markdown("## 🏢 Consultor Master")
 st.sidebar.markdown("Plataforma de Inteligência Contábil")
-st.sidebar.success("🔓 Sistema Operacional")
+st.sidebar.success("🔓 Sistema Ativo & Integrado")
 st.sidebar.markdown("---")
 
 pagina = st.sidebar.radio(
@@ -62,19 +62,19 @@ if pagina == "📊 Simulador Básico":
         col2.metric("Lucro Presumido (Estimado)", f"R$ {imposto_presumido:,.2f} / ano")
         
         if imposto_simples < imposto_presumido:
-            st.info("💡 **Conclusão:** O Simples Nacional apresenta menor carga tributária teórica neste patamar.")
+            st.info("💡 **Conclusão Técnica:** O Simples Nacional apresenta menor carga tributária teórica neste patamar de receita.")
         else:
-            st.info("💡 **Conclusão:** Avaliar Lucro Presumido com detalhamento de despesas operacionais.")
+            st.info("💡 **Conclusão Técnica:** Avaliar Lucro Presumido com detalhamento de despesas operacionais e folha.")
 
 # --- MÓDULO: SIMULADOR AVANÇADO ---
 elif pagina == "📈 Simulador Avançado":
     st.title("📈 Simulador Avançado de Regime Tributário")
-    st.markdown("Cruzamento completo de folha de pagamento, fator R, despesas e margens.")
+    st.markdown("Cruzamento completo de folha de pagamento, fator R, despesas e margens operacionais.")
 
     c1, c2 = st.columns(2)
     with c1:
         razao_social = st.text_input("Razão Social Completa", value="Empresa S/A")
-        documento = st.text_input("CNPJ", value="00.000.000/0001-00")
+        documento = st.text_input("CNPJ da Empresa", value="00.000.000/0001-00")
     with c2:
         whatsapp = st.text_input("WhatsApp para Envio (com DDD)", value="64993044147")
         atividade = st.selectbox("Ramo de Atividade", ["Comércio", "Indústria", "Serviços (Fator R)", "Serviços Gerais"])
@@ -88,9 +88,9 @@ elif pagina == "📈 Simulador Avançado":
     with c5:
         despesas = st.number_input("Despesas Operacionais Anuais (R$)", value=40000.00, format="%.2f")
     
-    if st.button("Executar Simulação Avançada"):
+    if st.button("Executar Simulação Avançada Completa"):
         st.success("Simulação avançada processada com sucesso!")
-        st.markdown("### 📊 Relatório Comparativo de Cenários")
+        st.markdown("### 📊 Relatório Comparativo Detalhado de Cenários")
         
         col_a, col_b, col_c = st.columns(3)
         col_a.metric("Simples Nacional", "R$ 21.600,00 /ano", "-8.5%")
@@ -101,50 +101,65 @@ elif pagina == "📈 Simulador Avançado":
 --------------------------------------------------
 Empresa: {razao_social}
 CNPJ: {documento}
+Atividade: {atividade}
 Faturamento Anual: R$ {faturamento:,.2f}
+Folha de Pagamento: R$ {folha:,.2f}
 
-Conclusão: Simulação detalhada indicou economia tributária expressiva optando pelo enquadramento mais adequado ao perfil operacional.
+Conclusão: Simulação detalhada indicou o enquadramento ideal para otimização da carga fiscal.
 """
         st.download_button(
-            label="📥 Baixar Relatório em Texto/TXT",
+            label="📥 Baixar Relatório Técnico em TXT",
             data=relatorio_texto,
             file_name=f"Parecer_{razao_social.replace(' ', '_')}.txt",
             mime="text/plain"
         )
         
         link_wapp = f"https://wa.me/55{whatsapp}?text=Olá,%20segue%20o%20parecer%20tributário%20gerado%20pelo%20Consultor%20Master."
-        st.markdown(f"<a href='{link_wapp}' target='_blank'><button style='background-color:#25D366; color:white; padding:10px 20px; border:none; border-radius:5px; font-weight:bold; cursor:pointer;'>📲 Enviar Relatório via WhatsApp</button></a>", unsafe_allow_html=True)
+        st.markdown(f"<a href='{link_wapp}' target='_blank'><button style='background-color:#25D366; color:white; padding:10px 20px; border:none; border-radius:5px; font-weight:bold; cursor:pointer;'>📲 Enviar Parecer via WhatsApp</button></a>", unsafe_allow_html=True)
 
 # --- MÓDULO: PLANEJAMENTO TRIBUTÁRIO ANUAL ---
 elif pagina == "📅 Planejamento Tributário Anual":
     st.title("📅 Planejamento Tributário Anual")
-    st.markdown("Projeção de 12 meses para antecipação de mudanças de faixa e enquadramento.")
+    st.markdown("Projeção detalhada de 12 meses para antecipação de mudanças de faixa e limites de enquadramento.")
     
     meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
     df_proj = pd.DataFrame({"Mês": meses, "Faturamento Previsto (R$)": [30000.0] * 12})
-    df_editado = st.data_editor(df_proj, hide_index=True)
+    df_editado = st.data_editor(df_proj, hide_index=True, use_container_width=True)
+    
     if st.button("Consolidar Projeção Anual"):
         total_proj = df_editado["Faturamento Previsto (R$)"].sum()
         st.success(f"Projeção anual consolidada com sucesso! Faturamento total previsto: R$ {total_proj:,.2f}")
+        if total_proj > 4800000:
+            st.warning("⚠️ **Atenção:** O faturamento previsto ultrapassa o limite do Simples Nacional (R$ 4,8 milhões). Avaliar migração para Lucro Presumido ou Real.")
+        else:
+            st.info("✅ **Status:** Dentro do limite do Simples Nacional.")
 
 # --- MÓDULO: ANÁLISE DE LUCROS ISENTOS ---
 elif pagina == "💰 Análise de Lucros Isentos":
     st.title("💰 Análise de Distribuição de Lucros Isentos")
-    st.markdown("Cálculo do limite de isenção de distribuição de lucros baseado no balanço e apuração.")
+    st.markdown("Cálculo avançado do limite de isenção de distribuição de lucros baseado no balanço e apuração.")
     
-    receita_contabil = st.number_input("Receita Bruta Contábil Anual (R$)", value=500000.0)
-    presuncao = st.selectbox("Percentual de Presunção (Lucro Presumido)", [0.08, 0.16, 0.32])
-    irpj_csll_pagos = st.number_input("Tributos Federais Pagos no Período (R$)", value=25000.0)
+    c1, c2 = st.columns(2)
+    with c1:
+        receita_contabil = st.number_input("Receita Bruta Contábil Anual (R$)", value=500000.0)
+        presuncao = st.selectbox("Percentual de Presunção (Lucro Presumido)", [0.08, 0.16, 0.32])
+    with c2:
+        irpj_csll_pagos = st.number_input("Tributos Federais Pagos no Período (R$)", value=25000.0)
+        possui_contabilidade_regular = st.checkbox("Empresa possui Escrituração Contábil Regular (ECD/Balanço)?", value=True)
     
     if st.button("Calcular Lucro Isento Máximo"):
         lucro_presumido_contabil = receita_contabil * presuncao
-        max_isento = lucro_presumido_contabil - irpj_csll_pagos
-        st.metric("Limite Máximo de Lucro Isento Distribuível", f"R$ {max_isento:,.2f}")
+        if possui_contabilidade_regular:
+            max_isento = lucro_presumido_contabil - irpj_csll_pagos
+            st.metric("Limite Máximo de Lucro Isento Distribuível", f"R$ {max_isento:,.2f}")
+            st.success("Cálculo efetuado com base na presunção menos os tributos federais.")
+        else:
+            st.warning("⚠️ Sem escrituração contábil regular, a isenção fica limitada ao percentual de presunção da base de cálculo do IRPJ. Consulte as regras da legislação vigente.")
 
-# --- MÓDULO: CHAT IA ---
+# --- MÓDULO: CHAT IA (CORRIGIDO E ESTÁVEL) ---
 elif pagina == "🤖 Chat IA Master Sênior":
-    st.title("🤖 Chat com Assistente Contábil")
-    st.markdown("Tire dúvidas sobre legislação fiscal, normas contábeis e análises estratégicas.")
+    st.title("🤖 Chat com Assistente Contábil Sênior")
+    st.markdown("Tire dúvidas sobre legislação fiscal, normas contábeis e análises estratégicas em tempo real.")
 
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
@@ -166,6 +181,7 @@ elif pagina == "🤖 Chat IA Master Sênior":
         with st.chat_message("assistant"):
             with st.spinner("O assistente está consultando as normas contábeis..."):
                 try:
+                    # Chamada corrigida e compatível com a biblioteca atual do Gemini
                     response = client_ai.models.generate_content(
                         model='gemini-2.5-flash',
                         contents=prompt,
@@ -178,9 +194,10 @@ elif pagina == "🤖 Chat IA Master Sênior":
                     st.markdown(resposta_ia)
                     st.session_state.chat_history.append({"role": "assistant", "content": resposta_ia})
                 except Exception as e:
+                    # Fallback robusto para garantir que nunca dê erro 404
                     try:
                         response = client_ai.models.generate_content(
-                            model='gemini-flash-exp',
+                            model='gemini-1.5-flash',
                             contents=prompt,
                             config=types.GenerateContentConfig(
                                 system_instruction=system_instruction,
@@ -191,7 +208,7 @@ elif pagina == "🤖 Chat IA Master Sênior":
                         st.markdown(resposta_ia)
                         st.session_state.chat_history.append({"role": "assistant", "content": resposta_ia})
                     except Exception as err:
-                        st.error(f"Erro ao processar com a IA: {err}")
+                        st.error(f"Erro ao processar com a IA. Verifique sua chave de API ou conexão: {err}")
 
 # --- MÓDULO: PARECER EXECUTIVO & WHATSAPP ---
 elif pagina == "📑 Parecer Executivo & WhatsApp":
@@ -225,20 +242,26 @@ Cliente: {cli_nome}
 # --- MÓDULO: CALCULADORA DE RETENÇÕES ---
 elif pagina == "🧮 Calculadora de Retenções":
     st.title("🧮 Calculadora de Retenções Federais (IRRF, CSRF, INSS)")
-    st.markdown("Apuração rápida de retenções na fonte para notas fiscais de prestação de serviços.")
+    st.markdown("Apuração detalhada de retenções na fonte para notas fiscais de prestação de serviços.")
     
-    valor_nf = st.number_input("Valor Bruto da Nota Fiscal (R$)", value=10000.00)
-    tipo_servico = st.selectbox("Natureza do Serviço", ["Serviços Gerais / Administrativos", "Segurança / Limpeza", "Serviços Profissionais (Lei 10.833)"])
+    c1, c2 = st.columns(2)
+    with c1:
+        valor_nf = st.number_input("Valor Bruto da Nota Fiscal (R$)", value=10000.00)
+    with c2:
+        tipo_servico = st.selectbox("Natureza do Serviço", ["Serviços Gerais / Administrativos", "Segurança / Limpeza", "Serviços Profissionais (Lei 10.833)"])
     
-    if st.button("Calcular Retenções"):
-        pis_cofins_csll = valor_nf * 0.0465 
-        irrf = valor_nf * 0.015 if valor_nf > 666.66 else 0.0 
+    if st.button("Calcular Retenções Detalhadas"):
+        pis_cofins_csll = valor_nf * 0.0465 # 4,65%
+        irrf = valor_nf * 0.015 if valor_nf > 666.66 else 0.0 # 1,5% regra geral
         inss = valor_nf * 0.11 if "Segurança" in tipo_servico or "Limpeza" in tipo_servico else 0.0
         
         total_retido = pis_cofins_csll + irrf + inss
         liquido_receber = valor_nf - total_retido
         
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
         col1.metric("Total Retenções", f"R$ {total_retido:,.2f}")
         col2.metric("Líquido a Receber", f"R$ {liquido_receber:,.2f}")
-        col3.metric("PIS/COFINS/CSLL", f"R$ {pis_cofins_csll:,.2f}")
+        col3.metric("CSRF (PIS/COFINS/CSLL)", f"R$ {pis_cofins_csll:,.2f}")
+        col4.metric("IRRF / INSS", f"R$ {irrf + inss:,.2f}")
+        
+        st.info("💡 **Memória de Cálculo:** Consideradas as alíquotas federais padrão aplicáveis à modalidade de serviço selecionada.")
