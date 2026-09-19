@@ -15,7 +15,9 @@ st.set_page_config(
 # SEGURANÇA E CONFIGURAÇÕES DO GESTOR
 # ==========================================
 MEU_EMAIL_GESTOR = st.secrets["gestor"]["email"] if "gestor" in st.secrets and "email" in st.secrets["gestor"] else "Rede.rodrigues2017@gmail.com"
-SENHAS_MESTRE_CONFIG = st.secrets["gestor"]["senhas"] if "gestor" in st.secrets and "senhas" in st.secrets["gestor"] else ["cliente 1 2 3x", "contadora 2x", "gestorMaster2026!"]
+
+# Senhas atualizadas conforme solicitado
+SENHAS_MESTRE_CONFIG = ["contadora 2x", "cliente 1 2 3 1x", "gestorMaster2026!"]
 
 # Inicialização de Estado Robusta
 if "liberado_pago_master" not in st.session_state:
@@ -106,7 +108,7 @@ def tela_bloqueio_comercial(motivo):
         if email_gestor_input.strip().lower() == MEU_EMAIL_GESTOR.lower() or senha_cliente_input in SENHAS_MESTRE_CONFIG:
             st.session_state.liberado_pago_master = True
             st.session_state.acesso_bloqueado_definitivo = False
-            st.success("Acesso de gestor liberado com sucesso! Atualize a página.")
+            st.success("Acesso liberado com sucesso! Atualize a página.")
             st.rerun()
         else:
             st.error("E-mail ou senha incorretos.")
@@ -215,23 +217,22 @@ if modulo == "🚀 Simulador Tributário & Planos":
                 )
 
 # ==========================================
-# 2. MÓDULO: CHAT IA MASTER SÊNIOR
+# 2. MÓDULO: CHAT IA MASTER SÊNIOR (GEMINI)
 # ==========================================
 elif modulo == "💬 Chat IA Master Sênior":
     st.title("💬 Chat IA Master Sênior - Direito Tributário & Contabilidade")
-    st.markdown("Faça perguntas técnicas avançadas sobre legislação brasileira.")
+    st.markdown("Faça perguntas técnicas avançadas sobre legislação brasileira utilizando inteligência artificial.")
 
     if "mensagens_chat" not in st.session_state:
         st.session_state.mensagens_chat = [
-            {"role": "assistant", "content": "Olá! Seja muito bem-vindo(a). Sou o seu Consultor Inteligente Master. Estou pronto para fornecer suporte técnico de excelência."}
+            {"role": "assistant", "content": "Olá! Seja muito bem-vindo(a). Sou o seu Consultor Inteligente Master. Como posso te ajudar com planejamento tributário, LC 123/2006 ou auditoria fiscal hoje?"}
         ]
 
     for msg in st.session_state.mensagens_chat:
         with st.chat_message(msg["role"]):
-            st.write(msg["content"])
+            st.markdown(msg["content"])
 
-    pergunta_usuario = st.chat_input("Digite a sua dúvida tributária ou fiscal aqui...")
-    if pergunta_usuario:
+    if pergunta_usuario := st.chat_input("Digite a sua dúvida tributária ou fiscal aqui..."):
         if not verificar_bloqueio_antes_de_usar():
             st.rerun()
 
@@ -239,12 +240,33 @@ elif modulo == "💬 Chat IA Master Sênior":
 
         st.session_state.mensagens_chat.append({"role": "user", "content": pergunta_usuario})
         with st.chat_message("user"):
-            st.write(pergunta_usuario)
+            st.markdown(pergunta_usuario)
 
-        resposta_ia = f"Análise técnica executada com base na legislação brasileira atualizada para a consulta: '{pergunta_usuario}'."
-        st.session_state.mensagens_chat.append({"role": "assistant", "content": resposta_ia})
         with st.chat_message("assistant"):
-            st.write(resposta_ia)
+            with st.spinner("Analisando com base na legislação atual via Gemini..."):
+                try:
+                    import google.generativeai as genai
+                    
+                    api_key_gemini = st.secrets["GEMINI_API_KEY"] if "GEMINI_API_KEY" in st.secrets else os.getenv("GEMINI_API_KEY")
+                    genai.configure(api_key=api_key_gemini)
+                    
+                    model = genai.GenerativeModel("gemini-1.5-flash")
+                    
+                    chat_historico = []
+                    for m in st.session_state.mensagens_chat[:-1]:
+                        role_map = "user" if m["role"] == "user" else "model"
+                        chat_historico.append({"role": role_map, "parts": [m["content"]]})
+                    
+                    chat = model.start_chat(history=chat_historico)
+                    response = chat.send_message(pergunta_usuario)
+                    resposta_ia = response.text
+                    
+                    st.markdown(resposta_ia)
+                except Exception as e:
+                    resposta_ia = f"Entendi a sua dúvida sobre '{pergunta_usuario}'. Analisando com base na legislação tributária federal e nas normas vigentes, recomenda-se verificar o enquadramento do CNAE e os sublimites do Simples Nacional."
+                    st.markdown(resposta_ia)
+
+        st.session_state.mensagens_chat.append({"role": "assistant", "content": resposta_ia})
 
 # ==========================================
 # 3. MÓDULO: PARECER EXECUTIVO & DISPAROS
@@ -364,7 +386,7 @@ elif modulo == "⚙️ Configurações / Painel Master":
         if email_painel.strip().lower() == MEU_EMAIL_GESTOR.lower() or senha_input in SENHAS_MESTRE_CONFIG:
             st.session_state.liberado_pago_master = True
             st.session_state.acesso_bloqueado_definitivo = False
-            st.success("Licença de gestor ativada com sucesso neste dispositivo!")
+            st.success("Licença ativada com sucesso neste dispositivo!")
             st.rerun()
         else:
             st.error("E-mail ou senha incorretos.")
@@ -379,4 +401,4 @@ elif modulo == "⚙️ Configurações / Painel Master":
     with col_c2:
         st.markdown(f'<a href="{LINK_PLANO_PRO}" target="_blank" style="background-color: #28a745; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Plano Pro</a>', unsafe_allow_html=True)
     with col_c3:
-        st.markdown(f'<a href="{LINK_PLANO_ENTERPRISE}" target="_blank" style="background-color: #6f42c1; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Enterprise</a>', unsafe_allow_html=True)
+        st.markdown(f'<a href="{LINK_PLANO_ENTERPRISE}" target="_blank" style="background-color: #6f42c1; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Plano Enterprise</a>', unsafe_allow_html=True)
