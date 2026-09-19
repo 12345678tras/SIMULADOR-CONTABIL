@@ -16,7 +16,8 @@ st.set_page_config(
 # CONEXÃO COM O SUPABASE (NUVEM)
 # ==========================================
 @st.cache_resource
-init_supabase = lambda: create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
+def init_supabase():
+    return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
 
 try:
     supabase: Client = init_supabase()
@@ -32,7 +33,6 @@ SENHAS_MESTRE_CONFIG = st.secrets["gestor"]["senhas"] if "gestor" in st.secrets 
 
 # Identificação simples do usuário por IP ou Sessão Cloud
 if "ip_usuario_id" not in st.session_state:
-    # Tenta resgatar o IP através dos headers do Streamlit se disponível, senão gera um identificador de sessão
     try:
         headers = st.context.headers
         st.session_state.ip_usuario_id = headers.get("X-Forwarded-For", "usuario_web_padrao")
@@ -45,7 +45,7 @@ if "liberado_pago_master" not in st.session_state:
 if "acesso_bloqueado_definitivo" not in st.session_state:
     st.session_state.acesso_bloqueado_definitivo = False
 
-# Função para buscar contagem de acessos no Supabase
+# Funções de Supabase para contagem e persistência
 def obter_acessos_nuvem():
     if not supabase:
         return 0
@@ -54,7 +54,6 @@ def obter_acessos_nuvem():
         if response.data and len(response.data) > 0:
             return response.data[0]["contador"]
         else:
-            # Se não existe registro para este usuário, cria com 0
             supabase.table("acessos").insert({"ip_usuario": st.session_state.ip_usuario_id, "contador": 0}).execute()
             return 0
     except Exception:
@@ -66,12 +65,11 @@ def incrementar_acessos_nuvem():
     try:
         atual = obter_acessos_nuvem()
         novo_valor = atual + 1
-        # Atualiza no banco
         supabase.table("acessos").update({"contador": novo_valor}).eq("ip_usuario", st.session_state.ip_usuario_id).execute()
     except Exception as e:
         print(f"Erro ao atualizar contador: {e}")
 
-# Limite máximo fixado rigorosamente em 3 acessos
+# Limite estrito de 3 acessos globais na nuvem
 LIMITE_MAXIMO_ACESSO = 3
 
 def verificar_bloqueio_antes_de_usar():
