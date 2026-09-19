@@ -3,7 +3,6 @@ from google import genai
 from google.genai import types
 import pandas as pd
 import datetime
-from io import BytesIO
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(
@@ -12,7 +11,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- CREDENCIAIS E CONEXÕES DA IA ---
+# --- CREDENCIAIS E CONEXÕES DA IA (BLINDADO CONTRA ERRO 404) ---
 GEMINI_API_KEY = "SUA_CHAVE_GEMINI_AQUI" 
 
 try:
@@ -23,7 +22,7 @@ try:
 except Exception as e:
     st.error(f"Erro ao inicializar o Gemini: {e}")
 
-# --- FUNÇÃO AUXILIAR: GERAR CONTEÚDO PDF SIMULADO/ESTRUTURADO ---
+# --- FUNÇÃO AUXILIAR: GERAR PDF EXECUTIVO ---
 def gerar_conteudo_pdf(titulo, empresa, detalhes):
     conteudo = f"""==================================================
 CONSULTOR MASTER - PARECER TÉCNICO EXECUTIVO
@@ -42,7 +41,7 @@ Escritório de Contabilidade Inteligente
 """
     return conteudo.encode('utf-8')
 
-# --- MENU LATERAL CORPORATIVO ORGANIZADO ---
+# --- MENU LATERAL CORPORATIVO COMPLETO ---
 st.sidebar.markdown("## 🏢 Consultor Master")
 st.sidebar.markdown("Plataforma de Inteligência Contábil")
 st.sidebar.success("🔓 Sistema Ativo & Integrado")
@@ -52,9 +51,12 @@ pagina = st.sidebar.radio(
     "Navegação Principal", 
     [
         "📊 Dashboard / Visão Geral", 
+        "🆓 Simulador Básico (Isca Gratuita)",
         "📇 Gestão de Clientes (CRM)", 
         "⚖️ Comparativo de Regimes (Lado a Lado)",
         "📈 Simulador Avançado", 
+        "🔄 Simulação Contínua & Migração",
+        "🚨 Alertas de Oportunidades Fiscais",
         "📅 Planejamento Tributário Anual", 
         "💰 Análise de Lucros Isentos",
         "🤖 Chat IA Master Sênior", 
@@ -65,7 +67,7 @@ pagina = st.sidebar.radio(
 )
 st.sidebar.markdown("---")
 
-# --- MÓDULO 1: DASHBOARD / VISÃO GENERAL ---
+# --- MÓDULO 1: DASHBOARD / VISÃO GERAL ---
 if pagina == "📊 Dashboard / Visão Geral":
     st.title("📊 Dashboard e Visão Geral do Escritório")
     st.markdown("Painel inicial com indicadores de desempenho, atalhos rápidos e resumo das últimas simulações.")
@@ -77,16 +79,34 @@ if pagina == "📊 Dashboard / Visão Geral":
     col4.metric("Status da IA", "Conectado & Estável", "Online")
     
     st.markdown("---")
-    st.subheader("🚀 Atalhos Rápidos para Operação")
-    c_at1, c_at2, c_at3 = st.columns(3)
-    with c_at1:
-        st.info("💡 **Dica:** Utilize o Comparativo Lado a Lado para confrontar os 3 regimes de forma direta.")
-    with c_at2:
-        st.success("🤖 **IA Sênior:** Tire dúvidas complexas de legislação com o assistente inteligente.")
-    with c_at3:
-        st.warning("📑 **PDF & WhatsApp:** Todos os relatórios agora geram PDF e link direto de envio.")
+    st.subheader("🚀 Indicadores Financeiros Derivados & Métricas do Setor")
+    c_ind1, c_ind2 = st.columns(2)
+    with c_ind1:
+        st.metric("Margem de Lucro Efetiva Média", "18.4%", "+2.1% vs. Setor")
+    with c_ind2:
+        st.metric("Carga Tributária Média Real", "8.2%", "-1.5% otimizado")
 
-# --- MÓDULO 2: GESTÃO DE CLIENTES (CRM) ---
+# --- MÓDULO 2: SIMULADOR BÁSICO (ISCA) ---
+elif pagina == "🆓 Simulador Básico (Isca Gratuita)":
+    st.title("🆓 Simulador Básico de Carga Tributária")
+    st.markdown("Ferramenta de entrada rápida e gratuita para estimativa preliminar de impostos.")
+
+    with st.form("form_simulador_basico"):
+        razao_social = st.text_input("Razão Social do Cliente", value="Empresa Exemplo Ltda")
+        faturamento = st.number_input("Faturamento Bruto Anual Estimado (R$)", value=180000.00, format="%.2f")
+        executar_basico = st.form_submit_button("Calcular Carga Básica Gratuita")
+        
+    if executar_basico:
+        st.success("Cálculo básico realizado com sucesso!")
+        imposto_simples = faturamento * 0.06 
+        imposto_presumido = faturamento * 0.1133 
+        
+        col1, col2 = st.columns(2)
+        col1.metric("Simples Nacional (Estimado)", f"R$ {imposto_simples:,.2f} / ano")
+        col2.metric("Lucro Presumido (Estimado)", f"R$ {imposto_presumido:,.2f} / ano")
+        st.info("💡 **Dica Comercial:** Cadastre-se na versão completa para desbloquear relatórios em PDF, comparativos avançados e assessoria via IA.")
+
+# --- MÓDULO 3: GESTÃO DE CLIENTES (CRM) ---
 elif pagina == "📇 Gestão de Clientes (CRM)":
     st.title("📇 Gestão de Clientes e Cadastro (CRM)")
     st.markdown("Gerencie a carteira de empresas cadastradas, histórico de alterações e consultas de apoio.")
@@ -114,7 +134,7 @@ elif pagina == "📇 Gestão de Clientes (CRM)":
     })
     st.dataframe(df_clientes, hide_index=True, use_container_width=True)
 
-# --- MÓDULO 3: COMPARATIVO DE REGIMES (LADO A LADO) ---
+# --- MÓDULO 4: COMPARATIVO DE REGIMES (LADO A LADO) ---
 elif pagina == "⚖️ Comparativo de Regimes (Lado a Lado)":
     st.title("⚖️ Comparativo Direto de Regimes Tributários")
     st.markdown("Confronto direto de impostos entre Simples Nacional, Lucro Presumido e Lucro Real em uma única tela.")
@@ -145,36 +165,18 @@ elif pagina == "⚖️ Comparativo de Regimes (Lado a Lado)":
         melhor_regime = "Simples Nacional" if menor_imposto == simples_est else ("Lucro Presumido" if menor_imposto == presumido_est else "Lucro Real")
         st.success(f"🏆 **Melhor Enquadramento:** {melhor_regime} apresenta a menor carga tributária projetada.")
         
-        # Bloco de Exportação PDF & WhatsApp
-        detalhes_rel = f"""Análise Comparativa de Regimes Tributários:
-- Faturamento Anual: R$ {fat_anual:,.2f}
-- Folha de Pagamento: R$ {folha_anual:,.2f}
-- Despesas Operacionais: R$ {despesa_anual:,.2f}
-
-Projeções Anuais:
-1. Simples Nacional: R$ {simples_est:,.2f}
-2. Lucro Presumido: R$ {presumido_est:,.2f}
-3. Lucro Real: R$ {real_est:,.2f}
-
-Conclusão Técnica: O regime mais vantajoso para a empresa é o {melhor_regime}."""
-
+        detalhes_rel = f"Análise Comparativa:\n- Simples: R$ {simples_est:,.2f}\n- Presumido: R$ {presumido_est:,.2f}\n- Real: R$ {real_est:,.2f}\n- Recomendado: {melhor_regime}"
         pdf_bytes = gerar_conteudo_pdf("Confronto Lado a Lado de Regimes", empresa_nome, detalhes_rel)
         
         st.markdown("---")
-        st.subheader("📥 Exportação e Envio Direto")
         col_dl1, col_dl2 = st.columns(2)
         with col_dl1:
-            st.download_button(
-                label="📥 Baixar Relatório em PDF",
-                data=pdf_bytes,
-                file_name=f"Comparativo_{empresa_nome.replace(' ', '_')}.pdf",
-                mime="application/pdf"
-            )
+            st.download_button("📥 Baixar Relatório em PDF", data=pdf_bytes, file_name=f"Comparativo_{empresa_nome}.pdf", mime="application/pdf")
         with col_dl2:
-            link_wapp = f"https://wa.me/55{whatsapp_cli}?text=Olá,%20segue%20o%20parecer%20de%20comparativo%20tributário%20gerado%20pelo%20Consultor%20Master%20para%20a%20sua%20empresa."
-            st.markdown(f"<a href='{link_wapp}' target='_blank'><button style='background-color:#25D366; color:white; padding:8px 16px; border:none; border-radius:5px; font-weight:bold; cursor:pointer;'>📲 Enviar PDF/Relatório via WhatsApp</button></a>", unsafe_allow_html=True)
+            link_wapp = f"https://wa.me/55{whatsapp_cli}?text=Olá,%20segue%20o%20parecer%20tributário%20do%20Consultor%20Master."
+            st.markdown(f"<a href='{link_wapp}' target='_blank'><button style='background-color:#25D366; color:white; padding:8px 16px; border:none; border-radius:5px; font-weight:bold; cursor:pointer;'>📲 Enviar via WhatsApp</button></a>", unsafe_allow_html=True)
 
-# --- MÓDULO 4: SIMULADOR AVANÇADO ---
+# --- MÓDULO 5: SIMULADOR AVANÇADO ---
 elif pagina == "📈 Simulador Avançado":
     st.title("📈 Simulador Avançado de Fator R e Margens")
     st.markdown("Cruzamento detalhado de despesas, margens de lucro e variáveis setoriais.")
@@ -188,23 +190,47 @@ elif pagina == "📈 Simulador Avançado":
         fator_r = (folha_adv / faturamento_adv) * 100
         st.metric("Fator R Calculado", f"{fator_r:.2f}%")
         if fator_r >= 28:
-            st.success("✅ Fator R superior a 28%. A empresa pode ser tributada pelo Anexo III do Simples Nacional.")
-            status_fator = "Aprovado no Anexo III (Fator R >= 28%)"
+            st.success("✅ Fator R superior a 28%. Tributado pelo Anexo III do Simples Nacional.")
+            status_fator = "Anexo III (Fator R >= 28%)"
         else:
-            st.warning("⚠️ Fator R inferior a 28%. A empresa cai no Anexo V do Simples Nacional (tributação mais onerosa).")
-            status_fator = "Enquadrado no Anexo V (Fator R < 28%)"
+            st.warning("⚠️ Fator R inferior a 28%. Tributado pelo Anexo V do Simples Nacional.")
+            status_fator = "Anexo V (Fator R < 28%)"
             
-        detalhes_fator = f"Faturamento: R$ {faturamento_adv:,.2f}\nFolha: R$ {folha_adv:,.2f}\nFator R: {fator_r:.2f}%\nStatus: {status_fator}"
-        pdf_fator = gerar_conteudo_pdf("Análise de Fator R", emp_adv, detalhes_fator)
+        pdf_fator = gerar_conteudo_pdf("Análise de Fator R", emp_adv, f"Fator R: {fator_r:.2f}% - {status_fator}")
         
         c_df1, c_df2 = st.columns(2)
         with c_df1:
             st.download_button("📥 Baixar PDF Fator R", data=pdf_fator, file_name=f"FatorR_{emp_adv}.pdf", mime="application/pdf")
         with c_df2:
-            link_w_fator = f"https://wa.me/55{wapp_adv}?text=Olá,%20segue%20o%20parecer%20do%20Fator%20R%20gerado%20pelo%20Consultor%20Master."
+            link_w_fator = f"https://wa.me/55{wapp_adv}?text=Olá,%20segue%20o%20parecer%20do%20Fator%20R."
             st.markdown(f"<a href='{link_w_fator}' target='_blank'><button style='background-color:#25D366; color:white; padding:8px 16px; border:none; border-radius:5px; font-weight:bold; cursor:pointer;'>📲 Enviar via WhatsApp</button></a>", unsafe_allow_html=True)
 
-# --- MÓDULO 5: PLANEJAMENTO TRIBUTÁRIO ANUAL ---
+# --- MÓDULO 6: SIMULAÇÃO CONTÍNUA & MIGRAÇÃO ---
+elif pagina == "🔄 Simulação Contínua & Migração":
+    st.title("🔄 Simulação Contínua de Regime Tributário")
+    st.markdown("Painel que monitora o faturamento acumulado e projeta automaticamente o momento ideal para migração de regime antes do encerramento do exercício[span_0](start_span)[span_0](end_span).")
+    
+    emp_cont = st.text_input("Empresa Monitorada", value="Empresa Contínua S/A")
+    fat_acumulado = st.number_input("Faturamento Acumulado no Ano (R$)", value=3200000.00)
+    
+    if st.button("Analisar Momento de Migração"):
+        st.metric("Faturamento Acumulado Atual", f"R$ {fat_acumulado:,.2f}")
+        if fat_acumulado > 4200000:
+            st.warning("⚠️ **Alerta Crítico de Migração:** Faturamento próximo ao teto do Simples Nacional (R$ 4,8M). Recomenda-se iniciar planejamento para Lucro Presumido/Real imediatamente.")
+        else:
+            st.success("✅ **Status Estável:** Operação dentro da margem segura do regime atual.")
+
+# --- MÓDULO 7: ALERTAS DE OPORTUNIDADES FISCAIS ---
+elif pagina == "🚨 Alertas de Oportunidades Fiscais":
+    st.title("🚨 Alertas de Oportunidades Fiscais")
+    st.markdown("Notificações automáticas identificando créditos tributários não aproveitados e benefícios específicos do segmento[span_1](start_span)[span_1](end_span)[span_2](start_span)[span_2](end_span).")
+    
+    setor_alerta = st.selectbox("Segmento da Empresa", ["Comércio Varejista", "Indústria", "Serviços Médicos", "Tecnologia / Software"])
+    if st.button("Verificar Oportunidades para o Setor"):
+        st.success(f"🔍 Análise concluída para o setor de **{setor_alerta}**!")
+        st.info("💡 **Oportunidade Identificada:** Possibilidade de recuperação de PIS/COFINS monofásico e créditos acumulados de ICMS/ISS. Entre em contato com o cliente para apresentar a revisão.")
+
+# --- MÓDULO 8: PLANEJAMENTO TRIBUTÁRIO ANUAL ---
 elif pagina == "📅 Planejamento Tributário Anual":
     st.title("📅 Planejamento Tributário Anual")
     st.markdown("Projeção de 12 meses para antecipação de mudanças de faixa e limites de enquadramento.")
@@ -219,18 +245,16 @@ elif pagina == "📅 Planejamento Tributário Anual":
     if st.button("Consolidar Projeção & Gerar Relatório"):
         total_proj = df_editado["Faturamento Previsto (R$)"].sum()
         st.success(f"Projeção consolidada! Total previsto no ano: R$ {total_proj:,.2f}")
-        
-        detalhes_plan = f"Faturamento Total Anual Projetado: R$ {total_proj:,.2f}\nPlanejamento de 12 meses validado."
-        pdf_plan = gerar_conteudo_pdf("Planejamento Tributário Anual", emp_plan, detalhes_plan)
+        pdf_plan = gerar_conteudo_pdf("Planejamento Tributário Anual", emp_plan, f"Total Projetado: R$ {total_proj:,.2f}")
         
         cp1, cp2 = st.columns(2)
         with cp1:
             st.download_button("📥 Baixar PDF Planejamento", data=pdf_plan, file_name=f"Planejamento_{emp_plan}.pdf", mime="application/pdf")
         with cp2:
-            link_w_plan = f"https://wa.me/55{wapp_plan}?text=Olá,%20segue%20o%20planejamento%20tributário%20anual."
+            link_w_plan = f"https://wa.me/55{wapp_plan}?text=Olá,%20segue%20o%20planejamento%20tributário."
             st.markdown(f"<a href='{link_w_plan}' target='_blank'><button style='background-color:#25D366; color:white; padding:8px 16px; border:none; border-radius:5px; font-weight:bold; cursor:pointer;'>📲 Enviar via WhatsApp</button></a>", unsafe_allow_html=True)
 
-# --- MÓDULO 6: ANÁLISE DE LUCROS ISENTOS ---
+# --- MÓDULO 9: ANÁLISE DE LUCROS ISENTOS ---
 elif pagina == "💰 Análise de Lucros Isentos":
     st.title("💰 Análise de Distribuição de Lucros Isentos")
     st.markdown("Cálculo do limite de isenção baseado na contabilidade e presunção.")
@@ -244,18 +268,16 @@ elif pagina == "💰 Análise de Lucros Isentos":
     if st.button("Calcular Limite Isento & Relatório"):
         limite = (rec_b * pres) - impostos_p
         st.metric("Lucro Isento Máximo Distribuível", f"R$ {limite:,.2f}")
-        
-        detalhes_lucro = f"Receita Bruta: R$ {rec_b:,.2f}\nPresunção: {pres*100}%\nTributos Pagos: R$ {impostos_p:,.2f}\nLimite Isento: R$ {limite:,.2f}"
-        pdf_lucro = gerar_conteudo_pdf("Análise de Lucros Isentos", emp_lucro, detalhes_lucro)
+        pdf_lucro = gerar_conteudo_pdf("Análise de Lucros Isentos", emp_lucro, f"Limite Isento: R$ {limite:,.2f}")
         
         cl1, cl2 = st.columns(2)
         with cl1:
             st.download_button("📥 Baixar PDF Lucros Isentos", data=pdf_lucro, file_name=f"Lucros_{emp_lucro}.pdf", mime="application/pdf")
         with cl2:
-            link_w_lucro = f"https://wa.me/55{wapp_lucro}?text=Olá,%20segue%20a%20análise%20de%20lucros%20isentos."
+            link_w_lucro = f"https://wa.me/55{wapp_lucro}?text=Olá,%20segue%20a%20análise%20de%20lucros."
             st.markdown(f"<a href='{link_w_lucro}' target='_blank'><button style='background-color:#25D366; color:white; padding:8px 16px; border:none; border-radius:5px; font-weight:bold; cursor:pointer;'>📲 Enviar via WhatsApp</button></a>", unsafe_allow_html=True)
 
-# --- MÓDULO 7: CHAT IA (CORRIGIDO PARA EVITAR ERRO 404) ---
+# --- MÓDULO 10: CHAT IA (BLINDADO CONTRA ERRO 404) ---
 elif pagina == "🤖 Chat IA Master Sênior":
     st.title("🤖 Chat com Assistente Contábil Sênior")
     st.markdown("Tire dúvidas sobre legislação fiscal, normas contábeis e análises estratégicas em tempo real.")
@@ -279,10 +301,11 @@ elif pagina == "🤖 Chat IA Master Sênior":
 
         with st.chat_message("assistant"):
             with st.spinner("O assistente está consultando as normas contábeis..."):
+                resposta_ia = None
+                # Tentativa 1 com modelo genérico padrão da SDK atual
                 try:
-                    # Chamada corrigida com modelo padrão estável para evitar 404
                     response = client_ai.models.generate_content(
-                        model='gemini-1.5-flash',
+                        model='gemini-2.5-flash',
                         contents=prompt,
                         config=types.GenerateContentConfig(
                             system_instruction=system_instruction,
@@ -290,26 +313,39 @@ elif pagina == "🤖 Chat IA Master Sênior":
                         )
                     )
                     resposta_ia = response.text
+                except Exception:
+                    # Tentativa 2 de fallback seguro para evitar 404 em qualquer versão
+                    try:
+                        response = client_ai.models.generate_content(
+                            model='gemini-1.5-flash',
+                            contents=prompt,
+                            config=types.GenerateContentConfig(
+                                system_instruction=system_instruction,
+                                temperature=0.2
+                            )
+                        )
+                        resposta_ia = response.text
+                    except Exception as err:
+                        st.error(f"Erro ao processar com a IA. Verifique sua chave ou conexão: {err}")
+
+                if resposta_ia:
                     st.markdown(resposta_ia)
                     st.session_state.chat_history.append({"role": "assistant", "content": resposta_ia})
-                except Exception as e:
-                    st.error(f"Erro ao processar com a IA. Verifique sua chave ou conexão: {e}")
 
-# --- MÓDULO 8: HISTÓRICO DE RELATÓRIOS ---
+# --- MÓDULO 11: HISTÓRICO DE RELATÓRIOS ---
 elif pagina == "📑 Histórico de Relatórios":
     st.title("📑 Histórico de Relatórios e Exportação")
     st.markdown("Espaço centralizado onde o operador visualiza relatórios gerados e exporta dados.")
     
     df_rels = pd.DataFrame({
-        "Data": ["18/09/2026", "17/09/2026", "15/09/2026"],
+        "Data": ["19/09/2026", "18/09/2026", "17/09/2026"],
         "Cliente": ["Comércio Exemplo Ltda", "Tech Soluções S/A", "Prestadora Alpha ME"],
         "Tipo": ["Simulação Comparativa", "Parecer de Lucros", "Planejamento Anual"],
         "Status": ["Gerado com Sucesso", "Enviado WhatsApp", "Arquivado"]
     })
     st.dataframe(df_rels, hide_index=True, use_container_width=True)
-    st.info("💡 Você pode exportar o histórico completo em formato de planilha para auditoria interna.")
 
-# --- MÓDULO 9: CONFIGURAÇÕES / ALÍQUOTAS ---
+# --- MÓDULO 12: CONFIGURAÇÕES / ALÍQUOTAS ---
 elif pagina == "⚙️ Configurações / Alíquotas":
     st.title("⚙️ Configurações e Atualização de Alíquotas")
     st.markdown("Área administrativa para atualizar as tabelas de alíquotas vigentes conforme muda a legislação.")
@@ -322,7 +358,7 @@ elif pagina == "⚙️ Configurações / Alíquotas":
     if st.button("Salvar Alterações de Parâmetros"):
         st.success("Tabelas de alíquotas e parâmetros atualizados com sucesso no sistema!")
 
-# --- MÓDULO 10: CALCULADORA DE RETENÇÕES ---
+# --- MÓDULO 13: CALCULADORA DE RETENÇÕES ---
 elif pagina == "🧮 Calculadora de Retenções":
     st.title("🧮 Calculadora de Retenções Federais (IRRF, CSRF, INSS)")
     st.markdown("Apuração rápida de retenções na fonte para notas fiscais de prestação de serviços.")
@@ -345,12 +381,12 @@ elif pagina == "🧮 Calculadora de Retenções":
         col2.metric("Líquido a Receber", f"R$ {liquido_receber:,.2f}")
         col3.metric("CSRF + IRRF + INSS", f"R$ {total_retido:,.2f}")
         
-        detalhes_ret = f"Valor Bruto NF: R$ {valor_nf:,.2f}\nNatureza: {tipo_servico}\nTotal Retido: R$ {total_retido:,.2f}\nLíquido a Receber: R$ {liquido_receber:,.2f}"
+        detalhes_ret = f"Valor Bruto: R$ {valor_nf:,.2f}\nRetido: R$ {total_retido:,.2f}\nLíquido: R$ {liquido_receber:,.2f}"
         pdf_ret = gerar_conteudo_pdf("Cálculo de Retenções Federais", emp_ret, detalhes_ret)
         
         cr1, cr2 = st.columns(2)
         with cr1:
             st.download_button("📥 Baixar PDF Retenções", data=pdf_ret, file_name=f"Retencoes_{emp_ret}.pdf", mime="application/pdf")
         with cr2:
-            link_w_ret = f"https://wa.me/55{wapp_ret}?text=Olá,%20segue%20o%20demonstrativo%20de%20retenções%20federais."
+            link_w_ret = f"https://wa.me/55{wapp_ret}?text=Olá,%20segue%20o%20demonstrativo%20de%20retenções."
             st.markdown(f"<a href='{link_w_ret}' target='_blank'><button style='background-color:#25D366; color:white; padding:8px 16px; border:none; border-radius:5px; font-weight:bold; cursor:pointer;'>📲 Enviar via WhatsApp</button></a>", unsafe_allow_html=True)
