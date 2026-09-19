@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import pandas as pd
 import os
+import uuid
 from datetime import datetime
 from supabase import create_client, Client
 
@@ -33,14 +34,9 @@ except Exception as e:
 MEU_EMAIL_GESTOR = st.secrets["gestor"]["email"] if "gestor" in st.secrets and "email" in st.secrets["gestor"] else "Rede.rodrigues2017@gmail.com"
 SENHAS_MESTRE_CONFIG = st.secrets["gestor"]["senhas"] if "gestor" in st.secrets and "senhas" in st.secrets["gestor"] else ["cliente 1 2 3x", "contadora 2x", "gestorMaster2026!"]
 
-# Identificação única do usuário via IP/Sessão
+# Identificação única por sessão do navegador (garante que cada aba/usuário tenha sua contagem isolada)
 if "ip_usuario_id" not in st.session_state:
-    try:
-        headers = st.context.headers
-        forwarded = headers.get("X-Forwarded-For", "")
-        st.session_state.ip_usuario_id = forwarded.split(",")[0].strip() if forwarded else "usuario_web_padrao"
-    except Exception:
-        st.session_state.ip_usuario_id = "usuario_web_padrao"
+    st.session_state.ip_usuario_id = str(uuid.uuid4())
 
 # Inicialização de Estado da Sessão
 if "liberado_pago_master" not in st.session_state:
@@ -61,7 +57,6 @@ def obter_acessos_nuvem():
         if response.data and len(response.data) > 0:
             return response.data[0]["contador"]
         else:
-            # Insere o registro inicial se não existir
             supabase.table("acessos").insert({"ip_usuario": st.session_state.ip_usuario_id, "contador": 0}).execute()
             return 0
     except Exception:
@@ -90,6 +85,7 @@ def verificar_bloqueio_antes_de_usar():
 def descontar_um_uso():
     if not st.session_state.liberado_pago_master:
         incrementar_acessos_nuvem()
+        st.rerun()
 
 # ==========================================
 # PERSISTÊNCIA LOCAL DE LEADS
@@ -222,7 +218,6 @@ if modulo == "🚀 Simulador Tributário & Planos":
             if not verificar_bloqueio_antes_de_usar():
                 st.rerun()
 
-            # Desconta o uso no Supabase imediatamente ao executar
             descontar_um_uso()
 
             simples = fat_anual * 0.09
@@ -441,4 +436,4 @@ elif modulo == "⚙️ Configurações / Painel Master":
     with col_c2:
         st.markdown(f'<a href="{LINK_PLANO_PRO}" target="_blank" style="background-color: #28a745; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Plano Pro</a>', unsafe_allow_html=True)
     with col_c3:
-        st.markdown(f'<a href="{LINK_PLANO_ENTERPRISE}" target="_blank" style="background-color: #6f42c1; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Enterprise</a>', unsafe_allow_html=True)
+        st.markdown(f'<a href="{LINK_PLANO_ENTERPRISE}" target="_blank" style="background-color: #6f42c1; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Plano Enterprise</a>', unsafe_allow_html=True)
