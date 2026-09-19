@@ -2,6 +2,8 @@ import streamlit as st
 from google import genai
 from google.genai import types
 from supabase import create_client, Client
+import pandas as pd
+import io
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(
@@ -33,7 +35,11 @@ except Exception as e:
 st.sidebar.title("📌 Menu Contábil")
 st.sidebar.write("Modo de teste: **Sem Senha**")
 
-pagina = st.sidebar.radio("Navegação", ["Chat com Assistente IA", "Lançamentos e Supabase"])
+pagina = st.sidebar.radio("Navegação", [
+    "Chat com Assistente IA", 
+    "Leitura Inteligente (Notas/Recibos)", 
+    "Lançamentos e Dashboard"
+])
 
 # --- ABA 1: CHAT COM O GEMINI ---
 if pagina == "Chat com Assistente IA":
@@ -61,9 +67,8 @@ if pagina == "Chat com Assistente IA":
         with st.chat_message("assistant"):
             with st.spinner("O assistente está consultando as normas contábeis..."):
                 try:
-                    # Modelo atualizado conforme exigido pela API
                     chat_session = client_ai.chats.create(
-                        model="gemini-3.6-flash",
+                        model="gemini-2.5-flash",
                         config=types.GenerateContentConfig(
                             system_instruction=system_instruction,
                             temperature=0.2
@@ -78,12 +83,50 @@ if pagina == "Chat com Assistente IA":
                 except Exception as e:
                     st.error(f"Ocorreu um erro ao processar sua solicitação com a IA: {e}")
 
-# --- ABA 2: INTEGRAÇÃO SUPABASE ---
-elif pagina == "Lançamentos e Supabase":
-    st.title("📁 Integração com Supabase")
-    st.write("Painel para visualizar e enviar dados diretamente para o seu banco de dados.")
+# --- ABA 2: LEITURA INTELIGENTE DE DOCUMENTOS ---
+elif pagina == "Leitura Inteligente (Notas/Recibos)":
+    st.title("📄 Leitura de Documentos Fiscais com IA")
+    st.write("Envie uma foto de nota fiscal, recibo ou PDF para extrair os dados automaticamente.")
 
-    tab1, tab2 = st.tabs(["Cadastrar Lançamento", "Ver Dados Salvos"])
+    arquivo_enviado = st.file_uploader("Escolha um arquivo (PDF, PNG, JPG)", type=["pdf", "png", "jpg", "jpeg"])
+
+    if arquivo_enviado is not None:
+        st.image(arquivo_enviado, caption="Documento Enviado", use_container_width=True) if "image" in arquivo_enviado.type else st.info("Arquivo PDF carregado com sucesso.")
+        
+        if st.button("Extrair Dados com IA"):
+            with st.spinner("Lendo documento e extraindo informações contábeis..."):
+                try:
+                    # Prepara osbytes do arquivo para o Gemini ler
+                    bytes_arquivo = arquivo_enviado.getvalue()
+                    
+                    prompt_extracao = (
+                        "Analise este documento fiscal/recibo e retorne estritamente em formato de texto estruturado "
+                        "os seguintes campos: Fornecedor, CNPJ, Valor Total, Data e uma sugestão de Classificação (Ex: Despesa com Material, Aluguel, etc)."
+                    )
+                    
+                    response = client_ai.models.generate_content(
+                        model='gemini-2.5-flash',
+                        contents=[
+                            types.Part.from_bytes(
+                                data=bytes_arquivo,
+                                mime_type=arquivo_enviado.type
+                            ),
+                            prompt_extracao
+                        ]
+                    )
+                    
+                    st.success("Dados extraídos com sucesso!")
+                    st.markdown(response.text)
+                    
+                except Exception as e:
+                    st.error(f"Erro ao processar o documento com a IA: {e}")
+
+# --- ABA 3: SUPABASE E DASHBOARD ---
+elif pagina == "Lançamentos e Dashboard":
+    st.title("📁 Gestão de Lançamentos e Dashboard")
+    st.write("Painel para visualizar, cadastrar e analisar dados financeiros conectados ao Supabase.")
+
+    tab1, tab2 = st.tabs(["Cadastrar Lançamento", "Ver Dados e Dashboard"])
 
     with tab1:
         with st.form("form_lancamento"):
@@ -101,12 +144,20 @@ elif pagina == "Lançamentos e Supabase":
                     st.error(f"Erro ao salvar no banco (verifique se a tabela 'lancamentos' existe no Supabase): {e}")
 
     with tab2:
-        if st.button("Carregar Registros do Banco"):
+        if st.button("Carregar Registros e Gráficos"):
             try:
                 response = supabase.table("lancamentos").select("*").execute()
                 dados = response.data
                 if dados:
-                    st.dataframe(dados)
+                    df = pd.DataFrame(dados)
+                    
+                    st.subheader("📊 Resumo Visual")
+                    if "tipo" in df.columns and "valor" in df.columns:
+                        totais = df.groupby("tipo")["valor"].sum()
+                        st.bar_chart(totais)
+                    
+                    st.subheader("📋 Tabela de Registros")
+                    st.dataframe(df)
                 else:
                     st.info("Nenhum registro encontrado no banco de dados.")
             except Exception as e:
