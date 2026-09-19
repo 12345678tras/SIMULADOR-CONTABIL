@@ -13,7 +13,6 @@ st.set_page_config(
 )
 
 # --- CONEXÃO COM SUPABASE (BANCO DE DADOS) ---
-# O sistema busca as credenciais de forma segura nos segredos do Streamlit (st.secrets)
 try:
     SUPABASE_URL = st.secrets.get("SUPABASE_URL", "SUA_URL_SUPABASE")
     SUPABASE_KEY = st.secrets.get("SUPABASE_KEY", "SUA_CHAVE_SUPABASE")
@@ -24,7 +23,7 @@ try:
 except Exception:
     supabase = None
 
-# --- CREDENCIAIS E CONEXÕES DA IA ---
+# --- CREDENCIAIS E CONEXÕES DA IA (BLINDADO) ---
 GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", "SUA_CHAVE_GEMINI_AQUI")
 
 try:
@@ -54,7 +53,7 @@ Escritório de Contabilidade Inteligente
 """
     return conteudo.encode('utf-8')
 
-# --- MENU LATERAL CORPORATIVO COMPLETO ---
+# --- MENU LATERAL CORPORATIVO ENXUTO & ORGANIZADO ---
 st.sidebar.markdown("## 🏢 Consultor Master")
 st.sidebar.markdown("Plataforma de Inteligência Contábil")
 if supabase:
@@ -70,8 +69,7 @@ pagina = st.sidebar.radio(
         "🆓 Simulador Básico (Isca Gratuita)",
         "📇 Gestão de Clientes (CRM)", 
         "⚖️ Comparativo de Regimes (Lado a Lado)",
-        "📈 Simulador Avançado", 
-        "🔄 Simulação Contínua & Migração",
+        "📈 Simulador Avançado & Migração", 
         "🚨 Alertas de Oportunidades Fiscais",
         "📅 Planejamento Tributário Anual", 
         "💰 Análise de Lucros Isentos",
@@ -105,7 +103,7 @@ if pagina == "📊 Dashboard / Visão Geral":
 # --- MÓDULO 2: SIMULADOR BÁSICO (ISCA) ---
 elif pagina == "🆓 Simulador Básico (Isca Gratuita)":
     st.title("🆓 Simulador Básico de Carga Tributária")
-    st.markdown("Ferramenta de entrada rápida e gratuita para estimativa preliminar de impostos.")
+    st.markdown("Ferramenta de entrada rápida e gratuita para estimativa preliminar de impostos[span_2](start_span)[span_2](end_span).")
 
     with st.form("form_simulador_basico"):
         razao_social = st.text_input("Razão Social do Cliente", value="Empresa Exemplo Ltda")
@@ -201,19 +199,25 @@ elif pagina == "⚖️ Comparativo de Regimes (Lado a Lado)":
             link_wapp = f"https://wa.me/55{whatsapp_cli}?text=Olá,%20segue%20o%20parecer%20tributário%20do%20Consultor%20Master."
             st.markdown(f"<a href='{link_wapp}' target='_blank'><button style='background-color:#25D366; color:white; padding:8px 16px; border:none; border-radius:5px; font-weight:bold; cursor:pointer;'>📲 Enviar via WhatsApp</button></a>", unsafe_allow_html=True)
 
-# --- MÓDULO 5: SIMULADOR AVANÇADO ---
-elif pagina == "📈 Simulador Avançado":
-    st.title("📈 Simulador Avançado de Fator R e Margens")
-    st.markdown("Cruzamento detalhado de despesas e variáveis setoriais.")
+# --- MÓDULO 5: SIMULADOR AVANÇADO & MIGRAÇÃO (UNIFICADO) ---
+elif pagina == "📈 Simulador Avançado & Migração":
+    st.title("📈 Simulador Avançado, Fator R & Migração Contínua")
+    st.markdown("Cruzamento detalhado de despesas, cálculo de Fator R e monitoramento contínuo para migração de regime[span_3](start_span)[span_3](end_span)[span_4](start_span)[span_4](end_span).")
     
     emp_adv = st.text_input("Empresa", value="Empresa Beta Ltda")
     wapp_adv = st.text_input("WhatsApp para Envio", value="64993044147")
-    faturamento_adv = st.number_input("Faturamento Anual Base (R$)", value=360000.00)
-    folha_adv = st.number_input("Folha de Salários Anual (R$)", value=100000.00)
     
-    if st.button("Analisar Fator R & Gerar Relatório"):
+    c_adv1, c_adv2 = st.columns(2)
+    with c_adv1:
+        faturamento_adv = st.number_input("Faturamento Anual Base (R$)", value=360000.00)
+        folha_adv = st.number_input("Folha de Salários Anual (R$)", value=100000.00)
+    with c_adv2:
+        fat_acumulado = st.number_input("Faturamento Acumulado Atual no Ano (R$)", value=3200000.00)
+    
+    if st.button("Analisar Simulação Avançada & Momento de Migração"):
         fator_r = (folha_adv / faturamento_adv) * 100
         st.metric("Fator R Calculado", f"{fator_r:.2f}%")
+        
         if fator_r >= 28:
             st.success("✅ Fator R superior a 28%. Tributado pelo Anexo III do Simples Nacional.")
             status_fator = "Anexo III (Fator R >= 28%)"
@@ -221,41 +225,32 @@ elif pagina == "📈 Simulador Avançado":
             st.warning("⚠️ Fator R inferior a 28%. Tributado pelo Anexo V do Simples Nacional.")
             status_fator = "Anexo V (Fator R < 28%)"
             
-        pdf_fator = gerar_conteudo_pdf("Análise de Fator R", emp_adv, f"Fator R: {fator_r:.2f}% - {status_fator}")
+        if fat_acumulado > 4200000:
+            st.warning("⚠️ **Alerta Crítico de Migração:** Faturamento acumulado próximo ao teto do Simples Nacional (R$ 4,8M). Recomenda-se migração preventiva.")
+        else:
+            st.success("✅ **Status de Enquadramento:** Faturamento acumulado dentro da margem segura do regime atual[span_5](start_span)[span_5](end_span).")
+            
+        detalhes_avancado = f"Faturamento Base: R$ {faturamento_adv:,.2f}\nFolha: R$ {folha_adv:,.2f}\nFator R: {fator_r:.2f}% ({status_fator})\nFaturamento Acumulado: R$ {fat_acumulado:,.2f}"
+        pdf_adv = gerar_conteudo_pdf("Simulação Avançada & Migração", emp_adv, detalhes_avancado)
         
         c_df1, c_df2 = st.columns(2)
         with c_df1:
-            st.download_button("📥 Baixar PDF Fator R", data=pdf_fator, file_name=f"FatorR_{emp_adv}.pdf", mime="application/pdf")
+            st.download_button("📥 Baixar PDF Avançado", data=pdf_adv, file_name=f"Avancado_{emp_adv}.pdf", mime="application/pdf")
         with c_df2:
-            link_w_fator = f"https://wa.me/55{wapp_adv}?text=Olá,%20segue%20o%20parecer%20do%20Fator%20R."
-            st.markdown(f"<a href='{link_w_fator}' target='_blank'><button style='background-color:#25D366; color:white; padding:8px 16px; border:none; border-radius:5px; font-weight:bold; cursor:pointer;'>📲 Enviar via WhatsApp</button></a>", unsafe_allow_html=True)
+            link_w_adv = f"https://wa.me/55{wapp_adv}?text=Olá,%20segue%20o%20parecer%20avançado%20de%20fator%20R%20e%20migração."
+            st.markdown(f"<a href='{link_w_adv}' target='_blank'><button style='background-color:#25D366; color:white; padding:8px 16px; border:none; border-radius:5px; font-weight:bold; cursor:pointer;'>📲 Enviar via WhatsApp</button></a>", unsafe_allow_html=True)
 
-# --- MÓDULO 6: SIMULAÇÃO CONTÍNUA & MIGRAÇÃO ---
-elif pagina == "🔄 Simulação Contínua & Migração":
-    st.title("🔄 Simulação Contínua de Regime Tributário")
-    st.markdown("Painel de monitoramento do faturamento acumulado.")
-    
-    emp_cont = st.text_input("Empresa Monitorada", value="Empresa Contínua S/A")
-    fat_acumulado = st.number_input("Faturamento Acumulado no Ano (R$)", value=3200000.00)
-    
-    if st.button("Analisar Momento de Migração"):
-        st.metric("Faturamento Acumulado Atual", f"R$ {fat_acumulado:,.2f}")
-        if fat_acumulado > 4200000:
-            st.warning("⚠️ **Alerta Crítico de Migração:** Faturamento próximo ao teto do Simples Nacional (R$ 4,8M).")
-        else:
-            st.success("✅ **Status Estável:** Operação dentro da margem segura do regime atual.")
-
-# --- MÓDULO 7: ALERTAS DE OPORTUNIDADES FISCAIS ---
+# --- MÓDULO 6: ALERTAS DE OPORTUNIDADES FISCAIS ---
 elif pagina == "🚨 Alertas de Oportunidades Fiscais":
     st.title("🚨 Alertas de Oportunidades Fiscais")
-    st.markdown("Identificação de créditos tributários não aproveitados.")
+    st.markdown("Identificação automática de créditos tributários não aproveitados e benefícios setoriais[span_6](start_span)[span_6](end_span)[span_7](start_span)[span_7](end_span).")
     
     setor_alerta = st.selectbox("Segmento da Empresa", ["Comércio Varejista", "Indústria", "Serviços Médicos", "Tecnologia / Software"])
     if st.button("Verificar Oportunidades para o Setor"):
         st.success(f"🔍 Análise concluída para o setor de **{setor_alerta}**!")
-        st.info("💡 **Oportunidade Identificada:** Possibilidade de recuperação de PIS/COFINS monofásico e créditos acumulados.")
+        st.info("💡 **Oportunidade Identificada:** Possibilidade de recuperação de PIS/COFINS monofásico e créditos acumulados de ICMS/ISS.")
 
-# --- MÓDULO 8: PLANEJAMENTO TRIBUTÁRIO ANUAL ---
+# --- MÓDULO 7: PLANEJAMENTO TRIBUTÁRIO ANUAL ---
 elif pagina == "📅 Planejamento Tributário Anual":
     st.title("📅 Planejamento Tributário Anual")
     st.markdown("Projeção de 12 meses para antecipação de mudanças de faixa.")
@@ -279,7 +274,7 @@ elif pagina == "📅 Planejamento Tributário Anual":
             link_w_plan = f"https://wa.me/55{wapp_plan}?text=Olá,%20segue%20o%20planejamento%20tributário."
             st.markdown(f"<a href='{link_w_plan}' target='_blank'><button style='background-color:#25D366; color:white; padding:8px 16px; border:none; border-radius:5px; font-weight:bold; cursor:pointer;'>📲 Enviar via WhatsApp</button></a>", unsafe_allow_html=True)
 
-# --- MÓDULO 9: ANÁLISE DE LUCROS ISENTOS ---
+# --- MÓDULO 8: ANÁLISE DE LUCROS ISENTOS ---
 elif pagina == "💰 Análise de Lucros Isentos":
     st.title("💰 Análise de Distribuição de Lucros Isentos")
     st.markdown("Cálculo do limite de isenção baseado na contabilidade e presunção.")
@@ -302,7 +297,7 @@ elif pagina == "💰 Análise de Lucros Isentos":
             link_w_lucro = f"https://wa.me/55{wapp_lucro}?text=Olá,%20segue%20a%20análise%20de%20lucros."
             st.markdown(f"<a href='{link_w_lucro}' target='_blank'><button style='background-color:#25D366; color:white; padding:8px 16px; border:none; border-radius:5px; font-weight:bold; cursor:pointer;'>📲 Enviar via WhatsApp</button></a>", unsafe_allow_html=True)
 
-# --- MÓDULO 10: CHAT IA (GOOGLE-GENAI ESTÁVEL) ---
+# --- MÓDULO 9: CHAT IA (GOOGLE-GENAI ESTÁVEL) ---
 elif pagina == "🤖 Chat IA Master Sênior":
     st.title("🤖 Chat com Assistente Contábil Sênior")
     st.markdown("Tire dúvidas sobre legislação fiscal, normas contábeis e análises estratégicas em tempo real.")
@@ -339,13 +334,13 @@ elif pagina == "🤖 Chat IA Master Sênior":
                         if response and response.text:
                             resposta_ia = response.text
                     except Exception as err:
-                        st.error(f"Erro de conexão com a API do Gemini. Verifique a chave configurada. Detalhe: {err}")
+                        st.error(f"Erro de conexão com a API do Gemini. Verifique se a chave configurada nos Secrets está correta. Detalhe: {err}")
 
                 if resposta_ia:
                     st.markdown(resposta_ia)
                     st.session_state.chat_history.append({"role": "assistant", "content": resposta_ia})
 
-# --- MÓDULO 11: HISTÓRICO DE RELATÓRIOS ---
+# --- MÓDULO 10: HISTÓRICO DE RELATÓRIOS ---
 elif pagina == "📑 Histórico de Relatórios":
     st.title("📑 Histórico de Relatórios e Exportação")
     st.markdown("Espaço centralizado de relatórios gerados.")
@@ -358,7 +353,7 @@ elif pagina == "📑 Histórico de Relatórios":
     })
     st.dataframe(df_rels, hide_index=True, use_container_width=True)
 
-# --- MÓDULO 12: CONFIGURAÇÕES / ALÍQUOTAS ---
+# --- MÓDULO 11: CONFIGURAÇÕES / ALÍQUOTAS ---
 elif pagina == "⚙️ Configurações / Alíquotas":
     st.title("⚙️ Configurações e Atualização de Alíquotas")
     st.markdown("Área administrativa para parâmetros gerais.")
@@ -370,7 +365,7 @@ elif pagina == "⚙️ Configurações / Alíquotas":
     if st.button("Salvar Alterações de Parâmetros"):
         st.success("Tabelas de alíquotas atualizadas com sucesso!")
 
-# --- MÓDULO 13: CALCULADORA DE RETENÇÕES ---
+# --- MÓDULO 12: CALCULADORA DE RETENÇÕES ---
 elif pagina == "🧮 Calculadora de Retenções":
     st.title("🧮 Calculadora de Retenções Federais (IRRF, CSRF, INSS)")
     st.markdown("Apuração rápida de retenções na fonte para notas fiscais.")
@@ -400,5 +395,5 @@ elif pagina == "🧮 Calculadora de Retenções":
         with cr1:
             st.download_button("📥 Baixar PDF Retenções", data=pdf_ret, file_name=f"Retencoes_{emp_ret}.pdf", mime="application/pdf")
         with cr2:
-            link_w_ret = f"https://wa.me/55{wapp_ret}?text=Olá,%2520segue%2520o%2520demonstrativo%2520de%2520retenções."
+            link_w_ret = f"https://wa.me/55{wapp_ret}?text=Olá,%20segue%20o%20demonstrativo%20de%20retenções."
             st.markdown(f"<a href='{link_w_ret}' target='_blank'><button style='background-color:#25D366; color:white; padding:8px 16px; border:none; border-radius:5px; font-weight:bold; cursor:pointer;'>📲 Enviar via WhatsApp</button></a>", unsafe_allow_html=True)
