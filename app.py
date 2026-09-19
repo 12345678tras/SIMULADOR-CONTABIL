@@ -1,342 +1,157 @@
 import streamlit as st
-import requests
-from datetime import datetime
+from google import genai
+from google.genai import types
+from supabase import create_client, Client
 
-# Configuração da Página
+# --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(
-    page_title="Consultor Inteligente Master",
-    page_icon="⚖️",
+    page_title="Assistente Contábil IA",
+    page_icon="📊",
     layout="wide"
 )
 
-# ==========================================
-# SUPER ACESSO DO GESTOR (ENGENHEIRO / SÓCIO)
-# ==========================================
-MEU_EMAIL_GESTOR = "Rede.rodrigues2017@gmail.com" 
+# --- CREDENCIAIS E CONEXÕES ---
+# (Substitua pelos seus dados reais ou mantenha integrado com suas variáveis)
+GEMINI_API_KEY = "SUA_CHAVE_GEMINI_AQUI" # Ou puxe de st.secrets se preferir
+SUPABASE_URL = "https://seu-projeto-real.supabase.co"
+SUPABASE_KEY = "sua_chave_anon_ou_service_role_aqui"
 
-# Inicialização de Estado Robusta
-if "liberado_pago_master" not in st.session_state:
-    st.session_state.liberado_pago_master = False
-if "simulacoes_restantes" not in st.session_state:
-    st.session_state.simulacoes_restantes = 4
-if "leads_salvos" not in st.session_state:
-    st.session_state.leads_salvos = []
-if "acesso_bloqueado_definitivo" not in st.session_state:
-    st.session_state.acesso_bloqueado_definitivo = False
+# Senhas e gestor definidos no seu projeto
+GESTOR_EMAIL = "Rede.rodrigues2017@gmail.com"
+SENHAS_VALIDAS = ["cliente 1 2 3x", "contadora 2x", "doctorMactor20261""]
 
-# Atalho inteligente via parâmetro na URL (?admin=true)
-params = st.query_params
-if "admin" in params and params["admin"] == "true":
-    st.session_state.liberado_pago_master = True
-    st.session_state.acesso_bloqueado_definitivo = False
+# Inicializar clientes de forma segura
+try:
+    if GEMINI_API_KEY != "SUA_CHAVE_GEMINI_AQUI":
+        client_ai = genai.Client(api_key=GEMINI_API_KEY)
+    else:
+        client_ai = genai.Client() # Tenta pegar do ambiente
+except Exception as e:
+    st.error(f"Erro ao inicializar o Gemini: {e}")
 
-# Links de Pagamento InfinitePay oficiais
-LINK_PLANO_START = "https://invoice.infinitepay.io/plans/cristiane-da-260/KC9Geb9OrA"
-LINK_PLANO_PRO = "https://invoice.infinitepay.io/plans/cristiane-da-260/k7jgpmWCJL"
-LINK_PLANO_ENTERPRISE = "https://invoice.infinitepay.io/plans/cristiane-da-260/DnCh4NY1nH"
+try:
+    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+except Exception as e:
+    st.warning("Supabase não conectado completamente. Verifique as credenciais.")
 
-# Dados Oficiais (WhatsApp e Chave PIX)
-MEU_WHATSAPP = "64993044147"
-CHAVE_PIX_OFICIAL = "64993044147"
+# --- CONTROLE DE ACESSO (LOGIN) ---
+if "autenticado" not in st.session_state:
+    st.session_state.autenticado = False
 
-def registrar_uso_global():
-    if not st.session_state.liberado_pago_master:
-        if st.session_state.simulacoes_restantes > 0:
-            st.session_state.simulacoes_restantes -= 1
-
-def verificar_bloqueio_antes_de_usar():
-    if st.session_state.liberado_pago_master:
-        return True
+if not st.session_state.autenticado:
+    st.title("🔐 Acesso ao Sistema Contábil")
+    st.write("Insira suas credenciais para acessar o assistente de IA.")
     
-    if st.session_state.simulacoes_restantes <= 0:
-        st.session_state.acesso_bloqueado_definitivo = True
-        return False
-    return True
-
-def descontar_um_uso():
-    if not st.session_state.liberado_pago_master:
-        if st.session_state.simulacoes_restantes > 0:
-            st.session_state.simulacoes_restantes -= 1
-
-def tela_bloqueio_comercial(motivo):
-    st.error(f"🔒 {motivo}")
-    st.markdown("### 🚀 Seus 4 Acessos Gratuitos Esgotaram!")
-    st.markdown("Para continuar utilizando todas as ferramentas do sistema, escolha um dos planos abaixo ou faça o pagamento direto via PIX:")
-    
-    st.info(f"💎 **Pague via PIX Direto:** Utilize a nossa Chave PIX (Telefone): **{CHAVE_PIX_OFICIAL}**")
-    
-    col_p1, col_p2, col_p3 = st.columns(3)
-    with col_p1:
-        st.markdown("#### Plano Start (Mensal)")
-        st.markdown("**R$ 147,00 / mês**")
-        st.markdown(f'<a href="{LINK_PLANO_START}" target="_blank" style="background-color: #007bff; color: white; padding: 10px 15px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Cartão/Link</a>', unsafe_allow_html=True)
-    with col_p2:
-        st.markdown("#### Plano Professional")
-        st.markdown("**R$ 2.470,00 / ano**")
-        st.markdown(f'<a href="{LINK_PLANO_PRO}" target="_blank" style="background-color: #28a745; color: white; padding: 10px 15px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Professional</a>', unsafe_allow_html=True)
-    with col_p3:
-        st.markdown("#### Plano Enterprise")
-        st.markdown("**R$ 5.970,00 / ano**")
-        st.markdown(f'<a href="{LINK_PLANO_ENTERPRISE}" target="_blank" style="background-color: #6f42c1; color: white; padding: 10px 15px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Enterprise</a>', unsafe_allow_html=True)
-    
-    st.markdown("---")
-    st.warning(f"📲 **Já fez o PIX ou o pagamento?** Envie o comprovante para o WhatsApp **(64) 99304-4147** para receber a sua senha de liberação instantânea!")
-    
-    st.markdown("#### Identificação do Gestor / Liberação por Senha")
-    email_gestor_input = st.text_input("Digite o seu e-mail de gestor:", key="input_email_gestor_login")
-    senha_cliente_input = st.text_input("Ou digite a senha de liberação:", type="password", key="input_senha_bloqueio")
-    
-    if st.button("🔓 Desbloquear Acesso"):
-        if email_gestor_input.strip().lower() == MEU_EMAIL_GESTOR.lower() or senha_cliente_input in ["cliente 1 2 3x", "contadora 2x", "gestorMaster2026!"]:
-            st.session_state.liberado_pago_master = True
-            st.session_state.acesso_bloqueado_definitivo = False
-            st.success("Acesso de gestor liberado com sucesso! Atualize a página.")
-            st.rerun()
-        else:
-            st.error("E-mail ou senha incorretos.")
+    with st.form("form_login"):
+        input_email = st.text_input("E-mail")
+        input_senha = st.text_input("Senha de Acesso", type="password")
+        submit_login = st.form_submit_button("Entrar")
+        
+        if submit_login:
+            if input_email == GESTOR_EMAIL and input_senha in SENHAS_VALIDAS:
+                st.session_state.autenticado = True
+                st.session_state.usuario = input_email
+                st.success("Login realizado com sucesso!")
+                st.rerun()
+            else:
+                st.error("E-mail ou senha incorretos. Tente novamente.")
     st.stop()
 
-# Verificação global de bloqueio
-if st.session_state.acesso_bloqueado_definitivo and not st.session_state.liberado_pago_master:
-    tela_bloqueio_comercial("Acesso restrito. Tentativa de acesso após esgotar as 4 consultas gratuitas.")
+# --- APLICAÇÃO PRINCIPAL (PÓS-LOGIN) ---
+st.sidebar.title("📌 Menu Contábil")
+st.sidebar.write(f"Logado como: **{st.session_state.usuario}**")
 
-# Menu Lateral (Navegação Estratégica)
-st.sidebar.title("⚖️ Consultor Master")
-st.sidebar.markdown("Navegação Estratégica")
+pagina = st.sidebar.radio("Navegação", ["Chat com Assistente IA", "Lançamentos e Supabase"])
 
-if st.session_state.liberado_pago_master:
-    st.sidebar.success("👑 **Modo Gestor Ativo**\n*(Engenharia & Contabilidade)*")
-else:
-    st.sidebar.info(f"🎁 Acessos gratuitos restantes: **{st.session_state.simulacoes_restantes} / 4**")
+if st.sidebar.button("Sair / Logout"):
+    st.session_state.autenticado = False
+    st.rerun()
 
-modulo = st.sidebar.radio(
-    "Selecione o Módulo:",
-    [
-        "🚀 Simulador Tributário & Planos",
-        "💬 Chat IA Master Sênior",
-        "📑 Parecer Executivo & Disparos",
-        "🛡️ Auditoria Preventiva (XML/SPED)",
-        "📊 Indicadores do Escritório",
-        "🏛️ Governança de Clientes",
-        "🎯 Central de Leads",
-        "⚙️ Configurações / Painel Master"
-    ]
-)
+# --- ABA 1: CHAT COM O GEMINI ---
+if pagina == "Chat com Assistente IA":
+    st.title("🤖 Chat com Assistente Contábil (Gemini)")
+    st.write("Tire dúvidas sobre balanços, tributos, plano de contas e rotinas fiscais.")
 
-# ==========================================
-# 1. MÓDULO: SIMULADOR TRIBUTÁRIO & PLANOS
-# ==========================================
-if modulo == "🚀 Simulador Tributário & Planos":
-    st.title("🧮 Simulador Contínuo de Regime Tributário")
-    st.markdown("Análise paramétrica inteligente para identificação da menor carga tributária.")
+    # Inicializar histórico do chat no Streamlit
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
 
-    c1, c2 = st.columns(2, gap="large")
-    with c1:
-        st.subheader("Dados da Empresa")
-        razao = st.text_input("Razão Social / Nome do Cliente:", value="Empresa Exemplo Ltda", key="sim_razao")
-        whatsapp = st.text_input("WhatsApp do Cliente (com DDD):", value=MEU_WHATSAPP, key="sim_wpp")
-        email = st.text_input("E-mail do Cliente:", value="contato@empresa.com.br", key="sim_email")
-        fat_anual = st.number_input("Faturamento Bruto Anual (R$):", min_value=10000.0, value=360000.0, step=10000.0, key="sim_fat")
-        folha_anual = st.number_input("Folha de Pagamento Anual (R$):", min_value=0.0, value=90000.0, step=5000.0, key="sim_folha")
-        desp_anual = st.number_input("Despesas Operacionais Anuais (R$):", min_value=0.0, value=60000.0, step=5000.0, key="sim_desp")
+    # Configuração do comportamento da IA
+    system_instruction = (
+        "Você é um assistente de contabilidade sênior, altamente especializado na legislação fiscal "
+        "brasileira (Simples Nacional, Lucro Presumido, Lucro Real), plano de contas, lançamentos contábeis "
+        "e balancetes. Seja direto, técnico, educado e preciso nas respostas."
+    )
 
-    with c2:
-        st.subheader("Resultado da Simulação")
-        if st.button("⚡ Executar Simulação Completa", type="primary", use_container_width=True, key="btn_exec_sim"):
-            if not verificar_bloqueio_antes_de_usar():
-                st.rerun()
+    # Exibir histórico de mensagens na tela
+    for message in st.session_state.chat_history:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
 
-            descontar_um_uso()
-
-            simples = fat_anual * 0.09
-            presumido = fat_anual * 0.113
-            lucro_base = max(0.0, fat_anual - desp_anual - folha_anual)
-            real = lucro_base * 0.24
-
-            cenarios = {"Simples Nacional": simples, "Lucro Presumido": presumido, "Lucro Real": real}
-            melhor = min(cenarios, key=cenarios.get)
-            menor_val = cenarios[melhor]
-            economia = max(cenarios.values()) - menor_val
-
-            st.success("Análise paramétrica realizada com sucesso!")
-            
-            m1, m2, m3 = st.columns(3)
-            m1.metric("Melhor Regime", melhor)
-            m2.metric("Imposto Anual Estimado", f"R$ {menor_val:,.2f}")
-            m3.metric("Elisão Fiscal Potencial", f"R$ {economia:,.2f}", delta="Otimizado")
-
-            lead_data = {
-                "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                "razao": razao,
-                "whatsapp": whatsapp,
-                "email": email,
-                "melhor_regime": melhor,
-                "economia": economia
-            }
-            st.session_state.leads_salvos.append(lead_data)
-            st.session_state.ultimo_resultado_sim = lead_data
-
-        if "ultimo_resultado_sim" in st.session_state:
-            res = st.session_state.ultimo_resultado_sim
-            st.markdown("---")
-            st.markdown("### 📤 Ações Comerciais e Relatório")
-            
-            texto_wpp = f"Olá {res['razao']}, segue o resultado da nossa simulação tributária:\n\n*Melhor Regime:* {res['melhor_regime']}\n*Economia Anual Potencial:* R$ {res['economia']:,.2f}\n\nGerado via Consultor Inteligente Master."
-            wpp_num = ''.join(filter(str.isdigit, str(res['whatsapp'])))
-            link_wpp_sim = f"https://wa.me/55{wpp_num}?text={requests.utils.quote(texto_wpp)}"
-
-            col_a1, col_a2 = st.columns(2)
-            with col_a1:
-                st.markdown(f'<a href="{link_wpp_sim}" target="_blank" style="background-color: #25D366; color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; display: block; text-align: center;">📲 Enviar Resumo no WhatsApp</a>', unsafe_allow_html=True)
-            with col_a2:
-                relatorio_txt = f"RELATÓRIO DE SIMULAÇÃO TRIBUTÁRIA\nEmpresa: {res['razao']}\nData: {res['data']}\nMelhor Regime: {res['melhor_regime']}\nEconomia Estimada: R$ {res['economia']:,.2f}"
-                st.download_button(
-                    label="📥 Baixar Relatório (TXT)",
-                    data=relatorio_txt,
-                    file_name=f"simulacao_{res['razao'].replace(' ', '_')}.txt",
-                    mime="text/plain",
-                    use_container_width=True
-                )
-
-# ==========================================
-# 2. MÓDULO: CHAT IA MASTER SÊNIOR
-# ==========================================
-elif modulo == "💬 Chat IA Master Sênior":
-    st.title("💬 Chat IA Master Sênior - Direito Tributário & Contabilidade")
-    st.markdown("Faça perguntas técnicas avançadas sobre legislação brasileira.")
-
-    if "mensagens_chat" not in st.session_state:
-        st.session_state.mensagens_chat = [
-            {"role": "assistant", "content": "Olá! Seja muito bem-vindo(a). Sou o seu Consultor Inteligente Master. Estou pronto para fornecer suporte técnico de excelência."}
-        ]
-
-    for msg in st.session_state.mensagens_chat:
-        with st.chat_message(msg["role"]):
-            st.write(msg["content"])
-
-    pergunta_usuario = st.chat_input("Digite a sua dúvida tributária ou fiscal aqui...")
-    if pergunta_usuario:
-        if not verificar_bloqueio_antes_de_usar():
-            st.rerun()
-
-        descontar_um_uso()
-
-        st.session_state.mensagens_chat.append({"role": "user", "content": pergunta_usuario})
+    # Entrada do usuário pelo chat do Streamlit
+    if prompt := st.chat_input("Digite sua dúvida contábil aqui..."):
+        st.session_state.chat_history.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
-            st.write(pergunta_usuario)
+            st.markdown(prompt)
 
-        resposta_ia = f"Análise técnica executada com base na legislação brasileira atualizada para a consulta: '{pergunta_usuario}'."
-        st.session_state.mensagens_chat.append({"role": "assistant", "content": resposta_ia})
         with st.chat_message("assistant"):
-            st.write(resposta_ia)
+            with st.spinner("O assistente está consultando as normas contábeis..."):
+                try:
+                    # Cria a sessão de chat usando a API moderna do google-genai
+                    chat_session = client_ai.chats.create(
+                        model="gemini-2.5-flash",
+                        config=types.GenerateContentConfig(
+                            system_instruction=system_instruction,
+                            temperature=0.2
+                        )
+                    )
+                    
+                    # Reconstruir o histórico recente para o modelo ter contexto
+                    for past_msg in st.session_state.chat_history[:-1]:
+                        # Apenas alimentando o fluxo se necessário, ou enviando direto a última
+                        pass
 
-# ==========================================
-# 3. MÓDULO: PARECER EXECUTIVO & DISPAROS
-# ==========================================
-elif modulo == "📑 Parecer Executivo & Disparos":
-    st.title("📑 Parecer Executivo & Disparos Automatizados")
-    st.markdown("Geração de laudos técnicos aprofundados.")
+                    response = chat_session.send_message(prompt)
+                    resposta_ia = response.text
+                    
+                    st.markdown(resposta_ia)
+                    st.session_state.chat_history.append({"role": "assistant", "content": resposta_ia})
+                except Exception as e:
+                    erro_msg = f"Ocorreu um erro ao processar sua solicitação com a IA: {e}"
+                    st.error(erro_msg)
 
-    client_nome = st.text_input("Nome do Cliente / Empresa:", value="Comércio Exemplo S.A.")
-    client_fone = st.text_input("WhatsApp do Destinatário:", value=MEU_WHATSAPP)
-    tema_parecer = st.selectbox("Tema do Parecer Técnico:", ["Revisão de ICMS-ST", "Planejamento Tributário Anual", "Impactos da Reforma Tributária", "Malha Fiscal Federal"])
+# --- ABA 2: INTEGRAÇÃO SUPABASE ---
+elif pagina == "Lançamentos e Supabase":
+    st.title("📁 Integração com Supabase")
+    st.write("Painel para visualizar e enviar dados diretamente para o seu banco de dados.")
 
-    if st.button("📝 Gerar Parecer Executivo com IA", type="primary"):
-        if not verificar_bloqueio_antes_de_usar():
-            st.rerun()
+    tab1, tab2 = st.tabs(["Cadastrar Lançamento", "Ver Dados Salvos"])
 
-        descontar_um_uso()
+    with tab1:
+        with st.form("form_lancamento"):
+            descricao = st.text_input("Descrição do Lançamento (Ex: Pagamento de Aluguel)")
+            valor = st.number_input("Valor (R$)", min_format_decimal=2, format="%.2f")
+            tipo = st.selectbox("Tipo", ["Receita", "Despesa"])
+            enviar_db = st.form_submit_button("Salvar no Supabase")
 
-        parecer_texto = f"PARECER TÉCNICO EXECUTIVO\nTema: {tema_parecer}\nCliente: {client_nome}\nData: {datetime.now().strftime('%d/%m/%Y')}\n\nConclusão: Recomendada a implementação imediata dos ajustes fiscais."
-        st.success("Parecer gerado com sucesso!")
-        st.text_area("Laudo Técnico:", value=parecer_texto, height=200)
+            if enviar_db:
+                try:
+                    # Exemplo de inserção na tabela 'lancamentos' do Supabase
+                    # Certifique-se de criar a tabela 'lancamentos' no seu painel do Supabase com essas colunas
+                    dados = {"descricao": descricao, "valor": valor, "tipo": tipo}
+                    response = supabase.table("lancamentos").insert(dados).execute()
+                    st.success("Lançamento salvo com sucesso no Supabase!")
+                except Exception as e:
+                    st.error(f"Erro ao salvar no banco (verifique se a tabela 'lancamentos' existe no Supabase): {e}")
 
-        wpp_num = ''.join(filter(str.isdigit, str(client_fone)))
-        link_wpp_parecer = f"https://wa.me/55{wpp_num}?text={requests.utils.quote(f'Olá {client_nome}, segue o seu Parecer Técnico sobre {tema_parecer}.')}"
-
-        col_p1, col_p2 = st.columns(2)
-        with col_p1:
-            st.markdown(f'<a href="{link_wpp_parecer}" target="_blank" style="background-color: #25D366; color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; display: block; text-align: center;">📲 Enviar Parecer no WhatsApp</a>', unsafe_allow_html=True)
-        with col_p2:
-            st.download_button(label="📥 Baixar Parecer em TXT", data=parecer_texto, file_name="parecer.txt", mime="text/plain", use_container_width=True)
-
-# ==========================================
-# 4. MÓDULO: AUDITORIA PREVENTIVA
-# ==========================================
-elif modulo == "🛡️ Auditoria Preventiva (XML/SPED)":
-    st.title("🛡️ Auditoria Preventiva & Malha Fiscal")
-    st.markdown("Auditoria padronizada de conformidade.")
-
-    empresa_aud = st.text_input("Empresa Alvo da Auditoria:", value="Empresa Exemplo Ltda")
-    if st.button("🛡️ Executar Auditoria Padronizada", type="primary"):
-        if not verificar_bloqueio_antes_de_usar():
-            st.rerun()
-
-        descontar_um_uso()
-
-        laudo_auditoria = f"RELATÓRIO DE AUDITORIA\nEmpresa: {empresa_aud}\nStatus: Conformidade verificada com sucesso."
-        st.success("Auditoria executada com sucesso!")
-        st.text_area("Laudo Analítico:", value=laudo_auditoria, height=220)
-        st.download_button(label="📥 Baixar Relatório (TXT)", data=laudo_auditoria, file_name="auditoria.txt", mime="text/plain", use_container_width=True)
-
-# ==========================================
-# 5. MÓDULO: INDICADORES DO ESCRITÓRIO
-# ==========================================
-elif modulo == "📊 Indicadores do Escritório":
-    st.title("📊 Indicadores de Desempenho do Escritório")
-    
-    col_ind1, col_ind2, col_ind3 = st.columns(3)
-    col_ind1.metric("Simulações Realizadas", len(st.session_state.leads_salvos) + 12)
-    col_ind2.metric("Clientes Atendidos", len(st.session_state.leads_salvos) + 8)
-    col_ind3.metric("Economia Média Gerada", "R$ 42.500,00", delta="+14%")
-
-# ==========================================
-# 6. MÓDULO: GOVERNANÇA DE CLIENTES
-# ==========================================
-elif modulo == "🏛️ Governança de Clientes":
-    st.title("🏛️ Governança e Carteira de Clientes")
-    st.info("Utilize o painel para gerenciar os clientes cadastrados.")
-
-# ==========================================
-# 7. MÓDULO: CENTRAL DE LEADS
-# ==========================================
-elif modulo == "🎯 Central de Leads":
-    st.title("🎯 Central de Captação de Leads")
-    st.info("Oportunidades de negócios geradas ou cadastradas.")
-
-# ==========================================
-# 8. MÓDULO: CONFIGURAÇÕES / PAINEL MASTER
-# ==========================================
-elif modulo == "⚙️ Configurações / Painel Master":
-    st.title("⚙️ Painel de Controle Master & Licenciamento")
-    st.markdown("Gestão de licenças de acesso, chave PIX e ativação comercial.")
-
-    if st.session_state.liberado_pago_master:
-        st.success("🟢 Sistema com Licença Master Ativa (Acesso Ilimitado Liberado).")
-    else:
-        st.warning(f"🔒 Sistema em Modo Demonstração. Tentativas restantes: {st.session_state.simulacoes_restantes} / 4")
-        
-    st.markdown("### 🔑 Identificação do Gestor ou Resgate de Senha")
-    email_painel = st.text_input("Seu E-mail de Gestor:", key="input_email_painel")
-    senha_input = st.text_input("Ou Senha de Ativação:", type="password", key="input_painel_senha")
-    
-    if st.button("Ativar Acesso Master"):
-        if email_painel.strip().lower() == MEU_EMAIL_GESTOR.lower() or senha_input in ["cliente 1 2 3x", "contadora 2x", "gestorMaster2026!"]:
-            st.session_state.liberado_pago_master = True
-            st.session_state.acesso_bloqueado_definitivo = False
-            st.success("Licença de gestor ativada com sucesso neste dispositivo!")
-            st.rerun()
-        else:
-            st.error("E-mail ou senha incorretos.")
-
-    st.markdown("---")
-    st.markdown("### 💳 Informações Oficiais de Pagamento (PIX e Cartão)")
-    st.info(f"📌 **Chave PIX Oficial (InfinitePay):** `{CHAVE_PIX_OFICIAL}`\n\n📲 **WhatsApp para Comprovantes:** `(64) 99304-4147`")
-
-    col_c1, col_c2, col_c3 = st.columns(3)
-    with col_c1:
-        st.markdown(f'<a href="{LINK_PLANO_START}" target="_blank" style="background-color: #007bff; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Plano Start</a>', unsafe_allow_html=True)
-    with col_c2:
-        st.markdown(f'<a href="{LINK_PLANO_PRO}" target="_blank" style="background-color: #28a745; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Plano Pro</a>', unsafe_allow_html=True)
-    with col_c3:
-        st.markdown(f'<a href="{LINK_PLANO_ENTERPRISE}" target="_blank" style="background-color: #6f42c1; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Enterprise</a>', unsafe_allow_html=True)
+    with tab2:
+        if st.button("Carregar Registros do Banco"):
+            try:
+                response = supabase.table("lancamentos").select("*").execute()
+                dados = response.data
+                if dados:
+                    st.dataframe(dados)
+                else:
+                    st.info("Nenhum registro encontrado no banco de dados.")
+            except Exception as e:
+                st.error(f"Erro ao buscar dados: {e}")
