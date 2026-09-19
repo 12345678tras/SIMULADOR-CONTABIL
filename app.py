@@ -11,13 +11,9 @@ st.set_page_config(
 )
 
 # --- CREDENCIAIS E CONEXÕES ---
-GEMINI_API_KEY = "SUA_CHAVE_GEMINI_AQUI" # Ou configure via st.secrets
+GEMINI_API_KEY = "SUA_CHAVE_GEMINI_AQUI" 
 SUPABASE_URL = "https://seu-projeto-real.supabase.co"
 SUPABASE_KEY = "sua_chave_anon_ou_service_role_aqui"
-
-# Dados de acesso do gestor corrigidos
-GESTOR_EMAIL = "Rede.rodrigues2017@gmail.com"
-SENHAS_VALIDAS = ["cliente 1 2 3x", "contadora 2x", "doctorMactor20261"]
 
 # Inicializar clientes de forma segura
 try:
@@ -33,38 +29,11 @@ try:
 except Exception as e:
     st.warning("Supabase não conectado completamente. Verifique as credenciais.")
 
-# --- CONTROLE DE ACESSO (LOGIN) ---
-if "autenticado" not in st.session_state:
-    st.session_state.autenticado = False
-
-if not st.session_state.autenticado:
-    st.title("🔐 Acesso ao Sistema Contábil")
-    st.write("Insira suas credenciais para acessar o assistente de IA.")
-    
-    with st.form("form_login"):
-        input_email = st.text_input("E-mail")
-        input_senha = st.text_input("Senha de Acesso", type="password")
-        submit_login = st.form_submit_button("Entrar")
-        
-        if submit_login:
-            if input_email == GESTOR_EMAIL and input_senha in SENHAS_VALIDAS:
-                st.session_state.autenticado = True
-                st.session_state.usuario = input_email
-                st.success("Login realizado com sucesso!")
-                st.rerun()
-            else:
-                st.error("E-mail ou senha incorretos. Tente novamente.")
-    st.stop()
-
-# --- APLICAÇÃO PRINCIPAL (PÓS-LOGIN) ---
+# --- APLICAÇÃO PRINCIPAL (SEM LOGIN) ---
 st.sidebar.title("📌 Menu Contábil")
-st.sidebar.write(f"Logado como: **{st.session_state.usuario}**")
+st.sidebar.write("Modo de teste: **Sem Senha**")
 
 pagina = st.sidebar.radio("Navegação", ["Chat com Assistente IA", "Lançamentos e Supabase"])
-
-if st.sidebar.button("Sair / Logout"):
-    st.session_state.autenticado = False
-    st.rerun()
 
 # --- ABA 1: CHAT COM O GEMINI ---
 if pagina == "Chat com Assistente IA":
@@ -140,4 +109,4 @@ elif pagina == "Lançamentos e Supabase":
                 else:
                     st.info("Nenhum registro encontrado no banco de dados.")
             except Exception as e:
-                st.error(f"Erro ao buscar dados: {e}")
+                st.error(f5"Erro ao buscar dados: {e}")
