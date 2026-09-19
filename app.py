@@ -14,11 +14,6 @@ st.set_page_config(
 # ==========================================
 # SEGURANÇA E CONFIGURAÇÕES DO GESTOR
 # ==========================================
-# O ideal é configurar no Streamlit Cloud (Settings > Secrets):
-# [gestor]
-# email = "Rede.rodrigues2017@gmail.com"
-# senhas = ["cliente 1 2 3x", "contadora 2x", "gestorMaster2026!"]
-
 MEU_EMAIL_GESTOR = st.secrets["gestor"]["email"] if "gestor" in st.secrets and "email" in st.secrets["gestor"] else "Rede.rodrigues2017@gmail.com"
 SENHAS_MESTRE_CONFIG = st.secrets["gestor"]["senhas"] if "gestor" in st.secrets and "senhas" in st.secrets["gestor"] else ["cliente 1 2 3x", "contadora 2x", "gestorMaster2026!"]
 
@@ -186,7 +181,6 @@ if modulo == "🚀 Simulador Tributário & Planos":
             m2.metric("Imposto Anual Estimado", f"R$ {menor_val:,.2f}")
             m3.metric("Elisão Fiscal Potencial", f"R$ {economia:,.2f}", delta="Otimizado")
 
-            # Salva no arquivo CSV permanente
             lead_data = {
                 "Data": datetime.now().strftime("%d/%m/%Y %H:%M"),
                 "Razao Social": razao,
@@ -339,7 +333,6 @@ elif modulo == "🎯 Central de Leads":
     if not df_leads.empty:
         st.dataframe(df_leads, use_container_width=True)
         
-        # Botão para baixar a base de leads em CSV
         csv_data = df_leads.to_csv(index=False).encode('utf-8')
         st.download_button(
             label="📥 Baixar Planilha de Leads (CSV)",
@@ -386,4 +379,4 @@ elif modulo == "⚙️ Configurações / Painel Master":
     with col_c2:
         st.markdown(f'<a href="{LINK_PLANO_PRO}" target="_blank" style="background-color: #28a745; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Plano Pro</a>', unsafe_allow_html=True)
     with col_c3:
-        st.markdown(f'<a href="{LINK_PLANO_ENTERPRISE}" target="_blank" style="background-color: #6f42c1; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Plano Enterprise</a>', unsafe_allow_html=True)
+        st.markdown(f'<a href="{LINK_PLANO_ENTERPRISE}" target="_blank" style="background-color: #6f42c1; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Enterprise</a>', unsafe_allow_html=True)
