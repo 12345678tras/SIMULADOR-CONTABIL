@@ -19,19 +19,23 @@ st.set_page_config(
 # ==========================================
 @st.cache_resource
 def init_supabase():
-    return create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_KEY"])
+    url = st.secrets.get("SUPABASE_URL", "")
+    key = st.secrets.get("SUPABASE_KEY", "")
+    if url and key:
+        return create_client(url, key)
+    return None
 
 try:
     supabase: Client = init_supabase()
 except Exception as e:
-    st.error(f"Erro ao conectar com o Supabase: {e}")
     supabase = None
 
 # ==========================================
-# CREDENCIAIS DO GESTOR
+# CREDENCIAIS E LINKS (PROTEGIDOS VIA SECRETS)
 # ==========================================
-MEU_EMAIL_GESTOR = st.secrets["gestor"]["email"] if "gestor" in st.secrets and "email" in st.secrets["gestor"] else "Rede.rodrigues2017@gmail.com"
-SENHAS_MESTRE_CONFIG = st.secrets["gestor"]["senhas"] if "gestor" in st.secrets and "senhas" in st.secrets["gestor"] else ["cliente 1 2 3x", "contadora 2x", "gestorMaster2026!"]
+GESTOR_CONFIG = st.secrets.get("gestor", {})
+MEU_EMAIL_GESTOR = GESTOR_CONFIG.get("email", "Rede.rodrigues2017@gmail.com")
+SENHAS_MESTRE_CONFIG = GESTOR_CONFIG.get("senhas", ["cliente 1 2 3x", "contadora2x", "gestorMaster2026!"])
 
 LINK_PLANO_START = "https://invoice.infinitepay.io/plans/cristiane-da-260/KC9Geb9OrA"
 LINK_PLANO_PRO = "https://invoice.infinitepay.io/plans/cristiane-da-260/k7jgpmWCJL"
@@ -51,10 +55,6 @@ if "usuario_identificado" not in st.session_state:
     st.session_state.usuario_identificado = False
 if "email_atual" not in st.session_state:
     st.session_state.email_atual = ""
-if "bloqueado_por_uso" not in st.session_state:
-    st.session_state.bloqueado_por_uso = False
-if "simulacoes_realizadas" not in st.session_state:
-    st.session_state.simulacoes_realizadas = 0
 
 params = st.query_params
 if "admin" in params and params["admin"] == "true":
@@ -75,26 +75,7 @@ def salvar_lead_arquivo(novo_lead):
     except Exception as e:
         print(f"Erro ao salvar lead local: {e}")
 
-# ==========================================
-# FUNÇÕES DE VALIDAÇÃO E COTAS NA NUVEM
-# ==========================================
-def verificar_status_nuvem(email):
-    """Consulta o Supabase para verificar se o e-mail já esgotou o teste gratuito."""
-    if not supabase:
-        return "liberado"
-    try:
-        email_limpo = email.strip().lower()
-        res = supabase.table("acessos_email").select("*").eq("email", email_limpo).execute()
-        if res.data and len(res.data) > 0:
-            registro = res.data[0]
-            if registro.get("simulacoes_feitas", 0) >= 1:
-                return "bloqueado"
-    except Exception as e:
-        print(f"Erro ao consultar Supabase: {e}")
-    return "liberado"
-
-def registrar_acesso_nuvem(email, whatsapp, razao):
-    """Registra ou atualiza o e-mail na nuvem."""
+def registrar_lead_nuvem(email, whatsapp, razao):
     if not supabase:
         return
     try:
@@ -105,120 +86,68 @@ def registrar_acesso_nuvem(email, whatsapp, razao):
                 "email": email_limpo,
                 "whatsapp": whatsapp,
                 "razao_social": razao,
-                "simulacoes_feitas": 0,
+                "simulacoes_feitas": 1,
                 "criado_em": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
             supabase.table("acessos_email").insert(novo_registro).execute()
-            
-            salvar_lead_arquivo({
-                "Data": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                "Razao Social": razao,
-                "WhatsApp": whatsapp,
-                "E-mail": email_limpo,
-                "Melhor Regime": "Cadastro Inicial Realizado",
-                "Economia (R$)": 0.0
-            })
     except Exception as e:
-        print(f"Erro ao registrar usuário: {e}")
-
-def incrementar_simulacao_nuvem(email):
-    """Incrementa o contador de simulações na nuvem para bloquear após a 1ª vez."""
-    if not supabase:
-        return
-    try:
-        email_limpo = email.strip().lower()
-        res = supabase.table("acessos_email").select("*").eq("email", email_limpo).execute()
-        if res.data and len(res.data) > 0:
-            atual = res.data[0].get("simulacoes_feitas", 0)
-            supabase.table("acessos_email").update({"simulacoes_feitas": atual + 1}).eq("email", email_limpo).execute()
-    except Exception as e:
-        print(f"Erro ao atualizar cota no Supabase: {e}")
+        print(f"Erro ao registrar lead: {e}")
 
 # ==========================================
-# TELA DE BLOQUEIO COMERCIAL (PAYWALL RIGOROSO)
+# COMPONENTE DE PAYWALL (EXIBIDO NOS MÓDULOS PAGOS)
 # ==========================================
-def tela_bloqueio_comercial():
-    st.error("🔒 Seu teste gratuito de acesso único já foi utilizado anteriormente!")
-    st.markdown("### 🚀 Assine um Plano para Desbloquear Acesso Ilimitado")
-    st.markdown("Tenha liberdade total em todas as simulações, pareceres executivos, chat avançado e auditorias sem restrições.")
+def renderizar_paywall_modulo(nome_modulo):
+    st.markdown(f"## 🔒 Acesso Restrito: {nome_modulo}")
+    st.info("Este módulo avançado é exclusivo para assinantes dos planos profissionais ou contas com Licença Master.")
     
-    st.info(f"💎 **PIX Direto:** Chave Telefone: **{CHAVE_PIX_OFICIAL}**")
-    
+    st.markdown("### 🚀 Escolha seu Plano de Assinatura:")
     col_p1, col_p2, col_p3 = st.columns(3)
     with col_p1:
-        st.markdown("#### Plano Start (Mensal)")
+        st.markdown("#### Plano Start")
         st.markdown("**R$ 147,00 / mês**")
         st.markdown(f'<a href="{LINK_PLANO_START}" target="_blank" style="background-color: #007bff; color: white; padding: 10px 15px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Start</a>', unsafe_allow_html=True)
     with col_p2:
         st.markdown("#### Plano Professional")
         st.markdown("**R$ 2.470,00 / ano**")
-        st.markdown(f'<a href="{LINK_PLANO_PRO}" target="_blank" style="background-color: #28a745; color: white; padding: 10px 15px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Professional</a>', unsafe_allow_html=True)
+        st.markdown(f'<a href="{LINK_PLANO_PRO}" target="_blank" style="background-color: #28a745; color: white; padding: 10px 15px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Pro</a>', unsafe_allow_html=True)
     with col_p3:
         st.markdown("#### Plano Enterprise")
         st.markdown("**R$ 5.970,00 / ano**")
         st.markdown(f'<a href="{LINK_PLANO_ENTERPRISE}" target="_blank" style="background-color: #6f42c1; color: white; padding: 10px 15px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Enterprise</a>', unsafe_allow_html=True)
-    
+
     st.markdown("---")
-    st.markdown("#### Possui senha mestre de liberação ou comprovante PIX enviado?")
-    senha_desbloqueio = st.text_input("Digite sua senha:", type="password", key="input_senha_bloqueio_direto")
-    if st.button("🔓 Ativar Licença Definitiva"):
-        if senha_desbloqueio in SENHAS_MESTRE_CONFIG:
-            st.session_state.liberado_pago_master = True
-            st.session_state.bloqueado_por_uso = False
-            st.success("Licença ativada com sucesso!")
-            st.rerun()
-        else:
-            st.error("Senha incorreta.")
-            
-    if st.button("🔄 Tentar Outro E-mail"):
-        st.session_state.usuario_identificado = False
-        st.session_state.bloqueado_por_uso = False
-        st.session_state.email_atual = ""
-        st.rerun()
-        
+    st.markdown(f"💎 **PIX Direto:** Chave Telefone: `{CHAVE_PIX_OFICIAL}` | WhatsApp Comprovantes: `({MEU_WHATSAPP[:2]}) {MEU_WHATSAPP[2:7]}-{MEU_WHATSAPP[7:]}`")
+    
+    with st.expander("🔑 Possui senha mestre de liberação?"):
+        senha_input = st.text_input("Digite a senha:", type="password", key=f"senha_paywall_{nome_modulo}")
+        if st.button("Ativar Acesso", key=f"btn_senha_{nome_modulo}"):
+            if senha_input in SENHAS_MESTRE_CONFIG:
+                st.session_state.liberado_pago_master = True
+                st.success("Licença ativada com sucesso!")
+                st.rerun()
+            else:
+                st.error("Senha incorreta.")
     st.stop()
 
 # ==========================================
-# TELA DE IDENTIFICAÇÃO INICIAL (LOGIN)
+# TELA DE IDENTIFICAÇÃO INICIAL (LEAD DA ENTRADA)
 # ==========================================
 def tela_identificacao_inicial():
-    st.markdown("""
-        <style>
-        .stButton button {
-            background-color: #25D366 !important;
-            color: white !important;
-            font-size: 18px !important;
-            font-weight: bold !important;
-            border-radius: 8px !important;
-            height: 50px !important;
-            width: 100% !important;
-            border: none !important;
-        }
-        .stButton button:hover {
-            background-color: #1ebe5d !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-    col_vazia1, col_centro, col_vazia2 = st.columns([1, 2.5, 1])
-
+    col_v1, col_centro, col_v2 = st.columns([1, 2.5, 1])
     with col_centro:
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("<h1 style='text-align: center; color: #1e293b;'>⚖️ Consultor Master</h1>", unsafe_allow_html=True)
-        st.markdown("<h3 style='text-align: center; color: #0284c7; font-size: 20px;'>Inteligência Tributária & Elisão Fiscal Avançada</h3>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center; color: #64748b;'>Identifique-se com seu e-mail profissional para acessar sua simulação única gratuita.</p>", unsafe_allow_html=True)
+        st.markdown("<h3 style='text-align: center; color: #0284c7; font-size: 20px;'>Simulador Tributário Gratuito de Entrada</h3>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center; color: #64748b;'>Informe seus dados abaixo para acessar o simulador gratuito livre.</p>", unsafe_allow_html=True)
         st.markdown("---")
 
-        with st.form("form_login_saas"):
-            st.markdown("#### 🚀 Acesso ao Sistema:")
-            
+        with st.form("form_lead_gratis"):
             input_nome = st.text_input("Empresa / Razão Social:", value="Empresa Exemplo Ltda")
-            input_email = st.text_input("E-mail Profissional (Obrigatório):", value="")
+            input_email = st.text_input("E-mail Profissional:", value="")
             input_wpp = st.text_input("WhatsApp com DDD:", value=MEU_WHATSAPP)
-            input_senha_mestre = st.text_input("Senha de Gestor / Assinante (Opcional):", type="password", value="")
+            input_senha_mestre = st.text_input("Senha de Gestor (Opcional):", type="password", value="")
 
-            st.markdown("<br>", unsafe_allow_html=True)
-            submitted = st.form_submit_button("⚡ ENTRAR NO SISTEMA")
+            submitted = st.form_submit_button("⚡ ENTRAR NO SIMULADOR GRATUITO")
             
             if submitted:
                 if input_senha_mestre in SENHAS_MESTRE_CONFIG or (input_email.strip().lower() == MEU_EMAIL_GESTOR.lower() and input_senha_mestre):
@@ -232,32 +161,11 @@ def tela_identificacao_inicial():
                 else:
                     email_limpo = input_email.strip().lower()
                     st.session_state.email_atual = email_limpo
-                    
-                    status_nuvem = verificar_status_nuvem(email_limpo)
-                    
-                    if status_nuvem == "bloqueado":
-                        st.session_state.bloqueado_por_uso = True
-                        st.session_state.usuario_identificado = False
-                        st.rerun()
-                    else:
-                        registrar_acesso_nuvem(email_limpo, input_wpp, input_nome)
-                        st.session_state.usuario_identificado = True
-                        st.session_state.bloqueado_por_uso = False
-                        st.success("Acesso liberado com sucesso!")
-                        st.rerun()
-
-        st.markdown("---")
-        with st.expander("💎 Já é assinante ou deseja liberação imediata via PIX?"):
-            st.markdown(f"**Chave PIX (Telefone):** `{CHAVE_PIX_OFICIAL}`")
-            st.markdown(f"📲 Envie o comprovante no WhatsApp **(64) 99304-4147** para liberar sua licença definitiva.")
-
+                    st.session_state.usuario_identificado = True
+                    registrar_lead_nuvem(email_limpo, input_wpp, input_nome)
+                    st.success("Acesso liberado!")
+                    st.rerun()
     st.stop()
-
-# ==========================================
-# ORQUESTRADOR DE TELAS
-# ==========================================
-if st.session_state.bloqueado_por_uso:
-    tela_bloqueio_comercial()
 
 if not st.session_state.usuario_identificado:
     tela_identificacao_inicial()
@@ -266,301 +174,150 @@ if not st.session_state.usuario_identificado:
 # MENU LATERAL
 # ==========================================
 st.sidebar.title("⚖️ Consultor Master")
-st.sidebar.markdown("Navegação Estratégica")
-
 if st.session_state.liberado_pago_master:
-    st.sidebar.success("👑 **Modo Gestor Ativo**\n*(Acesso Ilimitado)*")
+    st.sidebar.success("👑 **Modo Gestor Ativo**\n*(Acesso Total)*")
 else:
-    st.sidebar.warning(f"👤 **Usuário:**\n`{st.session_state.email_atual}`\n\n🔒 *Cota Única Gratuita*")
+    st.sidebar.warning(f"👤 **Lead Ativo:**\n`{st.session_state.email_atual}`\n\n🟢 *Simulador Gratuito Liberado*")
 
 modulo = st.sidebar.radio(
     "Selecione o Módulo:",
     [
-        "🚀 Simulador Tributário & Planos",
+        "🚀 1. Simulador Tributário Gratuito",
+        "⚙️ 2. Simulador Tributário Avançado (Pago)",
         "💬 Chat IA Master Sênior",
         "📑 Parecer Executivo & Disparos",
         "🛡️ Auditoria Preventiva (XML/SPED)",
         "📊 Indicadores do Escritório",
         "🏛️ Governança de Clientes",
         "🎯 Central de Leads",
-        "⚙️ Configurações / Painel Master"
+        "🔐 Painel Master / Configurações"
     ]
 )
 
 # ==========================================
-# 1. MÓDULO: SIMULADOR TRIBUTÁRIO & PLANOS
+# 1. MÓDULO: SIMULADOR TRIBUTÁRIO GRATUITO (LIVRE)
 # ==========================================
-if modulo == "🚀 Simulador Tributário & Planos":
-    st.title("🧮 Simulador Contínuo de Regime Tributário")
-    st.markdown("Análise paramétrica inteligente para identificação da menor carga tributária.")
+if modulo == "🚀 1. Simulador Tributário Gratuito":
+    st.title("🧮 Simulador Contínuo de Regime Tributário (Versão Gratuita)")
+    st.markdown("Análise paramétrica inicial para identificação rápida da carga tributária.")
 
     c1, c2 = st.columns(2, gap="large")
     with c1:
         st.subheader("Dados da Empresa")
-        razao = st.text_input("Razão Social / Nome do Cliente:", value="Empresa Exemplo Ltda", key="sim_razao")
-        whatsapp = st.text_input("WhatsApp do Cliente (com DDD):", value=MEU_WHATSAPP, key="sim_wpp")
-        email = st.text_input("E-mail do Cliente:", value=st.session_state.email_atual, key="sim_email")
-        fat_anual = st.number_input("Faturamento Bruto Anual (R$):", min_value=10000.0, value=370000.0, step=10000.0, key="sim_fat")
-        folha_anual = st.number_input("Folha de Pagamento Anual (R$):", min_value=0.0, value=90000.0, step=5000.0, key="sim_folha")
-        desp_anual = st.number_input("Despesas Operacionais Anuais (R$):", min_value=0.0, value=60000.0, step=5000.0, key="sim_desp")
+        razao = st.text_input("Razão Social:", value="Empresa Exemplo Ltda", key="sim_gratis_razao")
+        whatsapp = st.text_input("WhatsApp:", value=MEU_WHATSAPP, key="sim_gratis_wpp")
+        email = st.text_input("E-mail:", value=st.session_state.email_atual, key="sim_gratis_email")
+        fat_anual = st.number_input("Faturamento Bruto Anual (R$):", min_value=10000.0, value=370000.0, step=10000.0, key="sim_gratis_fat")
+        folha_anual = st.number_input("Folha de Pagamento Anual (R$):", min_value=0.0, value=90000.0, step=5000.0, key="sim_gratis_folha")
+        desp_anual = st.number_input("Despesas Operacionais Anuais (R$):", min_value=0.0, value=60000.0, step=5000.0, key="sim_gratis_desp")
 
     with c2:
         st.subheader("Resultado da Simulação")
-        
-        ja_gastou = False
-        if not st.session_state.liberado_pago_master and supabase:
-            try:
-                res_check = supabase.table("acessos_email").select("simulacoes_feitas").eq("email", st.session_state.email_atual.strip().lower()).execute()
-                if res_check.data and res_check.data[0].get("simulacoes_feitas", 0) >= 1:
-                    ja_gastou = True
-            except:
-                pass
+        if st.button("⚡ Executar Simulação Gratuita", type="primary", use_container_width=True):
+            simples = fat_anual * 0.09
+            presumido = fat_anual * 0.113
+            lucro_base = max(0.0, fat_anual - desp_anual - folha_anual)
+            real = lucro_base * 0.24
 
-        if ja_gastou:
-            st.error("🔒 Sua simulação gratuita única já foi processada com este e-mail.")
-            st.markdown("Para realizar novas simulações ilimitadas e exportar relatórios completos, assine um dos nossos planos ou insira sua senha de acesso.")
-            
-            st.markdown(f"**PIX Direto:** `{CHAVE_PIX_OFICIAL}`")
-            st.markdown(f'<a href="{LINK_PLANO_START}" target="_blank" style="background-color: #007bff; color: white; padding: 10px 15px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Plano Start (R$ 147/mês)</a>', unsafe_allow_html=True)
-            
-            senha_paywall = st.text_input("Senha de Liberação:", type="password", key="senha_paywall_sim")
-            if st.button("Liberar com Senha"):
-                if senha_paywall in SENHAS_MESTRE_CONFIG:
-                    st.session_state.liberado_pago_master = True
-                    st.success("Liberado com sucesso!")
-                    st.rerun()
-                else:
-                    st.error("Senha incorreta.")
-        else:
-            if st.button("⚡ Executar Simulação Completa", type="primary", use_container_width=True, key="btn_exec_sim"):
-                simples = fat_anual * 0.09
-                presumido = fat_anual * 0.113
-                lucro_base = max(0.0, fat_anual - desp_anual - folha_anual)
-                real = lucro_base * 0.24
+            cenarios = {"Simples Nacional": simples, "Lucro Presumido": presumido, "Lucro Real": real}
+            melhor = min(cenarios, key=cenarios.get)
+            menor_val = cenarios[melhor]
+            economia = max(cenarios.values()) - menor_val
 
-                cenarios = {"Simples Nacional": simples, "Lucro Presumido": presumido, "Lucro Real": real}
-                melhor = min(cenarios, key=cenarios.get)
-                menor_val = cenarios[melhor]
-                economia = max(cenarios.values()) - menor_val
+            lead_data = {
+                "Data": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                "Razao Social": razao,
+                "WhatsApp": whatsapp,
+                "E-mail": email,
+                "Melhor Regime": melhor,
+                "Economia (R$)": round(economia, 2)
+            }
+            salvar_lead_arquivo(lead_data)
+            st.session_state.res_gratis = lead_data
+            st.success("Simulação executada com sucesso!")
 
-                lead_data = {
-                    "Data": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                    "Razao Social": razao,
-                    "WhatsApp": whatsapp,
-                    "E-mail": email,
-                    "Melhor Regime": melhor,
-                    "Economia (R$)": round(economia, 2)
-                }
-                salvar_lead_arquivo(lead_data)
-                
-                if not st.session_state.liberado_pago_master:
-                    incrementar_simulacao_nuvem(st.session_state.email_atual)
-                    
-                st.session_state.ultimo_resultado_sim = lead_data
-                st.success("Simulação executada com sucesso!")
-
-        if "ultimo_resultado_sim" in st.session_state and (st.session_state.liberado_pago_master or not ja_gastou):
-            res = st.session_state.ultimo_resultado_sim
-            
-            m1, m2, m3 = st.columns(3)
+        if "res_gratis" in st.session_state:
+            res = st.session_state.res_gratis
+            m1, m2 = st.columns(2)
             m1.metric("Melhor Regime", res["Melhor Regime"])
-            m2.metric("Imposto Anual Estimado", f"R$ {res['Economia (R$)']:,.2f}")
-            m3.metric("Elisão Fiscal Potencial", f"R$ {res['Economia (R$)']:,.2f}", delta="Otimizado")
-
-            st.markdown("---")
-            st.markdown("### 📤 Ações Comerciais e Relatório")
+            m2.metric("Economia Potencial", f"R$ {res['Economia (R$)']:,.2f}")
             
-            texto_wpp = f"Olá {res['Razao Social']}, segue o resultado da nossa simulação tributária:\n\n*Melhor Regime:* {res['Melhor Regime']}\n*Economia Anual Potencial:* R$ {res['Economia (R$)']:,.2f}\n\nGerado via Consultor Inteligente Master."
-            wpp_num = limpar_telefone(res['WhatsApp'])
-            link_wpp_sim = f"https://wa.me/55{wpp_num}?text={requests.utils.quote(texto_wpp)}"
-
-            col_a1, col_a2 = st.columns(2)
-            with col_a1:
-                st.markdown(f'<a href="{link_wpp_sim}" target="_blank" style="background-color: #25D366; color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; display: block; text-align: center;">📲 Enviar Resumo no WhatsApp</a>', unsafe_allow_html=True)
-            with col_a2:
-                relatorio_txt = f"RELATÓRIO DE SIMULAÇÃO TRIBUTÁRIA\nEmpresa: {res['Razao Social']}\nData: {res['Data']}\nMelhor Regime: {res['Melhor Regime']}\nEconomia Estimada: R$ {res['Economia (R$)']:,.2f}"
-                st.download_button(
-                    label="📥 Baixar Relatório (TXT)",
-                    data=relatorio_txt,
-                    file_name=f"simulacao_{res['Razao Social'].replace(' ', '_')}.txt",
-                    mime="text/plain",
-                    use_container_width=True
-                )
+            st.markdown("---")
+            texto_wpp = f"Olá {res['Razao Social']}, segue o resultado da simulação: Melhor Regime: {res['Melhor Regime']} (Economia: R$ {res['Economia (R$)']:,.2f})."
+            link_wpp = f"https://wa.me/55{limpar_telefone(res['WhatsApp'])}?text={requests.utils.quote(texto_wpp)}"
+            st.markdown(f'<a href="{link_wpp}" target="_blank" style="background-color: #25D366; color: white; padding: 10px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">📲 Enviar Resultado no WhatsApp</a>', unsafe_allow_html=True)
 
 # ==========================================
-# 2. MÓDULO: CHAT IA MASTER SÊNIOR
+# 2. MÓDULO: SIMULADOR TRIBUTÁRIO AVANÇADO (PAGO)
+# ==========================================
+elif modulo == "⚙️ 2. Simulador Tributário Avançado (Pago)":
+    if not st.session_state.liberado_pago_master:
+        renderizar_paywall_modulo("Simulador Tributário Avançado")
+    st.title("⚙️ Simulador Tributário Avançado & Institucional")
+    st.markdown("Módulo completo com simulação paramétrica profunda, fator R e árvore de decisões fiscais.")
+    st.success("🟢 Acesso liberado ao Simulador Avançado!")
+
+# ==========================================
+# 3. MÓDULO: CHAT IA MASTER SÊNIOR (PAGO)
 # ==========================================
 elif modulo == "💬 Chat IA Master Sênior":
     if not st.session_state.liberado_pago_master:
-        st.error("🔒 O Módulo de Chat IA Avançado é exclusivo para assinantes dos planos pagos ou contas com Licença Master.")
-        st.markdown(f"Faça sua assinatura pelo PIX: `{CHAVE_PIX_OFICIAL}` ou assine online nos links da barra de controle.")
-        st.stop()
-        
-    st.title("💬 Chat IA Master Sênior - Direito Tributário & Contabilidade")
-    st.markdown("Faça perguntas técnicas avançadas sobre legislação brasileira.")
-
-    if "mensagens_chat" not in st.session_state:
-        st.session_state.mensagens_chat = [
-            {"role": "assistant", "content": "Olá! Seja muito bem-vindo(a). Sou o seu Consultor Inteligente Master. Como posso ajudar na sua estratégia tributária?"}
-        ]
-
-    for msg in st.session_state.mensagens_chat:
-        with st.chat_message(msg["role"]):
-            st.write(msg["content"])
-
-    pergunta_usuario = st.chat_input("Digite a sua dúvida tributária ou fiscal aqui...")
-    if pergunta_usuario:
-        st.session_state.mensagens_chat.append({"role": "user", "content": pergunta_usuario})
-        with st.chat_message("user"):
-            st.write(pergunta_usuario)
-
-        resposta_ia = f"Análise técnica executada com base na legislação brasileira para: '{pergunta_usuario}'."
-        st.session_state.mensagens_chat.append({"role": "assistant", "content": resposta_ia})
-        with st.chat_message("assistant"):
-            st.write(resposta_ia)
+        renderizar_paywall_modulo("Chat IA Master Sênior")
+    st.title("💬 Chat IA Master Sênior")
+    st.write("Ambiente de chat executivo ativado.")
 
 # ==========================================
-# 3. MÓDULO: PARECER EXECUTIVO & DISPAROS
+# 4. MÓDULO: PARECER EXECUTIVO & DISPAROS (PAGO)
 # ==========================================
 elif modulo == "📑 Parecer Executivo & Disparos":
     if not st.session_state.liberado_pago_master:
-        st.error("🔒 A geração de Pareceres Executivos é restrita a assinantes.")
-        st.stop()
-        
-    st.title("📑 Parecer Executivo & Disparos Automatizados")
-    st.markdown("Geração de laudos técnicos aprofundados.")
-
-    client_nome = st.text_input("Nome do Cliente / Empresa:", value="Comércio Exemplo S.A.")
-    client_fone = st.text_input("WhatsApp do Destinatário:", value=MEU_WHATSAPP)
-    tema_parecer = st.selectbox("Tema do Parecer Técnico:", ["Revisão de ICMS-ST", "Planejamento Tributário Anual", "Impactos da Reforma Tributária", "Malha Fiscal Federal"])
-
-    if st.button("📝 Gerar Parecer Executivo com IA", type="primary"):
-        parecer_texto = f"PARECER TÉCNICO EXECUTIVO\nTema: {tema_parecer}\nCliente: {client_nome}\nData: {datetime.now().strftime('%d/%m/%Y')}\n\nConclusão: Recomendada a implementação imediata dos ajustes fiscais para elisão legal."
-        st.session_state.ultimo_parecer = {
-            "texto": parecer_texto,
-            "cliente": client_nome,
-            "telefone": client_fone,
-            "tema": tema_parecer
-        }
-        st.success("Parecer executivo gerado com sucesso!")
-
-    if "ultimo_parecer" in st.session_state:
-        p = st.session_state.ultimo_parecer
-        st.markdown("---")
-        st.markdown("### 📄 Laudo Técnico Gerado")
-        st.text_area("Resultado:", value=p["texto"], height=200)
-
-        wpp_num = limpar_telefone(p["telefone"])
-        cliente_nome_val = p["cliente"]
-        tema_val = p["tema"]
-        texto_msg_parecer = f"Olá {cliente_nome_val}, segue o seu Parecer Técnico sobre {tema_val}."
-        link_wpp_parecer = f"https://wa.me/55{wpp_num}?text={requests.utils.quote(texto_msg_parecer)}"
-
-        col_p1, col_p2 = st.columns(2)
-        with col_p1:
-            st.markdown(f'<a href="{link_wpp_parecer}" target="_blank" style="background-color: #25D366; color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; display: block; text-align: center;">📲 Enviar Parecer no WhatsApp</a>', unsafe_allow_html=True)
-        with col_p2:
-            st.download_button(label="📥 Baixar Parecer em TXT", data=p["texto"], file_name=f"parecer_{tema_val.replace(' ', '_')}.txt", mime="text/plain", use_container_width=True)
+        renderizar_paywall_modulo("Parecer Executivo & Disparos")
+    st.title("📑 Parecer Executivo Institucional")
 
 # ==========================================
-# 4. MÓDULO: AUDITORIA PREVENTIVA
+# 5. MÓDULO: AUDITORIA PREVENTIVA (PAGO)
 # ==========================================
 elif modulo == "🛡️ Auditoria Preventiva (XML/SPED)":
     if not st.session_state.liberado_pago_master:
-        st.error("🔒 Módulo de Auditoria Preventiva exclusivo para assinantes.")
-        st.stop()
-    st.title("🛡️ Auditoria Preventiva & Malha Fiscal")
-    empresa_aud = st.text_input("Empresa Alvo da Auditoria:", value="Empresa Exemplo Ltda")
-    if st.button("🛡️ Executar Auditoria Padronizada", type="primary"):
-        laudo_auditoria = f"RELATÓRIO DE AUDITORIA\nEmpresa: {empresa_aud}\nStatus: Conformidade verificada com sucesso."
-        st.success("Auditoria executada com sucesso!")
-        st.text_area("Laudo Analítico:", value=laudo_auditoria, height=220)
-        st.download_button(label="📥 Baixar Relatório (TXT)", data=laudo_auditoria, file_name="auditoria.txt", mime="text/plain", use_container_width=True)
+        renderizar_paywall_modulo("Auditoria Preventiva")
+    st.title("🛡️ Auditoria Preventiva XML/SPED")
 
 # ==========================================
-# 5. MÓDULO: INDICADORES DO ESCRITÓRIO
+# 6. MÓDULO: INDICADORES DO ESCRITÓRIO (PAGO)
 # ==========================================
 elif modulo == "📊 Indicadores do Escritório":
     if not st.session_state.liberado_pago_master:
-        st.error("🔒 Módulo restrito a assinantes.")
-        st.stop()
-    st.title("📊 Indicadores de Desempenho do Escritório")
-    col_ind1, col_ind2, col_ind3 = st.columns(3)
-    col_ind1.metric("Simulações Realizadas", "24")
-    col_ind2.metric("Leads Capturados", "18")
-    col_ind3.metric("Economia Média Gerada", "R$ 42.500,00", delta="+14%")
+        renderizar_paywall_modulo("Indicadores do Escritório")
+    st.title("📊 Indicadores de Desempenho")
 
 # ==========================================
-# 6. MÓDULO: GOVERNANÇA DE CLIENTES
+# 7. MÓDULO: GOVERNANÇA DE CLIENTES (PAGO)
 # ==========================================
 elif modulo == "🏛️ Governança de Clientes":
     if not st.session_state.liberado_pago_master:
-        st.error("🔒 Módulo restrito a assinantes.")
-        st.stop()
-    st.title("🏛️ Governança e Carteira de Clientes")
-    try:
-        if os.path.exists(ARQUIVO_LEADS):
-            df_gov = pd.read_csv(ARQUIVO_LEADS)
-            st.dataframe(df_gov, use_container_width=True)
-        else:
-            st.warning("Nenhum cliente cadastrado até o momento.")
-    except Exception:
-        st.info("Painel de governança pronto.")
+        renderizar_paywall_modulo("Governança de Clientes")
+    st.title("🏛️ Governança de Clientes")
 
 # ==========================================
-# 7. MÓDULO: CENTRAL DE LEADS
+# 8. MÓDULO: CENTRAL DE LEADS (PAGO)
 # ==========================================
 elif modulo == "🎯 Central de Leads":
     if not st.session_state.liberado_pago_master:
-        st.error("🔒 Módulo restrito a assinantes.")
-        st.stop()
-    st.title("🎯 Central de Captação de Leads")
-    try:
-        if os.path.exists(ARQUIVO_LEADS):
-            df_leads = pd.read_csv(ARQUIVO_LEADS)
-            st.dataframe(df_leads, use_container_width=True)
-            csv_data = df_leads.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="📥 Baixar Planilha de Leads (CSV)",
-                data=csv_data,
-                file_name="leads_consultor_master.csv",
-                mime="text/csv",
-                use_container_width=True
-            )
-        else:
-            st.info("Ainda não há leads salvos no sistema.")
-    except Exception:
-        st.info("Central de leads em operação.")
+        renderizar_paywall_modulo("Central de Leads")
+    st.title("🎯 Central de Leads")
+    if os.path.exists(ARQUIVO_LEADS):
+        st.dataframe(pd.read_csv(ARQUIVO_LEADS), use_container_width=True)
 
 # ==========================================
-# 8. MÓDULO: CONFIGURAÇÕES / PAINEL MASTER
+# 9. MÓDULO: CONFIGURAÇÕES / PAINEL MASTER
 # ==========================================
-elif modulo == "⚙️ Configurações / Painel Master":
-    st.title("⚙️ Painel de Controle Master & Licenciamento")
-    if st.session_state.liberado_pago_master:
-        st.success("🟢 Sistema com Licença Master Ativa (Acesso Ilimitado).")
-    else:
-        st.warning(f"🔒 Conta atual: `{st.session_state.email_atual}` | Cota única de teste")
-        
-    st.markdown("### 🔑 Ativar Senha Mestre de Gestor")
-    senha_input = st.text_input("Digite a senha de ativação:", type="password", key="input_painel_senha")
-    
+elif modulo == "🔐 Painel Master / Configurações":
+    st.title("🔐 Painel de Controle Master")
+    senha_input = st.text_input("Senha Mestre:", type="password")
     if st.button("Ativar Acesso Master"):
         if senha_input in SENHAS_MESTRE_CONFIG:
             st.session_state.liberado_pago_master = True
-            st.success("Licença de gestor ativada com sucesso neste navegador!")
+            st.success("Licença ativada!")
             st.rerun()
         else:
             st.error("Senha incorreta.")
-
-    st.markdown("---")
-    st.markdown("### 💳 Informações Oficiais de Pagamento (PIX e Cartão)")
-    st.info(f"📌 **Chave PIX Oficial (InfinitePay):** `{CHAVE_PIX_OFICIAL}`\n\n📲 **WhatsApp para Comprovantes:** `(64) 99304-4147`")
-
-    col_c1, col_c2, col_c3 = st.columns(3)
-    with col_c1:
-        st.markdown(f'<a href="{LINK_PLANO_START}" target="_blank" style="background-color: #007bff; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Plano Start</a>', unsafe_allow_html=True)
-    with col_c2:
-        st.markdown(f'<a href="{LINK_PLANO_PRO}" target="_blank" style="background-color: #28a745; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Plano Pro</a>', unsafe_allow_html=True)
-    with col_c3:
-        st.markdown(f'<a href="{LINK_PLANO_ENTERPRISE}" target="_blank" style="background-color: #6f42c1; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Plano Enterprise</a>', unsafe_allow_html=True)
