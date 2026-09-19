@@ -1,4 +1,3 @@
-
 import streamlit as st
 from google import genai
 from google.genai import types
@@ -62,8 +61,9 @@ if pagina == "Chat com Assistente IA":
         with st.chat_message("assistant"):
             with st.spinner("O assistente está consultando as normas contábeis..."):
                 try:
+                    # Modelo atualizado conforme exigido pela API
                     chat_session = client_ai.chats.create(
-                        model="gemini-2.5-flash",
+                        model="gemini-3.6-flash",
                         config=types.GenerateContentConfig(
                             system_instruction=system_instruction,
                             temperature=0.2
