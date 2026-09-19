@@ -7,7 +7,7 @@ import datetime
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(
-    page_title="Assistente Contábil IA",
+    page_title="Assistente Contábil IA - SaaS",
     page_icon="📊",
     layout="wide"
 )
@@ -33,7 +33,7 @@ except Exception as e:
 
 # --- APLICAÇÃO PRINCIPAL (SEM LOGIN) ---
 st.sidebar.title("📌 Menu Contábil")
-st.sidebar.write("Modo de teste: **Sem Senha**")
+st.sidebar.write("Plataforma SaaS Profissional")
 
 pagina = st.sidebar.radio("Navegação", [
     "Chat com Assistente IA", 
@@ -41,7 +41,7 @@ pagina = st.sidebar.radio("Navegação", [
     "Lançamentos e Dashboard"
 ])
 
-# --- ABA 1: CHAT COM O GEMINI (INTOCADA) ---
+# --- ABA 1: CHAT COM O GEMINI (TOTALMENTE INTOCADA E PERFEITA) ---
 if pagina == "Chat com Assistente IA":
     st.title("🤖 Chat com Assistente Contábil (Gemini)")
     st.write("Tire dúvidas sobre balanços, tributos, plano de contas e rotinas fiscais.")
@@ -83,7 +83,7 @@ if pagina == "Chat com Assistente IA":
                 except Exception as e:
                     st.error(f"Ocorreu um erro ao processar sua solicitação com a IA: {e}")
 
-# --- ABA 2: LEITURA INTELIGENTE DE DOCUMENTOS (INTOCADA) ---
+# --- ABA 2: LEITURA INTELIGENTE DE DOCUMENTOS (INTOCADA E FUNCIONAL) ---
 elif pagina == "Leitura Inteligente (Notas/Recibos)":
     st.title("📄 Leitura de Documentos Fiscais com IA")
     st.write("Envie uma foto de nota fiscal, recibo ou PDF para extrair os dados automaticamente.")
@@ -120,10 +120,10 @@ elif pagina == "Leitura Inteligente (Notas/Recibos)":
                 except Exception as e:
                     st.error(f"Erro ao processar o documento com a IA: {e}")
 
-# --- ABA 3: SUPABASE E DASHBOARD (MELHORADA COM NOVAS FUNÇÕES) ---
+# --- ABA 3: SUPABASE E DASHBOARD (MODERNO E PROFISSIONAL) ---
 elif pagina == "Lançamentos e Dashboard":
     st.title("📁 Gestão de Lançamentos e Dashboard")
-    st.write("Painel profissional para controle de fluxo de caixa, vencimentos e centro de custos.")
+    st.write("Painel executivo para controle de fluxo de caixa, vencimentos e centro de custos.")
 
     tab1, tab2 = st.tabs(["Cadastrar Lançamento", "Ver Dados e Dashboard"])
 
@@ -131,6 +131,7 @@ elif pagina == "Lançamentos e Dashboard":
         with st.form("form_lancamento_pro"):
             st.subheader("Novo Registro Financeiro")
             descricao = st.text_input("Descrição do Lançamento (Ex: Pagamento de Fornecedor)")
+            
             col_v1, col_v2 = st.columns(2)
             with col_v1:
                 valor = st.number_input("Valor (R$)", format="%.2f", min_value=0.0)
@@ -160,7 +161,7 @@ elif pagina == "Lançamentos e Dashboard":
                     response = supabase.table("lancamentos").insert(dados).execute()
                     st.success("Lançamento salvo com sucesso no Supabase!")
                 except Exception as e:
-                    st.error(f"Erro ao salvar no banco (certifique-se de que a tabela 'lancamentos' no Supabase possui essas colunas novas): {e}")
+                    st.error(f"Erro ao salvar no banco (certifique-se de que a tabela 'lancamentos' no Supabase possui essas colunas): {e}")
 
     with tab2:
         if st.button("Carregar Registros e Indicadores"):
@@ -172,7 +173,6 @@ elif pagina == "Lançamentos e Dashboard":
                     
                     st.subheader("📊 Indicadores Chave (KPIs)")
                     if "tipo" in df.columns and "valor" in df.columns:
-                        # Cálculo dos totais
                         total_receitas = df[df["tipo"] == "Receita"]["valor"].sum()
                         total_despesas = df[df["tipo"] == "Despesa"]["valor"].sum()
                         saldo_liquido = total_receitas - total_despesas
@@ -190,7 +190,6 @@ elif pagina == "Lançamentos e Dashboard":
                     st.subheader("📋 Tabela Completa de Lançamentos")
                     st.dataframe(df, use_container_width=True)
                     
-                    # Botão para exportar dados
                     csv = df.to_csv(index=False).encode('utf-8')
                     st.download_button(
                         label="Baixar Relatório em CSV",
