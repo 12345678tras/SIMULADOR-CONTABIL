@@ -238,7 +238,7 @@ elif modulo == "💬 Chat IA Master Sênior":
 
     if "chat_sessao_gemini" not in st.session_state and client_ai:
         st.session_state.chat_sessao_gemini = client_ai.chats.create(
-            model="gemini-2.5-flash",
+            model="gemini-3.6-flash",
             config={
                 "system_instruction": (
                     "Você é um parceiro consultivo, inteligente, caloroso e altamente empático. "
@@ -299,7 +299,7 @@ elif modulo == "📑 Parecer Executivo & Disparos":
                 if client_ai:
                     prompt_parecer = f"Elabore um Parecer Técnico Executivo formal sobre o tema '{tema_parecer}' para a empresa '{client_nome}', considerando a legislação tributária brasileira."
                     response = client_ai.models.generate_content(
-                        model="gemini-2.5-flash",
+                        model="gemini-3.6-flash",
                         contents=prompt_parecer
                     )
                     parecer_texto = response.text
