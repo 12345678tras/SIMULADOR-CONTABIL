@@ -1,8 +1,9 @@
 import streamlit as st
-from google import genai
-from google.genai import types
 import pandas as pd
 import datetime
+from google import genai
+from google.genai import types
+from supabase import create_client, Client
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(
@@ -11,8 +12,20 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- CREDENCIAIS E CONEXÕES DA IA (BLINDADO) ---
-GEMINI_API_KEY = "SUA_CHAVE_GEMINI_AQUI" 
+# --- CONEXÃO COM SUPABASE (BANCO DE DADOS) ---
+# O sistema busca as credenciais de forma segura nos segredos do Streamlit (st.secrets)
+try:
+    SUPABASE_URL = st.secrets.get("SUPABASE_URL", "SUA_URL_SUPABASE")
+    SUPABASE_KEY = st.secrets.get("SUPABASE_KEY", "SUA_CHAVE_SUPABASE")
+    if SUPABASE_URL != "SUA_URL_SUPABASE" and SUPABASE_KEY != "SUA_CHAVE_SUPABASE":
+        supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    else:
+        supabase = None
+except Exception:
+    supabase = None
+
+# --- CREDENCIAIS E CONEXÕES DA IA ---
+GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", "SUA_CHAVE_GEMINI_AQUI")
 
 try:
     if GEMINI_API_KEY != "SUA_CHAVE_GEMINI_AQUI":
@@ -44,7 +57,10 @@ Escritório de Contabilidade Inteligente
 # --- MENU LATERAL CORPORATIVO COMPLETO ---
 st.sidebar.markdown("## 🏢 Consultor Master")
 st.sidebar.markdown("Plataforma de Inteligência Contábil")
-st.sidebar.success("🔓 Sistema Ativo & Integrado")
+if supabase:
+    st.sidebar.success("🟢 Supabase Conectado")
+else:
+    st.sidebar.warning("🟡 Modo Local / Supabase Pendente")
 st.sidebar.markdown("---")
 
 pagina = st.sidebar.radio(
@@ -70,7 +86,7 @@ st.sidebar.markdown("---")
 # --- MÓDULO 1: DASHBOARD / VISÃO GERAL ---
 if pagina == "📊 Dashboard / Visão Geral":
     st.title("📊 Dashboard e Visão Geral do Escritório")
-    st.markdown("Painel inicial com indicadores de desempenho, atalhos rápidos e resumo das últimas simulações.")
+    st.markdown("Painel inicial com indicadores de desempenho e resumo das operações.")
     
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Empresas na Base", "42", "+3 este mês")
@@ -79,7 +95,7 @@ if pagina == "📊 Dashboard / Visão Geral":
     col4.metric("Status da IA", "Conectado & Estável", "Online")
     
     st.markdown("---")
-    st.subheader("🚀 Indicadores Financeiros Derivados & Métricas do Setor")
+    st.subheader("🚀 Indicadores Financeiros Derivados")
     c_ind1, c_ind2 = st.columns(2)
     with c_ind1:
         st.metric("Margem de Lucro Efetiva Média", "18.4%", "+2.1% vs. Setor")
@@ -104,12 +120,12 @@ elif pagina == "🆓 Simulador Básico (Isca Gratuita)":
         col1, col2 = st.columns(2)
         col1.metric("Simples Nacional (Estimado)", f"R$ {imposto_simples:,.2f} / ano")
         col2.metric("Lucro Presumido (Estimado)", f"R$ {imposto_presumido:,.2f} / ano")
-        st.info("💡 **Dica Comercial:** Cadastre-se na versão completa para desbloquear relatórios em PDF, comparativos avançados e assessoria via IA.")
+        st.info("💡 **Dica Comercial:** Cadastre-se na versão completa para desbloquear relatórios em PDF e assessoria via IA.")
 
 # --- MÓDULO 3: GESTÃO DE CLIENTES (CRM) ---
 elif pagina == "📇 Gestão de Clientes (CRM)":
     st.title("📇 Gestão de Clientes e Cadastro (CRM)")
-    st.markdown("Gerencie a carteira de empresas cadastradas, histórico de alterações e consultas de apoio.")
+    st.markdown("Gerencie a carteira de empresas cadastradas no banco de dados.")
     
     with st.form("form_novo_cliente"):
         st.subheader("Cadastrar Nova Empresa / Cliente")
@@ -120,12 +136,21 @@ elif pagina == "📇 Gestão de Clientes (CRM)":
         with c2:
             cli_resp = st.text_input("Responsável / Sócio")
             cli_fone = st.text_input("WhatsApp de Contato (com DDD)")
-        salvar_cli = st.form_submit_button("Salvar na Base de Clientes")
+        salvar_cli = st.form_submit_button("Salvar no Supabase")
+        
         if salvar_cli:
-            st.success(f"Cliente {cli_razao} cadastrado com sucesso na base de dados!")
+            if supabase:
+                try:
+                    data = {"razao_social": cli_razao, "cnpj": cli_cnpj, "responsavel": cli_resp, "whatsapp": cli_fone}
+                    supabase.table("clientes").insert(data).execute()
+                    st.success(f"Cliente {cli_razao} salvo com sucesso no Supabase!")
+                except Exception as e:
+                    st.error(f"Erro ao salvar no Supabase: {e}")
+            else:
+                st.success(f"Cliente {cli_razao} simulado com sucesso (Supabase não configurado no momento).")
             
     st.markdown("---")
-    st.subheader("📋 Clientes Cadastrados Recentemente")
+    st.subheader("📋 Clientes Cadastrados")
     df_clientes = pd.DataFrame({
         "Razão Social": ["Comércio Exemplo Ltda", "Tech Soluções S/A", "Prestadora Alpha ME"],
         "CNPJ": ["12.345.678/0001-90", "98.765.432/0001-12", "11.223.344/0001-55"],
@@ -134,10 +159,10 @@ elif pagina == "📇 Gestão de Clientes (CRM)":
     })
     st.dataframe(df_clientes, hide_index=True, use_container_width=True)
 
-# --- MÓDULO 4: COMPARATIVO DE REGIMES (LADO A LADO) ---
+# --- MÓDULO 4: COMPARATIVO DE REGIMES (Lado a Lado) ---
 elif pagina == "⚖️ Comparativo de Regimes (Lado a Lado)":
     st.title("⚖️ Comparativo Direto de Regimes Tributários")
-    st.markdown("Confronto direto de impostos entre Simples Nacional, Lucro Presumido e Lucro Real em uma única tela.")
+    st.markdown("Confronto direto de impostos entre Simples Nacional, Lucro Presumido e Lucro Real.")
     
     c_comp1, c_comp2 = st.columns(2)
     with c_comp1:
@@ -179,7 +204,7 @@ elif pagina == "⚖️ Comparativo de Regimes (Lado a Lado)":
 # --- MÓDULO 5: SIMULADOR AVANÇADO ---
 elif pagina == "📈 Simulador Avançado":
     st.title("📈 Simulador Avançado de Fator R e Margens")
-    st.markdown("Cruzamento detalhado de despesas, margens de lucro e variáveis setoriais.")
+    st.markdown("Cruzamento detalhado de despesas e variáveis setoriais.")
     
     emp_adv = st.text_input("Empresa", value="Empresa Beta Ltda")
     wapp_adv = st.text_input("WhatsApp para Envio", value="64993044147")
@@ -208,7 +233,7 @@ elif pagina == "📈 Simulador Avançado":
 # --- MÓDULO 6: SIMULAÇÃO CONTÍNUA & MIGRAÇÃO ---
 elif pagina == "🔄 Simulação Contínua & Migração":
     st.title("🔄 Simulação Contínua de Regime Tributário")
-    st.markdown("Painel que monitora o faturamento acumulado e projeta automaticamente o momento ideal para migração de regime antes do encerramento do exercício[span_0](start_span)[span_0](end_span).")
+    st.markdown("Painel de monitoramento do faturamento acumulado.")
     
     emp_cont = st.text_input("Empresa Monitorada", value="Empresa Contínua S/A")
     fat_acumulado = st.number_input("Faturamento Acumulado no Ano (R$)", value=3200000.00)
@@ -216,24 +241,24 @@ elif pagina == "🔄 Simulação Contínua & Migração":
     if st.button("Analisar Momento de Migração"):
         st.metric("Faturamento Acumulado Atual", f"R$ {fat_acumulado:,.2f}")
         if fat_acumulado > 4200000:
-            st.warning("⚠️ **Alerta Crítico de Migração:** Faturamento próximo ao teto do Simples Nacional (R$ 4,8M). Recomenda-se iniciar planejamento para Lucro Presumido/Real imediatamente.")
+            st.warning("⚠️ **Alerta Crítico de Migração:** Faturamento próximo ao teto do Simples Nacional (R$ 4,8M).")
         else:
             st.success("✅ **Status Estável:** Operação dentro da margem segura do regime atual.")
 
 # --- MÓDULO 7: ALERTAS DE OPORTUNIDADES FISCAIS ---
 elif pagina == "🚨 Alertas de Oportunidades Fiscais":
     st.title("🚨 Alertas de Oportunidades Fiscais")
-    st.markdown("Notificações automáticas identificando créditos tributários não aproveitados e benefícios específicos do segmento[span_1](start_span)[span_1](end_span)[span_2](start_span)[span_2](end_span).")
+    st.markdown("Identificação de créditos tributários não aproveitados.")
     
     setor_alerta = st.selectbox("Segmento da Empresa", ["Comércio Varejista", "Indústria", "Serviços Médicos", "Tecnologia / Software"])
     if st.button("Verificar Oportunidades para o Setor"):
         st.success(f"🔍 Análise concluída para o setor de **{setor_alerta}**!")
-        st.info("💡 **Oportunidade Identificada:** Possibilidade de recuperação de PIS/COFINS monofásico e créditos acumulados de ICMS/ISS. Entre em contato com o cliente para apresentar a revisão.")
+        st.info("💡 **Oportunidade Identificada:** Possibilidade de recuperação de PIS/COFINS monofásico e créditos acumulados.")
 
 # --- MÓDULO 8: PLANEJAMENTO TRIBUTÁRIO ANUAL ---
 elif pagina == "📅 Planejamento Tributário Anual":
     st.title("📅 Planejamento Tributário Anual")
-    st.markdown("Projeção de 12 meses para antecipação de mudanças de faixa e limites de enquadramento.")
+    st.markdown("Projeção de 12 meses para antecipação de mudanças de faixa.")
     
     emp_plan = st.text_input("Nome da Empresa", value="Empresa Planejamento S/A")
     wapp_plan = st.text_input("WhatsApp Destino", value="64993044147")
@@ -277,18 +302,13 @@ elif pagina == "💰 Análise de Lucros Isentos":
             link_w_lucro = f"https://wa.me/55{wapp_lucro}?text=Olá,%20segue%20a%20análise%20de%20lucros."
             st.markdown(f"<a href='{link_w_lucro}' target='_blank'><button style='background-color:#25D366; color:white; padding:8px 16px; border:none; border-radius:5px; font-weight:bold; cursor:pointer;'>📲 Enviar via WhatsApp</button></a>", unsafe_allow_html=True)
 
-# --- MÓDULO 10: CHAT IA (BLINDADO CONTRA ERRO 404) ---
+# --- MÓDULO 10: CHAT IA (GOOGLE-GENAI ESTÁVEL) ---
 elif pagina == "🤖 Chat IA Master Sênior":
     st.title("🤖 Chat com Assistente Contábil Sênior")
     st.markdown("Tire dúvidas sobre legislação fiscal, normas contábeis e análises estratégicas em tempo real.")
 
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
-
-    system_instruction = (
-        "Você é um assistente de contabilidade sênior, altamente especializado na legislação fiscal "
-        "brasileira (Simples Nacional, Lucro Presumido, Lucro Real), plano de contas e lançamentos contábeis."
-    )
 
     for message in st.session_state.chat_history:
         with st.chat_message(message["role"]):
@@ -302,34 +322,33 @@ elif pagina == "🤖 Chat IA Master Sênior":
         with st.chat_message("assistant"):
             with st.spinner("O assistente está consultando as normas contábeis..."):
                 resposta_ia = None
-                modelos_para_testar = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-flash']
                 
-                for mod in modelos_para_testar:
+                try:
+                    response = client_ai.models.generate_content(
+                        model='gemini-2.5-flash',
+                        contents=prompt
+                    )
+                    if response and response.text:
+                        resposta_ia = response.text
+                except Exception:
                     try:
                         response = client_ai.models.generate_content(
-                            model=mod,
-                            contents=prompt,
-                            config=types.GenerateContentConfig(
-                                system_instruction=system_instruction,
-                                temperature=0.2
-                            )
+                            model='gemini-1.5-flash',
+                            contents=prompt
                         )
                         if response and response.text:
                             resposta_ia = response.text
-                            break
-                    except Exception:
-                        continue
+                    except Exception as err:
+                        st.error(f"Erro de conexão com a API do Gemini. Verifique a chave configurada. Detalhe: {err}")
 
                 if resposta_ia:
                     st.markdown(resposta_ia)
                     st.session_state.chat_history.append({"role": "assistant", "content": resposta_ia})
-                else:
-                    st.error("Erro ao processar com a IA. Verifique se a sua chave de API está ativa e configurada corretamente.")
 
 # --- MÓDULO 11: HISTÓRICO DE RELATÓRIOS ---
 elif pagina == "📑 Histórico de Relatórios":
     st.title("📑 Histórico de Relatórios e Exportação")
-    st.markdown("Espaço centralizado onde o operador visualiza relatórios gerados e exporta dados.")
+    st.markdown("Espaço centralizado de relatórios gerados.")
     
     df_rels = pd.DataFrame({
         "Data": ["19/09/2026", "18/09/2026", "17/09/2026"],
@@ -342,20 +361,19 @@ elif pagina == "📑 Histórico de Relatórios":
 # --- MÓDULO 12: CONFIGURAÇÕES / ALÍQUOTAS ---
 elif pagina == "⚙️ Configurações / Alíquotas":
     st.title("⚙️ Configurações e Atualização de Alíquotas")
-    st.markdown("Área administrativa para atualizar as tabelas de alíquotas vigentes conforme muda a legislação.")
+    st.markdown("Área administrativa para parâmetros gerais.")
     
-    st.subheader("Parâmetros Gerais do Sistema")
     st.number_input("Salário Mínimo Vigente (R$)", value=1502.00)
     st.number_input("Teto do INSS (R$)", value=7786.02)
     st.selectbox("Ano-Calendário de Referência", ["2026", "2025", "2024"])
     
     if st.button("Salvar Alterações de Parâmetros"):
-        st.success("Tabelas de alíquotas e parâmetros atualizados com sucesso no sistema!")
+        st.success("Tabelas de alíquotas atualizadas com sucesso!")
 
 # --- MÓDULO 13: CALCULADORA DE RETENÇÕES ---
 elif pagina == "🧮 Calculadora de Retenções":
     st.title("🧮 Calculadora de Retenções Federais (IRRF, CSRF, INSS)")
-    st.markdown("Apuração rápida de retenções na fonte para notas fiscais de prestação de serviços.")
+    st.markdown("Apuração rápida de retenções na fonte para notas fiscais.")
     
     emp_ret = st.text_input("Empresa Tomadora / Prestadora", value="Prestadora Exemplo Ltda")
     wapp_ret = st.text_input("WhatsApp Destino", value="64993044147")
@@ -382,5 +400,5 @@ elif pagina == "🧮 Calculadora de Retenções":
         with cr1:
             st.download_button("📥 Baixar PDF Retenções", data=pdf_ret, file_name=f"Retencoes_{emp_ret}.pdf", mime="application/pdf")
         with cr2:
-            link_w_ret = f"https://wa.me/55{wapp_ret}?text=Olá,%20segue%20o%20demonstrativo%20de%20retenções."
+            link_w_ret = f"https://wa.me/55{wapp_ret}?text=Olá,%2520segue%2520o%2520demonstrativo%2520de%2520retenções."
             st.markdown(f"<a href='{link_w_ret}' target='_blank'><button style='background-color:#25D366; color:white; padding:8px 16px; border:none; border-radius:5px; font-weight:bold; cursor:pointer;'>📲 Enviar via WhatsApp</button></a>", unsafe_allow_html=True)
