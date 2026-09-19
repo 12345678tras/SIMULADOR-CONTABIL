@@ -1,5 +1,7 @@
 import streamlit as st
 import requests
+import pandas as pd
+import os
 from datetime import datetime
 
 # Configuração da Página
@@ -10,19 +12,40 @@ st.set_page_config(
 )
 
 # ==========================================
-# SUPER ACESSO DO GESTOR (ENGENHEIRO / SÓCIO)
+# SEGURANÇA E CONFIGURAÇÕES DO GESTOR
 # ==========================================
-MEU_EMAIL_GESTOR = "Rede.rodrigues2017@gmail.com" 
+# O ideal é configurar no Streamlit Cloud (Settings > Secrets):
+# [gestor]
+# email = "Rede.rodrigues2017@gmail.com"
+# senhas = ["cliente 1 2 3x", "contadora 2x", "gestorMaster2026!"]
+
+MEU_EMAIL_GESTOR = st.secrets["gestor"]["email"] if "gestor" in st.secrets and "email" in st.secrets["gestor"] else "Rede.rodrigues2017@gmail.com"
+SENHAS_MESTRE_CONFIG = st.secrets["gestor"]["senhas"] if "gestor" in st.secrets and "senhas" in st.secrets["gestor"] else ["cliente 1 2 3x", "contadora 2x", "gestorMaster2026!"]
 
 # Inicialização de Estado Robusta
 if "liberado_pago_master" not in st.session_state:
     st.session_state.liberado_pago_master = False
 if "simulacoes_restantes" not in st.session_state:
     st.session_state.simulacoes_restantes = 4
-if "leads_salvos" not in st.session_state:
-    st.session_state.leads_salvos = []
 if "acesso_bloqueado_definitivo" not in st.session_state:
     st.session_state.acesso_bloqueado_definitivo = False
+
+# Arquivo local para persistência de Leads
+ARQUIVO_LEADS = "leads_master.csv"
+
+def carregar_leads_arquivo():
+    if os.path.exists(ARQUIVO_LEADS):
+        try:
+            return pd.read_csv(ARQUIVO_LEADS)
+        except Exception:
+            return pd.DataFrame(columns=["Data", "Razao Social", "WhatsApp", "E-mail", "Melhor Regime", "Economia (R$)"])
+    return pd.DataFrame(columns=["Data", "Razao Social", "WhatsApp", "E-mail", "Melhor Regime", "Economia (R$)"])
+
+def salvar_lead_arquivo(novo_lead):
+    df = carregar_leads_arquivo()
+    novo_df = pd.DataFrame([novo_lead])
+    df = pd.concat([df, novo_df], ignore_index=True)
+    df.to_csv(ARQUIVO_LEADS, index=False)
 
 # Atalho inteligente via parâmetro na URL (?admin=true)
 params = st.query_params
@@ -39,10 +62,8 @@ LINK_PLANO_ENTERPRISE = "https://invoice.infinitepay.io/plans/cristiane-da-260/D
 MEU_WHATSAPP = "64993044147"
 CHAVE_PIX_OFICIAL = "64993044147"
 
-def registrar_uso_global():
-    if not st.session_state.liberado_pago_master:
-        if st.session_state.simulacoes_restantes > 0:
-            st.session_state.simulacoes_restantes -= 1
+def limpar_telefone(fone):
+    return ''.join(filter(str.isdigit, str(fone)))
 
 def verificar_bloqueio_antes_de_usar():
     if st.session_state.liberado_pago_master:
@@ -87,7 +108,7 @@ def tela_bloqueio_comercial(motivo):
     senha_cliente_input = st.text_input("Ou digite a senha de liberação:", type="password", key="input_senha_bloqueio")
     
     if st.button("🔓 Desbloquear Acesso"):
-        if email_gestor_input.strip().lower() == MEU_EMAIL_GESTOR.lower() or senha_cliente_input in ["cliente 1 2 3x", "contadora 2x", "gestorMaster2026!"]:
+        if email_gestor_input.strip().lower() == MEU_EMAIL_GESTOR.lower() or senha_cliente_input in SENHAS_MESTRE_CONFIG:
             st.session_state.liberado_pago_master = True
             st.session_state.acesso_bloqueado_definitivo = False
             st.success("Acesso de gestor liberado com sucesso! Atualize a página.")
@@ -165,15 +186,16 @@ if modulo == "🚀 Simulador Tributário & Planos":
             m2.metric("Imposto Anual Estimado", f"R$ {menor_val:,.2f}")
             m3.metric("Elisão Fiscal Potencial", f"R$ {economia:,.2f}", delta="Otimizado")
 
+            # Salva no arquivo CSV permanente
             lead_data = {
-                "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                "razao": razao,
-                "whatsapp": whatsapp,
-                "email": email,
-                "melhor_regime": melhor,
-                "economia": economia
+                "Data": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                "Razao Social": razao,
+                "WhatsApp": whatsapp,
+                "E-mail": email,
+                "Melhor Regime": melhor,
+                "Economia (R$)": round(economia, 2)
             }
-            st.session_state.leads_salvos.append(lead_data)
+            salvar_lead_arquivo(lead_data)
             st.session_state.ultimo_resultado_sim = lead_data
 
         if "ultimo_resultado_sim" in st.session_state:
@@ -181,19 +203,19 @@ if modulo == "🚀 Simulador Tributário & Planos":
             st.markdown("---")
             st.markdown("### 📤 Ações Comerciais e Relatório")
             
-            texto_wpp = f"Olá {res['razao']}, segue o resultado da nossa simulação tributária:\n\n*Melhor Regime:* {res['melhor_regime']}\n*Economia Anual Potencial:* R$ {res['economia']:,.2f}\n\nGerado via Consultor Inteligente Master."
-            wpp_num = ''.join(filter(str.isdigit, str(res['whatsapp'])))
+            texto_wpp = f"Olá {res['Razao Social']}, segue o resultado da nossa simulação tributária:\n\n*Melhor Regime:* {res['Melhor Regime']}\n*Economia Anual Potencial:* R$ {res['Economia (R$)']:,.2f}\n\nGerado via Consultor Inteligente Master."
+            wpp_num = limpar_telefone(res['WhatsApp'])
             link_wpp_sim = f"https://wa.me/55{wpp_num}?text={requests.utils.quote(texto_wpp)}"
 
             col_a1, col_a2 = st.columns(2)
             with col_a1:
                 st.markdown(f'<a href="{link_wpp_sim}" target="_blank" style="background-color: #25D366; color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; display: block; text-align: center;">📲 Enviar Resumo no WhatsApp</a>', unsafe_allow_html=True)
             with col_a2:
-                relatorio_txt = f"RELATÓRIO DE SIMULAÇÃO TRIBUTÁRIA\nEmpresa: {res['razao']}\nData: {res['data']}\nMelhor Regime: {res['melhor_regime']}\nEconomia Estimada: R$ {res['economia']:,.2f}"
+                relatorio_txt = f"RELATÓRIO DE SIMULAÇÃO TRIBUTÁRIA\nEmpresa: {res['Razao Social']}\nData: {res['Data']}\nMelhor Regime: {res['Melhor Regime']}\nEconomia Estimada: R$ {res['Economia (R$)']:,.2f}"
                 st.download_button(
                     label="📥 Baixar Relatório (TXT)",
                     data=relatorio_txt,
-                    file_name=f"simulacao_{res['razao'].replace(' ', '_')}.txt",
+                    file_name=f"simulacao_{res['Razao Social'].replace(' ', '_')}.txt",
                     mime="text/plain",
                     use_container_width=True
                 )
@@ -251,7 +273,7 @@ elif modulo == "📑 Parecer Executivo & Disparos":
         st.success("Parecer gerado com sucesso!")
         st.text_area("Laudo Técnico:", value=parecer_texto, height=200)
 
-        wpp_num = ''.join(filter(str.isdigit, str(client_fone)))
+        wpp_num = limpar_telefone(client_fone)
         link_wpp_parecer = f"https://wa.me/55{wpp_num}?text={requests.utils.quote(f'Olá {client_nome}, segue o seu Parecer Técnico sobre {tema_parecer}.')}"
 
         col_p1, col_p2 = st.columns(2)
@@ -285,9 +307,12 @@ elif modulo == "🛡️ Auditoria Preventiva (XML/SPED)":
 elif modulo == "📊 Indicadores do Escritório":
     st.title("📊 Indicadores de Desempenho do Escritório")
     
+    df_leads_ind = carregar_leads_arquivo()
+    total_leads = len(df_leads_ind)
+
     col_ind1, col_ind2, col_ind3 = st.columns(3)
-    col_ind1.metric("Simulações Realizadas", len(st.session_state.leads_salvos) + 12)
-    col_ind2.metric("Clientes Atendidos", len(st.session_state.leads_salvos) + 8)
+    col_ind1.metric("Simulações Realizadas", total_leads + 12)
+    col_ind2.metric("Clientes Atendidos", total_leads + 8)
     col_ind3.metric("Economia Média Gerada", "R$ 42.500,00", delta="+14%")
 
 # ==========================================
@@ -296,13 +321,35 @@ elif modulo == "📊 Indicadores do Escritório":
 elif modulo == "🏛️ Governança de Clientes":
     st.title("🏛️ Governança e Carteira de Clientes")
     st.info("Utilize o painel para gerenciar os clientes cadastrados.")
+    
+    df_gov = carregar_leads_arquivo()
+    if not df_gov.empty:
+        st.dataframe(df_gov, use_container_width=True)
+    else:
+        st.warning("Nenhum cliente cadastrado até o momento.")
 
 # ==========================================
 # 7. MÓDULO: CENTRAL DE LEADS
 # ==========================================
 elif modulo == "🎯 Central de Leads":
     st.title("🎯 Central de Captação de Leads")
-    st.info("Oportunidades de negócios geradas ou cadastradas.")
+    st.markdown("Oportunidades de negócios geradas através das simulações tributárias.")
+
+    df_leads = carregar_leads_arquivo()
+    if not df_leads.empty:
+        st.dataframe(df_leads, use_container_width=True)
+        
+        # Botão para baixar a base de leads em CSV
+        csv_data = df_leads.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="📥 Baixar Planilha de Leads (CSV)",
+            data=csv_data,
+            file_name="leads_consultor_master.csv",
+            mime="text/csv",
+            use_container_width=True
+        )
+    else:
+        st.info("Ainda não há leads salvos no sistema. Faça simulações para começar a capturar contatos!")
 
 # ==========================================
 # 8. MÓDULO: CONFIGURAÇÕES / PAINEL MASTER
@@ -321,7 +368,7 @@ elif modulo == "⚙️ Configurações / Painel Master":
     senha_input = st.text_input("Ou Senha de Ativação:", type="password", key="input_painel_senha")
     
     if st.button("Ativar Acesso Master"):
-        if email_painel.strip().lower() == MEU_EMAIL_GESTOR.lower() or senha_input in ["cliente 1 2 3x", "contadora 2x", "gestorMaster2026!"]:
+        if email_painel.strip().lower() == MEU_EMAIL_GESTOR.lower() or senha_input in SENHAS_MESTRE_CONFIG:
             st.session_state.liberado_pago_master = True
             st.session_state.acesso_bloqueado_definitivo = False
             st.success("Licença de gestor ativada com sucesso neste dispositivo!")
@@ -339,4 +386,4 @@ elif modulo == "⚙️ Configurações / Painel Master":
     with col_c2:
         st.markdown(f'<a href="{LINK_PLANO_PRO}" target="_blank" style="background-color: #28a745; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Plano Pro</a>', unsafe_allow_html=True)
     with col_c3:
-        st.markdown(f'<a href="{LINK_PLANO_ENTERPRISE}" target="_blank" style="background-color: #6f42c1; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Enterprise</a>', unsafe_allow_html=True)
+        st.markdown(f'<a href="{LINK_PLANO_ENTERPRISE}" target="_blank" style="background-color: #6f42c1; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; display: block; text-align: center;">Assinar Plano Enterprise</a>', unsafe_allow_html=True)
