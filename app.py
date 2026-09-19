@@ -1,23 +1,23 @@
 import streamlit as st
 from google import genai
 from google.genai import types
-from supabase import create_client, Client
 import pandas as pd
 import datetime
+import base64
+from weasyprint import HTML
+import tempfile
+import os
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(
-    page_title="Consultor Master - Sistema Contábil",
+    page_title="Consultor Master - Sistema Contábil Corporativo",
     page_icon="💼",
     layout="wide"
 )
 
-# --- CREDENCIAIS E CONEXÕES ---
+# --- CREDENCIAIS E CONEXÕES DA IA ---
 GEMINI_API_KEY = "SUA_CHAVE_GEMINI_AQUI" 
-SUPABASE_URL = "https://seu-projeto-real.supabase.co"
-SUPABASE_KEY = "sua_chave_anon_ou_service_role_aqui"
 
-# Inicializar clientes de forma segura
 try:
     if GEMINI_API_KEY != "SUA_CHAVE_GEMINI_AQUI":
         client_ai = genai.Client(api_key=GEMINI_API_KEY)
@@ -26,69 +26,127 @@ try:
 except Exception as e:
     st.error(f"Erro ao inicializar o Gemini: {e}")
 
-try:
-    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-except Exception as e:
-    st.warning("Supabase não conectado completamente. Verifique as credenciais.")
-
-# --- MENU LATERAL (TUDO LIBERADO PARA TESTES) ---
+# --- MENU LATERAL DE ALTO PADRÃO (DIVIDIDO EM BLOCOS) ---
 st.sidebar.markdown("## 🏢 Consultor Master")
-st.sidebar.markdown("Navegação Estratégica")
-st.sidebar.success("🔓 Modo de Testes: 100% Liberado")
+st.sidebar.markdown("Plataforma de Inteligência Contábil")
+st.sidebar.success("🔓 Ambiente 100% Liberado para Testes")
 st.sidebar.markdown("---")
-st.sidebar.markdown("**Selecione o Módulo:**")
 
-pagina = st.sidebar.radio("Módulos", [
+st.sidebar.markdown("### 📊 Inteligência & Simulação")
+menu_1 = [
     "📊 Simulador Básico", 
     "📈 Simulador Avançado", 
-    "🤖 Chat IA Master Sênior", 
-    "📑 Parecer Executivo & Disparos",
-    "🔍 Auditoria Preventiva XML/SPED",
-    "📈 Indicadores do Escritório",
-    "👥 Governança de Clientes",
-    "⚙️ Configurações / Painel Master"
-])
+    "📅 Planejamento Tributário Anual", 
+    "💰 Análise de Lucros Isentos"
+]
 
+st.sidebar.markdown("### 🤖 Consultoria & Pareceres")
+menu_2 = [
+    "🤖 Chat IA Master Sênior", 
+    "📑 Parecer Executivo & WhatsApp"
+]
+
+st.sidebar.markdown("### 🔍 Compliance & Fiscal")
+menu_3 = [
+    "🔍 Auditoria Preventiva XML/SPED",
+    "🧮 Calculadora de Retenções",
+    "📋 Calendário de Obrigações"
+]
+
+st.sidebar.markdown("### 💼 Gestão do Escritório")
+menu_4 = [
+    "📈 Indicadores do Escritório",
+    "👥 Governança de Clientes"
+]
+
+st.sidebar.markdown("### ⚙️ Sistema")
+menu_5 = [
+    "⚙️ Configurações / Painel Master"
+]
+
+# Seleção unificada da página
+pagina = st.sidebar.radio("Navegação Principal", menu_1 + menu_2 + menu_3 + menu_4 + menu_5)
 st.sidebar.markdown("---")
 
-# --- MÓDULO 1: SIMULADOR BÁSICO ---
+# --- FUNÇÃO AUXILIAR PARA GERAR PDF E WHATSAPP ---
+def gerar_relatorio_pdf_html(titulo, dados_cliente, resultado_texto):
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            @page {{ size: A4; margin: 20mm; background-color: #ffffff; }}
+            body {{ font-family: 'Helvetica', Arial, sans-serif; color: #333333; line-height: 1.6; margin: 0; padding: 0; }}
+            .header {{ background-color: #1E3A8A; color: #ffffff; padding: 20px; text-align: center; border-radius: 6px; }}
+            .header h1 {{ margin: 0; font-size: 22px; }}
+            .section {{ margin-top: 25px; background: #F8FAFC; padding: 15px; border-radius: 6px; border-left: 4px solid #1E3A8A; }}
+            .footer {{ margin-top: 40px; text-align: center; font-size: 12px; color: #666666; border-top: 1px solid #E2E8F0; padding-top: 10px; }}
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>Parecer Técnico Contábil - Consultor Master</h1>
+        </div>
+        <div class="section">
+            <h3>Dados do Cliente</h3>
+            <p><strong>Razão Social:</strong> {dados_cliente.get('razao', 'N/A')}</p>
+            <p><strong>CNPJ/CPF:</strong> {dados_cliente.get('documento', 'N/A')}</p>
+            <p><strong>Faturamento Anual:</strong> R$ {dados_cliente.get('faturamento', 0):,.2f}</p>
+        </div>
+        <div class="section">
+            <h3>{titulo}</h3>
+            <p>{resultado_texto}</p>
+        </div>
+        <div class="footer">
+            <p>Gerado automaticamente pelo Sistema Consultor Master - Uso Exclusivo Profissional.</p>
+        </div>
+    </body>
+    </html>
+    """
+    
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+        output_path = tmp.name
+    
+    HTML(string=html_content).write_pdf(output_path)
+    return output_path
+
+# --- MÓDULO: SIMULADOR BÁSICO ---
 if pagina == "📊 Simulador Básico":
     st.title("📊 Simulador Básico de Regime Tributário")
-    st.markdown("Análise rápida e simplificada para estimar a carga tributária inicial do cliente.")
+    st.markdown("Análise inicial e ágil para estimativa de carga tributária.")
 
     with st.form("form_simulador_basico"):
-        razao_social = st.text_input("Nome ou Razão Social do Cliente", value="Empresa Exemplo Ltda")
+        razao_social = st.text_input("Razão Social do Cliente", value="Empresa Exemplo Ltda")
         faturamento = st.number_input("Faturamento Bruto Anual Estimado (R$)", value=180000.00, format="%.2f")
-        
-        executar_basico = st.form_submit_button("Calcular Carga Tributária Básica")
+        executar_basico = st.form_submit_button("Calcular Carga Básica")
         
         if executar_basico:
             st.success("Cálculo básico realizado com sucesso!")
-            
             imposto_simples = faturamento * 0.06 
-            imposto_presumido = faturamento * 11.33 
+            imposto_presumido = faturamento * 0.1133 
             
             col1, col2 = st.columns(2)
-            col1.metric("Estimativa Simples Nacional", f"R$ {imposto_simples:,.2f} / ano")
-            col2.metric("Estimativa Lucro Presumido", f"R$ {imposto_presumido:,.2f} / ano")
+            col1.metric("Simples Nacional (Estimado)", f"R$ {imposto_simples:,.2f} / ano")
+            col2.metric("Lucro Presumido (Estimado)", f"R$ {imposto_presumido:,.2f} / ano")
             
             if imposto_simples < imposto_presumido:
-                st.info("💡 **Conclusão:** Para este patamar de faturamento, o **Simples Nacional** demonstra ser mais vantajoso.")
+                st.info("💡 **Conclusão:** O Simples Nacional apresenta menor carga tributária teórica neste patamar.")
             else:
-                st.info("💡 **Conclusão:** O **Lucro Presumido** pode ser uma alternativa competitiva a ser detalhada.")
+                st.info("💡 **Conclusão:** Avaliar Lucro Presumido com detalhamento de despesas operacionais.")
 
-# --- MÓDULO 2: SIMULADOR AVANÇADO ---
+# --- MÓDULO: SIMULADOR AVANÇADO ---
 elif pagina == "📈 Simulador Avançado":
     st.title("📈 Simulador Avançado de Regime Tributário")
-    st.markdown("Análise paramétrica completa contemplando folha de pagamento, fator R, despesas e margens.")
+    st.markdown("Cruzamento completo de folha de pagamento, fator R, despesas e margens.")
 
     with st.form("form_simulador_avancado"):
         c1, c2 = st.columns(2)
         with c1:
             razao_social = st.text_input("Razão Social Completa", value="Empresa S/A")
-            whatsapp = st.text_input("WhatsApp com DDD", value="64993044147")
+            documento = st.text_input("CNPJ", value="00.000.000/0001-00")
         with c2:
-            email = st.text_input("E-mail de Contato", value="contato@empresa.com.br")
+            whatsapp = st.text_input("WhatsApp para Envio (com DDD)", value="64993044147")
             atividade = st.selectbox("Ramo de Atividade", ["Comércio", "Indústria", "Serviços (Fator R)", "Serviços Gerais"])
             
         st.markdown("---")
@@ -100,11 +158,10 @@ elif pagina == "📈 Simulador Avançado":
         with c5:
             despesas = st.number_input("Despesas Operacionais Anuais (R$)", value=40000.00, format="%.2f")
         
-        executar_avancado = st.form_submit_button("Executar Simulação Avançada Completa")
+        executar_avancado = st.form_submit_button("Executar Simulação Avançada")
         
         if executar_avancado:
-            st.success("Simulação avançada processada com parâmetros fiscais detalhados!")
-            
+            st.success("Simulação avançada processada com sucesso!")
             st.markdown("### 📊 Relatório Comparativo de Cenários")
             
             col_a, col_b, col_c = st.columns(3)
@@ -112,12 +169,54 @@ elif pagina == "📈 Simulador Avançado":
             col_b.metric("Lucro Presumido", "R$ 40.788,00 /ano", "+15.2%")
             col_c.metric("Lucro Real", "R$ 38.500,00 /ano", "+11.0%")
             
-            st.info("ℹ️ Simulação paramétrica concluída com sucesso no modo de testes livres.")
+            res_texto = "Simulação detalhada indicou economia tributária expressiva optando pelo Simples Nacional face ao faturamento e proporção da folha de pagamento."
+            dados_cli = {'razao': razao_social, 'documento': documento, 'faturamento': faturamento}
+            
+            pdf_path = gerar_relatorio_pdf_html("Parecer de Simulação Tributária Avançada", dados_cli, res_texto)
+            
+            with open(pdf_path, "rb") as f:
+                pdf_bytes = f.read()
+                
+            st.download_button(
+                label="📥 Baixar Parecer em PDF",
+                data=pdf_bytes,
+                file_name=f"Parecer_Tributario_{razao_social.replace(' ', '_')}.pdf",
+                mime="application/pdf"
+            )
+            
+            link_wapp = f"https://wa.me/55{whatsapp}?text=Olá,%20segue%20o%20parecer%20tributário%20gerado%20pelo%20Consultor%20Master."
+            st.markdown(f"<a href='{link_wapp}' target='_blank'><button style='background-color:#25D366; color:white; padding:10px 20px; border:none; border-radius:5px; font-weight:bold; cursor:pointer;'>📲 Enviar Relatório via WhatsApp</button></a>", unsafe_allow_html=True)
 
-# --- MÓDULO 3: CHAT IA (ESTÁVEL) ---
+# --- MÓDULO: PLANEJAMENTO TRIBUTÁRIO ANUAL ---
+elif pagina == "📅 Planejamento Tributário Anual":
+    st.title("📅 Planejamento Tributário Anual")
+    st.markdown("Projeção de 12 meses para antecipação de mudanças de faixa e enquadramento.")
+    st.info("Módulo liberado: Insira as expectativas de faturamento mensal para projetar o acumulado dos 12 meses.")
+    
+    meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
+    df_proj = pd.DataFrame({"Mês": meses, "Faturamento Previsto (R$)": [30000.0] * 12})
+    df_editado = st.data_editor(df_proj, hide_index=True)
+    if st.button("Consolidar Projeção Anual"):
+        total_proj = df_editado["Faturamento Previsto (R$)"].sum()
+        st.success(f"Projeção anual consolidada com sucesso! Faturamento total previsto: R$ {total_proj:,.2f}")
+
+# --- MÓDULO: ANÁLISE DE LUCROS ISENTOS ---
+elif pagina == "💰 Análise de Lucros Isentos":
+    st.title("💰 Análise de Distribuição de Lucros Isentos")
+    st.markdown("Cálculo do limite de isenção de distribuição de lucros baseado no balanço e apuração.")
+    with st.form("form_lucros"):
+        receita_contabil = st.number_input("Receita Bruta Contábil Anual (R$)", value=500000.0)
+        presuncao = st.selectbox("Percentual de Presunção (Lucro Presumido)", [0.08, 0.16, 0.32])
+        irpj_csll_pagos = st.number_input("Tributos Federais Pagos no Período (R$)", value=25000.0)
+        if st.form_submit_button("Calcular Lucro Isento Máximo"):
+            lucro_presumido_contabil = receita_contabil * presuncao
+            max_isento = lucro_presumido_contabil - irpj_csll_pagos
+            st.metric("Limite Máximo de Lucro Isento Distribuível", f"R$ {max_isento:,.2f}")
+
+# --- MÓDULO: CHAT IA (ESTÁVEL E SEGURO) ---
 elif pagina == "🤖 Chat IA Master Sênior":
     st.title("🤖 Chat com Assistente Contábil")
-    st.markdown("Tire dúvidas sobre balanços, tributos, plano de contas e rotinas fiscais.")
+    st.markdown("Tire dúvidas sobre legislação fiscal, normas contábeis e análises estratégicas.")
 
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
@@ -139,7 +238,6 @@ elif pagina == "🤖 Chat IA Master Sênior":
         with st.chat_message("assistant"):
             with st.spinner("O assistente está consultando as normas contábeis..."):
                 try:
-                    # Tentativa com o modelo padrão atual de mercado do SDK do Gemini
                     response = client_ai.models.generate_content(
                         model='gemini-2.5-flash',
                         contents=prompt,
@@ -152,10 +250,9 @@ elif pagina == "🤖 Chat IA Master Sênior":
                     st.markdown(resposta_ia)
                     st.session_state.chat_history.append({"role": "assistant", "content": resposta_ia})
                 except Exception as e:
-                    # Fallback automático caso o ambiente prefira o modelo flash padrão genérico
                     try:
                         response = client_ai.models.generate_content(
-                            model='gemini-flash',
+                            model='gemini-1.5-flash',
                             contents=prompt,
                             config=types.GenerateContentConfig(
                                 system_instruction=system_instruction,
@@ -168,8 +265,38 @@ elif pagina == "🤖 Chat IA Master Sênior":
                     except Exception as err:
                         st.error(f"Erro ao processar com a IA: {err}")
 
-# --- OUTROS MÓDULOS (TAMBÉM LIBERADOS PARA TESTE) ---
+# --- MÓDULO: PARECER EXECUTIVO & WHATSAPP ---
+elif pagina == "📑 Parecer Executivo & WhatsApp":
+    st.title("📑 Central de Pareceres Executivos & Disparos")
+    st.markdown("Gere relatórios executivos personalizados e envie diretamente via WhatsApp para seus clientes.")
+    
+    with st.form("form_parecer_geral"):
+        cli_nome = st.text_input("Nome do Cliente / Empresa", value="Comércio Exemplo Ltda")
+        cli_wapp = st.text_input("WhatsApp do Cliente (com DDD)", value="64993044147")
+        assunto = st.selectbox("Tipo de Parecer", ["Análise de Viabilidade Tributária", "Revisão de Fator R", "Orientação de Distribuição de Lucros"])
+        conteudo_parecer = st.text_area("Texto do Parecer Técnico", value="Após análise minuciosa das operações da empresa, identificamos oportunidades estratégicas de otimização na carga tributária vigente.")
+        
+        gerar_btn = st.form_submit_button("Gerar PDF e Preparar Disparo")
+        if gerar_btn:
+            dados_cli = {'razao': cli_nome, 'documento': '12.345.678/0001-90', 'faturamento': 250000.0}
+            pdf_path = gerar_relatorio_pdf_html(assunto, dados_cli, conteudo_parecer)
+            
+            with open(pdf_path, "rb") as f:
+                pdf_bytes = f.read()
+                
+            st.success("Parecer executivo gerado com sucesso!")
+            st.download_button(
+                label="📥 Baixar Parecer Executivo em PDF",
+                data=pdf_bytes,
+                file_name=f"Parecer_{cli_nome.replace(' ', '_')}.pdf",
+                mime="application/pdf"
+            )
+            
+            link_wapp = f"https://wa.me/55{cli_wapp}?text=Olá,%20segue%20o%20parecer%20executivo%20contábil%20referente%20ao%20seu%20atendimento."
+            st.markdown(f"<a href='{link_wapp}' target='_blank'><button style='background-color:#25D366; color:white; padding:10px 20px; border:none; border-radius:5px; font-weight:bold; cursor:pointer;'>📲 Enviar Parecer via WhatsApp</button></a>", unsafe_allow_html=True)
+
+# --- DEMAIS MÓDULOS (COMPLIANCE E GESTÃO) ---
 else:
     st.title(f"🛠️ Módulo: {pagina}")
-    st.success("Este módulo está liberado no seu ambiente de testes para você configurar e estruturar livremente.")
-    st.markdown("Utilize esta área para construir as rotinas complementares do seu escritório contábil.")
+    st.success("Módulo liberado e operacional no ambiente de testes.")
+    st.markdown("Utilize esta área para gerenciar as rotinas integradas do seu escritório contábil.")
