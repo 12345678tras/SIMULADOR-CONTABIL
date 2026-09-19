@@ -31,11 +31,13 @@ except Exception as e:
     supabase = None
 
 # ==========================================
-# CREDENCIAIS E LINKS (PROTEGIDOS VIA SECRETS)
+# CREDENCIAIS E LINKS (GARANTIDAS NO CÓDIGO)
 # ==========================================
 GESTOR_CONFIG = st.secrets.get("gestor", {})
 MEU_EMAIL_GESTOR = GESTOR_CONFIG.get("email", "Rede.rodrigues2017@gmail.com")
-SENHAS_MESTRE_CONFIG = GESTOR_CONFIG.get("senhas", ["cliente 1 2 3x", "contadora2x", "gestorMaster2026!"])
+
+# Senhas mestre fixas e e-mail do gestor liberados
+SENHAS_MESTRE_CONFIG = ["cliente 1 2 3x", "contadora2x", "gestormaster2026!", "rede.rodrigues2017@gmail.com"]
 
 LINK_PLANO_START = "https://invoice.infinitepay.io/plans/cristiane-da-260/KC9Geb9OrA"
 LINK_PLANO_PRO = "https://invoice.infinitepay.io/plans/cristiane-da-260/k7jgpmWCJL"
@@ -119,14 +121,14 @@ def renderizar_paywall_modulo(nome_modulo):
     st.markdown(f"💎 **PIX Direto:** Chave Telefone: `{CHAVE_PIX_OFICIAL}` | WhatsApp Comprovantes: `({MEU_WHATSAPP[:2]}) {MEU_WHATSAPP[2:7]}-{MEU_WHATSAPP[7:]}`")
     
     with st.expander("🔑 Possui senha mestre de liberação?"):
-        senha_input = st.text_input("Digite a senha:", type="password", key=f"senha_paywall_{nome_modulo}")
+        senha_input = st.text_input("Digite a senha ou e-mail de gestor:", type="password", key=f"senha_paywall_{nome_modulo}")
         if st.button("Ativar Acesso", key=f"btn_senha_{nome_modulo}"):
-            if senha_input.strip().lower() in [s.lower() for s in SENHAS_MESTRE_CONFIG]:
+            if senha_input.strip().lower() in SENHAS_MESTRE_CONFIG:
                 st.session_state.liberado_pago_master = True
                 st.success("Licença Master ativada com sucesso!")
                 st.rerun()
             else:
-                st.error("Senha incorreta.")
+                st.error("Senha ou e-mail incorreto.")
     st.stop()
 
 # ==========================================
@@ -145,12 +147,12 @@ def tela_identificacao_inicial():
             input_nome = st.text_input("Empresa / Razão Social:", value="Empresa Exemplo Ltda")
             input_email = st.text_input("E-mail Profissional:", value="")
             input_wpp = st.text_input("WhatsApp com DDD:", value=MEU_WHATSAPP)
-            input_senha_mestre = st.text_input("Senha de Gestor / Cliente (Opcional):", type="password", value="")
+            input_senha_mestre = st.text_input("Senha de Gestor / E-mail (Opcional):", type="password", value="")
 
             submitted = st.form_submit_button("⚡ ENTRAR NO SIMULADOR GRATUITO")
             
             if submitted:
-                if (input_senha_mestre.strip().lower() in [s.lower() for s in SENHAS_MESTRE_CONFIG]) or (input_email.strip().lower() == MEU_EMAIL_GESTOR.lower() and input_senha_mestre):
+                if (input_senha_mestre.strip().lower() in SENHAS_MESTRE_CONFIG) or (input_email.strip().lower() == MEU_EMAIL_GESTOR.lower() and input_senha_mestre):
                     st.session_state.liberado_pago_master = True
                     st.session_state.usuario_identificado = True
                     st.session_state.email_atual = MEU_EMAIL_GESTOR
@@ -420,11 +422,11 @@ elif modulo == "🔐 Painel Master / Configurações":
     st.title("🔐 Painel de Controle Master")
     st.markdown("Área restrita para autenticação administrativa e testes de liberação de licenças.")
     
-    senha_input = st.text_input("Digite a Senha Mestre de Acesso:", type="password")
+    senha_input = st.text_input("Digite a Senha ou E-mail de Acesso:", type="password")
     if st.button("Ativar Acesso Total"):
-        if senha_input.strip().lower() in [s.lower() for s in SENHAS_MESTRE_CONFIG]:
+        if senha_input.strip().lower() in SENHAS_MESTRE_CONFIG:
             st.session_state.liberado_pago_master = True
             st.success("Licença Master ativada com sucesso em todos os módulos!")
             st.rerun()
         else:
-            st.error("Senha incorreta.")
+            st.error("Credencial incorreta.")
